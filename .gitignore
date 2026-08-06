@@ -8,6 +8,18 @@
 # Stale first pull (superseded by cardinfo_misc.json — safe to delete locally):
 data/cardinfo_raw.json
 
+# Growing personal price database + collector log (the tool's data).
+# NOTE: price history CANNOT be re-pulled — this file is precious once it accrues. Back it up
+# (e.g. Time Machine / a periodic copy). It's gitignored to keep the repo from bloating daily.
+data/ygo.db
+data/collector.log
+
+# Generated tool outputs (rebuilt from the DB; snapshot-specific):
+screener.html
+value_report.html
+deck_report.html
+*_preview.png
+
 # --- Python / Jupyter ---
 __pycache__/
 *.pyc

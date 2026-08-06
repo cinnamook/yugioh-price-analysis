@@ -18,6 +18,34 @@ API  = "https://db.ygoprodeck.com/api/v7/cardinfo.php?misc=yes"
 PREMIUM = ("secret","ultimate","ghost","starlight","collector","prismatic","quarter century","platinum")
 PRICE_KEYS = ["tcgplayer_price","cardmarket_price","ebay_price","amazon_price","coolstuffinc_price"]
 
+# Canonical rarities, ordered roughly ascending in collectibility. Used by the screener/planner.
+RARITY_ORDER = ["Common","Foil Common","Short Print","Rare","Parallel Rare","Duel Terminal Parallel",
+    "Super Rare","Ultra Rare","Secret Rare","Ultimate Rare","Ghost Rare","Gold Rare","Gold Secret Rare",
+    "Platinum Rare","Platinum Secret Rare","Prismatic Secret Rare","Collector's Rare","Starlight Rare",
+    "Quarter Century Secret Rare"]
+
+def norm_rarity(raw):
+    """Map one of the ~48 messy raw set_rarity strings to a canonical rarity (or None to drop junk)."""
+    r = (raw or "").lower()
+    if "quarter century" in r: return "Quarter Century Secret Rare"
+    if "starlight" in r:       return "Starlight Rare"
+    if "collector" in r:       return "Collector's Rare"
+    if "prismatic" in r:       return "Prismatic Secret Rare"
+    if "ghost" in r:           return "Ghost Rare"
+    if "ultimate" in r:        return "Ultimate Rare"
+    if "platinum" in r:        return "Platinum Secret Rare" if "secret" in r else "Platinum Rare"
+    if "gold" in r:            return "Gold Secret Rare" if "secret" in r else "Gold Rare"
+    if any(k in r for k in ("starfoil","shatterfoil","mosaic")): return "Foil Common"
+    if "duel terminal" in r:   return "Duel Terminal Parallel"
+    if "parallel" in r:        return "Parallel Rare"
+    if "short print" in r:     return "Short Print"
+    if "secret" in r:          return "Secret Rare"
+    if "ultra" in r:           return "Ultra Rare"
+    if "super" in r:           return "Super Rare"
+    if r == "common" or "common" in r: return "Common"
+    if "rare" in r:            return "Rare"
+    return None
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS cards (
   card_id INTEGER PRIMARY KEY, name TEXT, type TEXT, card_class TEXT, race TEXT,
@@ -30,6 +58,11 @@ CREATE TABLE IF NOT EXISTS price_history (
   card_id INTEGER, snapshot_date TEXT,
   tcgplayer REAL, cardmarket REAL, ebay REAL, amazon REAL, coolstuffinc REAL,
   PRIMARY KEY (card_id, snapshot_date)
+);
+-- current per-rarity prices (rebuilt each run from card_sets; price NULL where the source has none):
+CREATE TABLE IF NOT EXISTS card_rarities (
+  card_id INTEGER, rarity TEXT, price REAL, n_printings INTEGER,
+  PRIMARY KEY (card_id, rarity)
 );
 -- ready for the deck-planner phase (stay empty for now):
 CREATE TABLE IF NOT EXISTS collection (card_id INTEGER, quantity INTEGER DEFAULT 1,
@@ -71,12 +104,29 @@ def extract(c):
         ban_tcg=bi.get("ban_tcg","Unlimited"), ban_ocg=bi.get("ban_ocg","Unlimited"),
         prices={k:fnum(cp.get(k)) for k in PRICE_KEYS})
 
+def rarity_prices(c):
+    """Aggregate a card's printings into {canonical_rarity: (min_nonzero_price_or_None, n_printings)}."""
+    agg = {}
+    for s in (c.get("card_sets") or []):
+        rar = norm_rarity(s.get("set_rarity"))
+        if not rar: continue
+        p = fnum(s.get("set_price"))
+        cur_min, cur_n = agg.get(rar, (None, 0))
+        if p and p > 0:
+            cur_min = p if cur_min is None else min(cur_min, p)
+        agg[rar] = (cur_min, cur_n + 1)
+    return agg
+
 def ingest(cards, date):
     os.makedirs(os.path.dirname(DB), exist_ok=True)
     con=sqlite3.connect(DB); con.executescript(SCHEMA); cur=con.cursor()
+    cur.execute("DELETE FROM card_rarities")     # per-rarity table reflects the current snapshot
     n_price=0
     for c in cards:
         e=extract(c)
+        for rar, (pr, n) in rarity_prices(c).items():
+            cur.execute("INSERT OR REPLACE INTO card_rarities (card_id,rarity,price,n_printings) VALUES (?,?,?,?)",
+                        (e["card_id"], rar, pr, n))
         cur.execute("""INSERT INTO cards
             (card_id,name,type,card_class,race,attribute,level,atk,def_,archetype,tcg_date,ocg_date,
              num_printings,top_rarity_tier,has_premium_rarity,in_structure_deck,ban_tcg,ban_ocg,first_seen,last_seen)

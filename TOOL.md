@@ -32,16 +32,19 @@ open screener.html       # or just double-click it
 
 ## Using the deck planner
 
-Export a deck as `.ydk` from the YGOPRODeck deck builder (or EDOPro), then:
+Export a deck as `.ydk` from the YGOPRODeck deck builder (or EDOPro), then price it at the rarity you want:
 
 ```
-python3 deck_planner.py mydeck.ydk                 # full cost of the deck
-python3 deck_planner.py mydeck.ydk --own owned.ydk # subtract cards you already own
+python3 deck_planner.py mydeck.ydk                        # cheapest printing per card (budget build)
+python3 deck_planner.py mydeck.ydk --rarity "Secret Rare" # everything at that rarity where it exists
+python3 deck_planner.py mydeck.ydk --overrides mine.csv   # per-card rarity (CSV rows: card_id_or_name,rarity)
+python3 deck_planner.py mydeck.ydk --own owned.ydk        # subtract cards you already own
 open deck_report.html
 ```
 
-`owned.ydk` is just a .ydk listing the cards you own (a running "collection" export). `sample_deck.ydk`
-is included as an example to try.
+A card not printed/priced in the requested rarity falls back to cheapest, flagged `‡`. Rarity names are the
+canonical ones (Common, Super Rare, Ultra Rare, Secret Rare, Prismatic Secret Rare, Starlight Rare, …).
+`sample_deck.ydk` and `rarity_overrides.csv` are included as examples. `owned.ydk` is just a .ydk of what you own.
 
 ## Roadmap
 

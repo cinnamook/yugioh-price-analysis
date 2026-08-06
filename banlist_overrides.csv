@@ -1,0 +1,19 @@
+# Manual TCG ban-list corrections — applied on top of YGOPRODeck's data every time
+# collect_snapshot.py runs (their banlist_info is sometimes stale/missing for newer cards).
+#
+# Format:   Card Name (or card_id) , Status
+# Status is one of:  Forbidden | Limited | Semi-Limited | Unlimited
+# Lines starting with # are ignored. To activate a line, fill in the Status and delete the leading "# ".
+#
+# --- Maliss cards YGOPRODeck currently reports as Unlimited — set the real status ---
+# Maliss <P> White Rabbit,Forbidden
+# Maliss <P> Dormouse,
+# Maliss <P> March Hare,
+# Maliss <P> Chessy Cat,
+# Maliss <Q> Hearts Crypter,
+# Maliss <Q> Red Ransom,
+# Maliss <Q> White Binder,
+# Maliss in the Mirror,
+#
+# Add any other cards you know are mis-marked, one per line:
+# Some Other Card,Limited

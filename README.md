@@ -19,22 +19,21 @@ The spine is **explanatory** — which attributes are associated with a card's p
 much, with ban-list status as the headline test — followed by a short **predictive coda**
 (out-of-sample R²/RMSE on log-price) to show predictive power without making prediction the point.
 
-**The answer, in a short paragraph:** _(to be written after the analysis — one paragraph,
-no hedging, states what actually explains price and how much ban-list status matters.)_
+**The answer, in a short paragraph:** A card's price is driven mostly by **scarcity, not playability**. The largest factors are rarity (each step up the rarity ladder adds roughly 30% to price) and reprint history (a reprinted card is worth about a third less), with older cards carrying a modest vintage premium. Ban-list status *is* associated with price — Forbidden cards sell at roughly double an otherwise-comparable legal card — but this is correlational and most likely reverse-caused: cards get banned *because* they are powerful and iconic, which is the same thing that drives collector demand. Altogether the model explains about 21% of price variation; the remaining ~80% reflects competitive viability, condition, and hype that a single snapshot of structural attributes cannot capture.
 
 ---
 
 ## Scope decisions (the reasoning lives in the notebook, next to each decision)
 
-These are the calls that define the analysis. Each is **pending** until decided and
-justified inline in the notebook — they are not filled in here to avoid pre-committing:
+These are the calls that defined the analysis — each was **decided and justified inline in
+the notebook**, and is summarized here:
 
 - **Unit of analysis** — **cards** _(decided; reversed from printings — see Framing above)_.
 - **Price source** — **card-level TCGplayer price** _(decided; justify with the 12.9x cross-source spread)_.
 - **Zeros / missing prices** — 510 cards (3.5%) at $0.00 = "no listing" → **treated as missing, dropped** (analyze ~13,967) _(decided; log(0) undefined and a real 0 distorts averages)_.
 - **Skew handling** — **log-transform price** _(decided; mean $1.21 vs median $0.19, top 1% = 59% of value)_.
-- **Reprints** — flag vs. exclude. _[pending]_
-- **Ban-list format** — TCG vs. OCG vs. GOAT. _[pending]_
+- **Reprints** — **flag, don't exclude** _(decided; 68% of cards are reprinted — excluding them guts the data and worsens survivorship, so reprint status becomes a feature)_.
+- **Ban-list format** — **TCG; absence = Unlimited** _(decided; the 97.8% with no ban record are the control group, not missing data)_.
 
 ## What this is not (stated up front, expanded in the Limitations section)
 
@@ -46,12 +45,12 @@ justified inline in the notebook — they are not filled in here to avoid pre-co
 
 ## Data
 
-YGOPRODeck v7 REST API — free, public, no key. Pulled once in bulk and cached locally
-(`data/cardinfo_raw.json`); the notebook reads the cached snapshot so the analysis is
-reproducible and never re-hits the API. Card images are **not** hotlinked (per API guide).
+YGOPRODeck v7 REST API — free, public, no key. Pulled once in bulk (with `misc=yes` for release
+dates and formats) and cached locally (`data/cardinfo_misc.json`); the notebook reads the cached
+snapshot so the analysis is reproducible and never re-hits the API. Card images are **not**
+hotlinked (per API guide).
 
-Pull date: _(record the date you ran the pull — it's a snapshot, so the date is part of
-the result)._
+Pull date: **2026-08-05** — it's a snapshot, so the date is part of the result.
 
 ## Repo layout
 

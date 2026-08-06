@@ -1,6 +1,7 @@
-# YGO Price Tool
+# &lt;CYBERSE&gt; — YGO Price Tool
 
-A personal Yu-Gi-Oh! price/collection tool built on top of the analysis in `notebook.ipynb`.
+**CYBERSE** is a personal Yu-Gi-Oh! price/collection app (Final Fantasy-inspired UI, opens to a game-style
+main menu) built on top of the analysis in `notebook.ipynb`.
 Grows over time from a local price history. Separate from the portfolio notebook on purpose —
 the notebook answers a question; this is a product.
 
@@ -11,6 +12,9 @@ the notebook answers a question; this is a product.
 | `collect_snapshot.py` | Pulls a dated price snapshot from YGOPRODeck into `data/ygo.db`. Run daily (see below). Stdlib only. |
 | `screener.py` | Generates `screener.html` — filter/sort/search the whole catalog by price, rarity, ban status, archetype, age, plus a cross-marketplace "gap" flag. |
 | `deck_planner.py` | Prices a `.ydk` decklist at current prices; computes full deck value and cost-to-complete after what you own. Writes `deck_report.html`. |
+| `build_builder.py` | Generates `builder.html` — an **interactive** app: search cards, add to a Deck / Collection / Wishlist, pick a rarity per line, see live totals + cost-to-finish. Lists save in the browser; export/import `.json`, export deck `.ydk`. |
+| `download_images.py` | Optional: downloads card art to `data/images/` (resumable, gentle) so the app shows images in card popups. Run `python3 download_images.py --limit 500` in chunks. |
+| `build_app.py` | **THE unified app** → `app.html`. Merges the screener + builder: Browse with filters, click a card for a detail popup (text, per-rarity prices, price-history sparkline), and add to Deck / Collection / Wishlist from anywhere. Multiple named decks, search within lists, add-to-deck from collection, mark the rarity you own. Supersedes `screener.html` and `builder.html`. |
 
 ## Daily collection (do this once)
 

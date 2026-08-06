@@ -18,7 +18,14 @@ data/collector.log
 screener.html
 value_report.html
 deck_report.html
+roadmap.html
+builder.html
+app.html
 *_preview.png
+*_rarity.png
+*_secret.png
+*_any.png
+app_*.png
 
 # --- Python / Jupyter ---
 __pycache__/
@@ -30,3 +37,6 @@ env/
 
 # --- OS ---
 .DS_Store
+
+# Downloaded card art (large, local cache)
+data/images/

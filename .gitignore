@@ -1,0 +1,20 @@
+# --- Data ---
+# We COMMIT the misc snapshot (data/cardinfo_misc.json, ~24MB) on purpose: prices are a
+# moving target, so committing the exact snapshot is what makes this analysis reproducible.
+# If you'd rather keep the repo lean, uncomment the next line and rely on the pull command
+# in the README (results will then differ from ours as prices drift).
+# data/cardinfo_misc.json
+
+# Stale first pull (superseded by cardinfo_misc.json — safe to delete locally):
+data/cardinfo_raw.json
+
+# --- Python / Jupyter ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# --- OS ---
+.DS_Store

@@ -27,19 +27,30 @@ auth + sync + hosting are the base the whole platform stands on.
   responsive layout pass. Live at
   `https://cinnamook.github.io/yugioh-price-analysis/`.
 
-## Next milestone — cross-device sync
+- **Cross-device sync — Phase 1 shipped 2026-08-07.** Supabase: emailed one-time
+  code (not a clickable link — see SYNC_DESIGN.md), one
+  `app_state(user_id, data jsonb, updated_at)` row with row-level security and a
+  DB-owned `updated_at`, pull-on-load, debounced push wired into `sv()`,
+  last-write-wins with a keep-mine / use-synced prompt (plus auto-backup) whenever
+  a pull would otherwise discard unsynced local edits. Schema in
+  `sync_schema.sql`; setup steps and traps in SYNC_DESIGN.md. This is also the
+  **auth foundation** the marketplace / profiles / online duels will reuse.
 
-So your collection follows you instead of starting empty per device. Full spec in
-**SYNC_DESIGN.md**. Short version: **Supabase** — magic-link auth, one
-`app_state(user_id, data jsonb, updated_at)` row with row-level security,
-pull-on-load + debounced push, last-write-wins. Free tier. This is also the
-**auth foundation** the marketplace / profiles / online duels will reuse.
+  **Decided 2026-08-07:** the **hosted** app is the everyday app on *every*
+  device, desktop included — the only viable sync target, since auth redirects
+  don't work from `file://`. The local `file://` build stays as the offline /
+  local-art extra, deliberately **out of sync**.
 
-**Decided 2026-08-07:** the **hosted** app is the everyday app on *every* device,
-desktop included. It's the only viable sync target anyway — magic-link and OAuth
-redirects don't work from `file://`. The local `file://` build stays as the
-offline / local-art extra, deliberately **out of sync**. Auth method: **magic-link
-email**.
+## Next up
+
+Nothing large is committed yet. The nearest candidates, roughly by effort:
+
+- **Sync Phase 2** — "last synced" indicator and a manual *Sync now* (both
+  partly there), offline write-queue hardening, and conflict safety beyond
+  last-write-wins if it ever actually bites.
+- **Mobile numeric keypads** — small, high daily value.
+- **Duel-field work** — tap-and-drag first, then the Tier 1 list in
+  SIM_BOARD_PLAN.md (life points, counters, Xyz materials).
 
 ## Backlog
 

@@ -59,12 +59,27 @@ overlays. Sticky offsets key off `--hh`, measured from the real header at runtim
 **ROADMAP.md is the single in-repo source of the plan** — north star, status,
 backlog, far horizon. Read it first.
 
-**Next milestone: cross-device sync.** Supabase magic-link auth, one
-`app_state(user_id, data jsonb, updated_at)` row with row-level security,
-pull-on-load plus a debounced push wired into the existing `sv()`, last-write-wins.
-Full spec in **SYNC_DESIGN.md** — read it before starting. One decision is open
-first: whether the hosted app becomes the everyday app on every device, with the
-`file://` build kept only as the offline / local-art extra.
+**Cross-device sync (Phase 1) shipped 2026-08-07.** Supabase, configured in
+`build_app.py` (`SUPABASE_URL` / `SUPABASE_ANON_KEY` — the publishable key is
+public by design; never put a secret key there). Schema in `sync_schema.sql`.
+The client lives in one block near the end of the template:
+
+- Auth is an **emailed one-time code**, not a clickable link — on iOS a link
+  authenticates Safari, whose storage is separate from the installed PWA. The
+  code length is a Supabase project setting (6–10), so don't hardcode it.
+- `sv()` is the only hook: debounced ~2.5s push, flushed on
+  `visibilitychange`/`pagehide` because iOS kills backgrounded PWAs mid-debounce.
+- `updated_at` is owned by a DB trigger and read back via `.select()`; it's the
+  conflict key, so the client never sends it.
+- A **dirty flag** guards conflicts. If a pull finds remote newer *and* local is
+  dirty, the app writes a backup to disk and asks keep-mine vs use-synced rather
+  than adopting silently. Steady state is last-write-wins.
+- Sync is off on `file://` and when the build has no Supabase config; in both
+  cases the app behaves exactly as before.
+
+**SYNC_DESIGN.md has a "Setting it up" section** listing the four traps that cost
+real time (signup vs magic-link template, OTP length, Site URL, GRANT with
+auto-expose off). Read it before touching auth config.
 
 Backlog items most likely to come next (full list in ROADMAP.md):
 

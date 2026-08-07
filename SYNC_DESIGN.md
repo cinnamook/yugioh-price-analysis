@@ -117,6 +117,47 @@ saves.
   public LFS/LFT/LF listings, other users. The auth + RLS you built in Phase 1 is
   already the foundation.
 
+## Setting it up — the four things that actually went wrong
+
+Phase 1 shipped 2026-08-07. Everything below was hit for real during setup; each
+one fails in a way that doesn't obviously point at its cause.
+
+1. **A brand-new user gets the "Confirm signup" template, not "Magic Link."**
+   `signInWithOtp({shouldCreateUser:true})` on an address that doesn't exist yet
+   creates the user, and Supabase then sends the *signup confirmation* email.
+   Putting `{{ .Token }}` in Magic Link alone produces an email with no code in
+   it. **Both templates need `{{ .Token }}`** — Magic Link takes over for every
+   sign-in after the account exists.
+
+2. **The OTP length is a project setting, not a constant.** Supabase allows 6–10
+   digits and 6 is only the default; this project sends 8. Don't hardcode a
+   length or a `maxlength` in the client — validate a minimum and let the server
+   reject a wrong code.
+
+3. **Site URL defaults to `http://localhost:3000`.** Until it's changed
+   (Authentication → URL Configuration) every `{{ .ConfirmationURL }}` in an
+   email points at a dead local server. Set it to the hosted app URL. This
+   matters less with codes than with links, but a dead link in your own email is
+   still a bug.
+
+4. **With "auto-expose new tables" OFF, GRANT is mandatory.** PostgREST derives
+   visibility from role privileges, so without
+   `grant select, insert, update on public.app_state to authenticated;` the table
+   is invisible to the client — `PGRST205 "Could not find the table ... in the
+   schema cache"` — no matter how correct the RLS policies are. GRANT and RLS are
+   separate layers: GRANT decides whether a role may touch the table, RLS decides
+   which rows. Grant to `authenticated` only, never `anon`.
+
+   Useful signal: with the grants right, an anonymous request returns `42501
+   permission denied` rather than `PGRST205`. Supabase's error text will suggest
+   `GRANT ... TO anon` to fix it — **don't**, that would make the data public.
+
+**Migrating existing data.** `file://` and the hosted origin have separate
+localStorage, so the local app's collection does not follow you. Export **Backup
+all (.json)** from the local app and import it into the hosted app *before* the
+first sign-in — signing in empty pushes an empty state to the server, which other
+devices then pull.
+
 ## Cost
 
 Supabase free tier — far beyond a personal app's needs. $0.

@@ -1599,7 +1599,7 @@ function tick(t){cx.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){var p=ps[i];
    Supabase, Phase 1 per SYNC_DESIGN.md: one app_state row per user, pull on
    load, debounced push on save, last-write-wins by a SERVER-owned updated_at.
 
-   Sign-in is a 6-digit emailed CODE, not a clickable magic link: on iOS a link
+   Sign-in is an emailed one-time CODE, not a clickable magic link: on iOS a link
    opens Safari, whose storage is separate from the installed PWA, so the app on
    your home screen would still be signed out. Typing the code authenticates the
    context you're actually in.
@@ -1710,7 +1710,7 @@ window.syncKeepMine=function(){ closeM(); setDirty(true); markSet(pendingRemote?
   pendingRemote=null; pushNow(); };                 /* our push becomes the newest write */
 window.syncUseRemote=function(){ var r=pendingRemote; pendingRemote=null; closeM(); if(r)adopt(r); };
 
-/* --- auth: emailed 6-digit code ---------------------------------------- */
+/* --- auth: emailed one-time code (length is a Supabase project setting) - */
 /* Every exit path below must clear `busy` and re-render the open modal: a stuck
    busy flag would silently disable syncing for the rest of the session, and a
    message written only to the savebar is invisible while the modal covers it. */
@@ -1728,7 +1728,9 @@ window.syncSendCode=function(){
 };
 window.syncVerify=function(){
   var el=document.getElementById('syCode'); if(!el)return;
-  var token=(el.value||'').replace(/\D/g,''); if(token.length<6){authFail('Enter the 6-digit code');return;}
+  /* Supabase's OTP length is a project setting (6–10 digits), so don't hardcode it —
+     just require a plausible minimum and let the server reject a wrong code. */
+  var token=(el.value||'').replace(/\D/g,''); if(token.length<6){authFail('Enter the code from the email');return;}
   busy=true; set('syncing');
   sb.auth.verifyOtp({email:pendEmail,token:token,type:'email'}).then(function(r){
     if(r.error){authFail(r.error.message);return;}
@@ -1752,12 +1754,12 @@ window.syncOpen=function(){
     h+='<div class=sub>Signed in as <b>'+esc(user.email||'')+'</b>. Your collection, decks, budget and match log sync automatically.</div>'
       +'<div class=bar><button onclick="window.syncNow()">Sync now</button><button onclick="window.syncSignOut()">Sign out</button></div>';
   else if(step==='code')
-    h+='<div class=sub>Enter the 6-digit code emailed to <b>'+esc(pendEmail)+'</b>.</div>'
-      +'<div class=bar><input type=text id=syCode inputmode=numeric autocomplete=one-time-code maxlength=6 placeholder="000000" style="width:120px;letter-spacing:.2em;text-align:center">'
+    h+='<div class=sub>Enter the code emailed to <b>'+esc(pendEmail)+'</b>.</div>'
+      +'<div class=bar><input type=text id=syCode inputmode=numeric autocomplete=one-time-code maxlength=10 placeholder="code" style="width:150px;letter-spacing:.2em;text-align:center;font-size:15px">'
       +'<button onclick="window.syncVerify()">Verify</button>'
       +'<button onclick="window.syncBackToEmail()">Use a different email</button></div>';
   else
-    h+='<div class=sub>Sign in to sync this device. We email you a 6-digit code — no password, nothing to remember.</div>'
+    h+='<div class=sub>Sign in to sync this device. We email you a one-time code — no password, nothing to remember.</div>'
       +'<div class=bar><input type=email id=syEmail inputmode=email autocomplete=email placeholder="you@example.com" value="'+eatt(localStorage.getItem(EMAIL_K)||'')+'" style="min-width:210px">'
       +'<button onclick="window.syncSendCode()">Email me a code</button></div>';
   if(msg)h+='<div class=mut style="font-size:11.5px;margin-top:8px">'+esc(msg)+'</div>';

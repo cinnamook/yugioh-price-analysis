@@ -97,26 +97,36 @@ def main():
         sets_list = sorted(setmap.values(), key=lambda s: -len(s["k"]))
 
     payload = json.dumps(cards).replace("</", "<\\/")
+    data_json = '{"cards":' + payload + ',"sets":' + json.dumps(sets_list).replace("</", "<\\/") + '}'
     build = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    html = (HTML.replace("__BUILD__", build).replace("__DATE__", date).replace("__N__", str(len(cards))).replace("__FLAG__", str(flagged))
-            .replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
-            .replace("__RAR__", json.dumps(RARITY_ORDER)).replace("__SETS__", json.dumps(sets_list).replace("</", "<\\/")).replace("__DATA__", payload)
-            .replace("__SUPABASE_LIB__", supabase_lib()))   # last: biggest blob, and must not be rescanned
-    out = os.path.join(HERE, "app.html"); open(out, "w").write(html)
+    shell = (HTML.replace("__BUILD__", build).replace("__DATE__", date).replace("__N__", str(len(cards))).replace("__FLAG__", str(flagged))
+             .replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
+             .replace("__RAR__", json.dumps(RARITY_ORDER))
+             .replace("__SUPABASE_LIB__", supabase_lib()))
+    # file:// cannot fetch, so the desktop build keeps the data inline; the hosted build
+    # fetches it, which is what decouples code changes from the payload in git history.
+    app_html  = shell.replace("__BOOTSTRAP__", "bootWith(" + data_json + ");")
+    docs_html = shell.replace("__BOOTSTRAP__",
+        "fetch('cards.json?v=%s').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);"
+        "return r.json();}).then(bootWith).catch(bootFailed);" % build)
+    out = os.path.join(HERE, "app.html"); open(out, "w").write(app_html)
     mb = os.path.getsize(out)/1e6
-    build = write_pwa(html, build)
+    build = write_pwa(docs_html, build, data_json)
     print(f"snapshot {date} | {len(cards):,} cards | {flagged} gap flags | app.html {mb:.1f} MB")
+    print(f"docs/index.html {os.path.getsize(os.path.join(HERE,'docs','index.html'))/1e6:.2f} MB shell"
+          f" + cards.json {os.path.getsize(os.path.join(HERE,'docs','cards.json'))/1e6:.1f} MB data")
     print(f"wrote {out} — open it (double-click, or: open app.html). Lists save in the browser.")
     print(f"wrote docs/ (GitHub Pages bundle, sw cache cyberse-{build}) — run publish.command to push it to your phone.")
 
 
-def write_pwa(html, build):
+def write_pwa(html, build, data_json):
     """Emit the hosted bundle for GitHub Pages / the phone PWA into docs/.
     Same page as app.html; card art auto-switches to the CDN when hosted.
     Returns the build id stamped into the service-worker cache name."""
     docs = os.path.join(HERE, "docs")
     os.makedirs(os.path.join(docs, "icons"), exist_ok=True)
     open(os.path.join(docs, "index.html"), "w").write(html)
+    open(os.path.join(docs, "cards.json"), "w").write(data_json)
     manifest = {
         "name": "CYBERSE — Yu-Gi-Oh! Hub", "short_name": "CYBERSE",
         "description": "Your personal Yu-Gi-Oh! collection, decks, budget, playtest and meta — all in one place.",
@@ -139,13 +149,16 @@ def write_pwa(html, build):
 
 SW_JS = r"""/* <CYBERSE> service worker — versioned by build timestamp so every publish updates the phone. */
 const CACHE='cyberse-__BUILD__';
-const CORE=['./index.html','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
+const CORE=['./index.html','./cards.json','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(CORE).catch(function(){});}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return k===CACHE?null:caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
 self.addEventListener('fetch',function(e){var req=e.request;if(req.method!=='GET')return;
   if(req.mode==='navigate'){e.respondWith(caches.match('./index.html').then(function(h){return h||fetch(req);}));return;}
   if(new URL(req.url).origin!==location.origin)return; /* let card art (CDN) and fonts hit the network */
-  e.respondWith(caches.match(req).then(function(h){return h||fetch(req).then(function(res){var cp=res.clone();caches.open(CACHE).then(function(c){c.put(req,cp);});return res;});}));
+  /* ignoreSearch: the page requests cards.json?v=<build> for cache-busting, but the
+     precache stores it without a query — an exact match would miss and the installed
+     app would fail to load its cards with no network. */
+  e.respondWith(caches.match(req,{ignoreSearch:true}).then(function(h){return h||fetch(req).then(function(res){var cp=res.clone();caches.open(CACHE).then(function(c){c.put(req,cp);});return res;});}));
 });
 """
 
@@ -236,6 +249,9 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .warn{background:linear-gradient(90deg,rgba(234,184,106,.1),transparent);border-left:3px solid var(--warn);color:#e7d3a8;padding:9px 22px;font-size:12px}
 .warn b{color:var(--warn)}
 .hide{display:none}
+.bootload{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;text-align:center;padding:24px;color:var(--mut);font-size:13px;
+  background:var(--bg)}
 .addres{margin:4px 0 12px;display:flex;flex-wrap:wrap;gap:7px}
 .ares{display:inline-flex;align-items:center;gap:7px;background:var(--surf);border:1px solid var(--line2);border-radius:20px;padding:5px 13px;cursor:pointer;font-size:12px;transition:.12s}
 .ares:hover{border-color:var(--acc);background:rgba(139,147,255,.09)}.ares .nm{font-weight:600}
@@ -891,20 +907,23 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="sets" class="hide"><div class="wrap" id="setsBody"></div></div>
 <div id="meta" class="hide"><div class="wrap" id="metaBody"></div><input id="metaFile" type="file" accept=".ydk,.txt" multiple class="hide" onchange="metaImport(event)"></div>
 
+<div id="loading" class=bootload>Loading card data&hellip;</div>
 <div id="ov" onclick="if(event.target.id==='ov')closeM()"><div class="modal"><span class=close onclick="closeM()" title="close">&times;</span><div id="mBody"></div></div></div>
 
 <script>
-var CARDS=__DATA__, RAR=__RAR__, ORD={}; RAR.forEach(function(r,i){ORD[r]=i;});
-var SETS=__SETS__;
-var BY={}; CARDS.forEach(function(c){BY[c.i]=c;});
+/* Card data arrives via the bootstrap block at the end of this script. On the hosted build that's
+   a fetch of cards.json, so the page shell and the ~13MB payload version independently — a
+   code change no longer rewrites the blob, which is what was inflating the repo. The file://
+   build still inlines it, because fetch() cannot read file URLs. */
+var CARDS=[], SETS=[], RAR=__RAR__, ORD={}; RAR.forEach(function(r,i){ORD[r]=i;});
+var BY={};
 /* Card art: use the local 2.3GB cache when opened as a file on the desktop;
    pull from YGOPRODeck's CDN when the app is hosted (phone / GitHub Pages). */
 var IMGBASE=(location.protocol==='file:')?'data/images/':'https://images.ygoprodeck.com/images/cards/';
 function imgSrc(id){return IMGBASE+id+'.jpg';}
-var PRICED=CARDS.filter(function(c){return c.m!=null&&c.m>0;});
-var NAME2ID={}; CARDS.forEach(function(c){NAME2ID[c.n.toLowerCase()]=c.i;});
+var PRICED=[], NAME2ID={};
 var KEY="ygo_builder_v1", view="browse", sk="m", sd=-1, LIMIT=250;
-var St=load();
+var St=null;
 function bl(){return {decks:{"Main deck":{main:{},extra:{},side:{}}},active:"Main deck",collection:{},wishlist:{},bank:{budget:0,tx:[],catBudgets:{}},roles:{},draws:{},combos:[],log:[],meta:[]};}
 function load(){var s;try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
   if(!s)return bl();
@@ -2402,7 +2421,7 @@ function importList(ev){var fl=ev.target.files[0]; if(!fl)return; var rd=new Fil
 var q_=document.getElementById('q'),qa_=document.getElementById('qa'),rar_=document.getElementById('rar'),cl_=document.getElementById('cl'),
 bn_=document.getElementById('bn'),pmin_=document.getElementById('pmin'),pmax_=document.getElementById('pmax'),deal_=document.getElementById('deal'),
 cnt_=document.getElementById('cnt'),tb_=document.getElementById('tb'),ltbl_=document.getElementById('ltbl'),lctrl_=document.getElementById('lctrl'),imp=document.getElementById('imp'),setsBody=document.getElementById('setsBody'),metaBody=document.getElementById('metaBody');
-kpis(); go('menu');
+/* boot deferred until the card data is in — see the bootstrap block below */
 addEventListener('wheel',function(e){var a=document.activeElement;if(a&&a.type==='number'&&a===e.target)a.blur();},{passive:true});
 (function(){var cv=document.getElementById('bg');if(!cv)return;var cx=cv.getContext('2d'),W,H,ps=[];
 function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight;}addEventListener('resize',rs);rs();
@@ -2414,6 +2433,22 @@ function tick(t){cx.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){var p=ps[i];
   var g=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);g.addColorStop(0,'rgba('+p.c+','+tw+')');g.addColorStop(1,'rgba('+p.c+',0)');
   cx.fillStyle=g;cx.beginPath();cx.arc(p.x,p.y,R,0,6.283);cx.fill();}
   requestAnimationFrame(tick);}requestAnimationFrame(tick);})();
+</script>
+<script>
+/* One pass over the cards builds every index the app needs, then the UI comes up. */
+function bootWith(d){
+  CARDS=(d&&d.cards)||[]; SETS=(d&&d.sets)||[];
+  for(var i=0;i<CARDS.length;i++){var c=CARDS[i];
+    BY[c.i]=c; NAME2ID[c.n.toLowerCase()]=c.i;
+    if(c.m!=null&&c.m>0)PRICED.push(c);}
+  St=load();
+  var l=document.getElementById('loading'); if(l)l.remove();
+  kpis(); go('menu');
+}
+function bootFailed(e){var l=document.getElementById('loading');
+  if(l)l.innerHTML='<b>Could not load card data.</b><div class=mut style="margin-top:6px;font-size:12px">'
+    +String(e&&e.message||e)+' &mdash; check your connection and reload.</div>';}
+__BOOTSTRAP__
 </script>
 <script>__SUPABASE_LIB__</script>
 <script>

@@ -49,24 +49,34 @@ bash publish.command
 - The app is **installable and works offline** (data/prices/decks/playtest);
   only card images need a connection when hosted.
 
-## NEXT TASK — responsive mobile layout
+## Current plan — see ROADMAP.md
 
-The app is installable on a phone but **not laid out for small screens**. It was
-built desktop-first with essentially **no responsive CSS** (no media queries;
-fixed/wide layouts). The viewport meta tag is set, so the phone renders at true
-width — which exposes the desktop layout as cramped. The work is a per-view
-responsive pass in the `<style>` block and a few render functions inside
-`build_app.py`:
+The responsive mobile pass is **done**: nav scroll strip, shrink-to-fit KPI grid,
+`.tscroll` table containers, a solo board that scales via `--bside`/`--bgap`, and
+iOS safe-area insets (`--sat`/`--sar`/`--sab`/`--sal`) on the header, `.wrap` and
+overlays. Sticky offsets key off `--hh`, measured from the real header at runtime.
 
-- **Nav** (11 tabs: Menu/Browse/Deck/Collection/Wishlist/Bank/Playtest/Log/Sets/
-  Meta/Analytics) — make scrollable or a menu on narrow widths.
-- **KPI header cards** — stack instead of a fixed row.
-- **Tables** (Browse, Collection, Wishlist, Log history) — horizontal scroll or
-  reflow to card rows on mobile.
-- **Solo board** (`renderBoard` etc.) — the field is a 7-column layout (`.bfield`,
-  `.bmainrow`, `.bzones`, `.bside`) tuned for ~720px; needs a mobile layout
-  (stacked zones or zoom/pan), not 7 columns crammed across.
-- **Touch targets** — buttons/tap areas sized for thumbs.
+**ROADMAP.md is the single in-repo source of the plan** — north star, status,
+backlog, far horizon. Read it first.
+
+**Next milestone: cross-device sync.** Supabase magic-link auth, one
+`app_state(user_id, data jsonb, updated_at)` row with row-level security,
+pull-on-load plus a debounced push wired into the existing `sv()`, last-write-wins.
+Full spec in **SYNC_DESIGN.md** — read it before starting. One decision is open
+first: whether the hosted app becomes the everyday app on every device, with the
+`file://` build kept only as the offline / local-art extra.
+
+Backlog items most likely to come next (full list in ROADMAP.md):
+
+- **Mobile numeric keypads** — every field expecting a number (life points,
+  quantities, prices, budget amounts, game scores) should carry the right
+  `inputmode`/`type` so phones show the number pad instead of the full keyboard.
+  Some fields already do; the work is making it consistent.
+- **Duel-field improvements** (extend the solo board) — a **life-point tracker**
+  with +/− adjustments and a short history; an **Xyz materials overlay** (attach
+  monsters under an Xyz monster, with detach; slots already hold stacks, so this
+  is mostly attach/detach UX); and **tap-and-drag** movement alongside the
+  existing tap-to-move.
 
 ## Data model notes
 

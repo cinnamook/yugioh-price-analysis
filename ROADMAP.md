@@ -1,0 +1,85 @@
+# CYBERSE — roadmap & game plan
+
+*The single in-repo source of the plan, so Claude Code (and any future session)
+sees the whole trajectory. Companion to CLAUDE.md (how it's built) and
+SYNC_DESIGN.md (the detailed spec for the next milestone). Last updated
+2026-08-07.*
+
+## North star
+
+A personal Yu-Gi-Oh! **pocket app** that grows into a small **platform**: your
+collection/decks/budget/playtesting on your phone, and eventually **online duels**,
+a **mini marketplace**, and **shareable profiles & collections**. Everything below
+ladders up to that. The order is chosen so each step lays foundation for the next —
+auth + sync + hosting are the base the whole platform stands on.
+
+## Status — done
+
+- **Core app** (`build_app.py` → `app.html` / `docs/`): browse, decks
+  (main/extra/side), collection, wishlist, bank/budget, playtest odds, match log,
+  sets browser, meta, analytics. Vanilla JS + localStorage.
+- **Multi-rarity / conditions** per collection & wishlist line.
+- **Solo playtest board** — DuelingBook-style manual field (5 monster / 5 S-T / 2
+  EMZ / field spell, interactable deck/extra/GY/banished piles, tap-to-move,
+  ATK/DEF/Set). No rules automation yet.
+- **Mobile**: installable PWA (manifest + service worker, versioned cache),
+  hosted on **GitHub Pages** from `docs/`, card art via CDN when hosted. Full
+  responsive layout pass. Live at
+  `https://cinnamook.github.io/yugioh-price-analysis/`.
+
+## Next milestone — cross-device sync
+
+So your collection follows you instead of starting empty per device. Full spec in
+**SYNC_DESIGN.md**. Short version: **Supabase** — magic-link auth, one
+`app_state(user_id, data jsonb, updated_at)` row with row-level security,
+pull-on-load + debounced push, last-write-wins. Free tier. This is also the
+**auth foundation** the marketplace / profiles / online duels will reuse.
+
+Open decision before building: whether the hosted app becomes the everyday app on
+all devices (desktop included), with the local `file://` version kept only as the
+offline / local-art extra.
+
+## Backlog
+
+### QoL / mobile polish
+- **Numeric inputs open the number pad on mobile** — every field that expects a
+  number (life points, quantities, prices, budget amounts, game scores) should use
+  the right `inputmode`/`type` so phones show a numeric keypad, not the full
+  keyboard. Make it consistent everywhere (some fields already do this).
+- Be able to import ydk deck links
+
+### Duel-field improvements (extend the solo board)
+- **Life-point calculator / tracker** — per-player LP with +/− adjustments and a
+  small history; the natural companion to the manual board.
+- **Xyz overlay / materials** — attach monsters *under* an Xyz monster as
+  materials, with a visual overlay and a detach action. (The board slots already
+  hold stacks, so the data side is close; this is mostly the attach/detach UX.)
+- **Tap-and-drag** movement as an alternative/addition to tap-to-move.
+- Likely adjacent later: counters/tokens, coin/die, a phase indicator.
+
+### Pocket niceties
+- Shareable deck / collection links, a trade log, deck-journal notes, a locals
+  calendar. **No camera scan.**
+
+### Data / price accuracy
+- Manual price overrides (done). Next: prototype the free **JustTCG** API for real
+  per-printing prices on tracked cards, reducing manual entry.
+
+## Far horizon — the platform layer
+
+These are the north-star features. They all depend on the auth + sync + hosting
+base, which is why sync comes first.
+
+- **Online duels** — real-time multiplayer on top of the solo board (networking +
+  backend + game-state sync; the biggest single build).
+- **Mini marketplace** — **Looking to Sell / Trade / For** (LFS/LFT/LF) listings.
+- **Shareable profiles & collections** — public read-only views of a user's
+  collection/decks/record.
+- A broader **community / forum** around all of the above.
+
+## How we work
+
+Pair-programming; **Ryan makes the calls** and values understanding how things are
+built. Day-to-day coding is in **Claude Code** (runs in this repo). Planning,
+roadmap, and design docs are maintained on the Cowork side and land here as files
+like this one. Don't let two tools edit the working tree at once.

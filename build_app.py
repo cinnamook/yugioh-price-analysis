@@ -279,6 +279,52 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .distbar{width:100%;background:linear-gradient(180deg,var(--pos),#3ba876);border-radius:5px 5px 0 0;min-height:2px}
 .distn{font-size:11px;color:#c3ccdb;margin-top:4px;font-variant-numeric:tabular-nums}
 .distlab{font-size:10px;color:var(--mut);margin-top:1px}
+/* solo board */
+.btoolbar{position:sticky;top:57px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:5px;background:linear-gradient(180deg,rgba(24,38,78,.96),rgba(14,22,50,.96));border:1px solid var(--gold);border-radius:11px;padding:8px 11px;margin:10px 0;box-shadow:0 6px 20px rgba(2,6,20,.5)}
+.btoolbar button{font-size:11px;padding:5px 9px}
+.btsel{font-weight:700;color:var(--gold2);font-size:12px}
+.btsep{width:1px;height:16px;background:var(--line2);margin:0 3px}
+.btoolbar button.bon{background:var(--gold);color:#1a1300;border-color:var(--gold);font-weight:700}
+.bctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.bhint{font-size:11.5px;color:var(--mut);margin:8px 0 2px}
+.bfield{display:flex;flex-direction:column;gap:7px;margin:6px auto 0;max-width:720px;background:radial-gradient(ellipse at 50% 38%,rgba(30,46,96,.35),rgba(8,13,32,.42));border:1px solid var(--line2);border-radius:14px;padding:12px}
+.bemzrow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;padding:0 79px}
+.bemzrow .bslot:nth-child(1){grid-column:2}.bemzrow .bslot:nth-child(2){grid-column:4}
+.bmainrow{display:flex;gap:7px;align-items:stretch}
+.bzones{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.bside{width:72px;flex:none;display:flex;align-items:center;justify-content:center}
+.bbanrow{display:flex;justify-content:flex-end;padding-right:2px}
+.bslot{border:1px dashed var(--line2);border-radius:9px;aspect-ratio:59/86;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:.12s;background:rgba(12,20,46,.35);overflow:visible}
+.bside .bslot{width:72px}
+.bslot.bempty:hover{border-color:var(--acc)}
+.bslot.bdrop{border-color:var(--gold);border-style:solid;box-shadow:0 0 0 2px rgba(232,198,106,.22) inset;background:rgba(232,198,106,.06)}
+.bslab{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.bcard{width:100%;height:100%;border-radius:7px;overflow:hidden;position:relative;border:1px solid var(--line2);background:linear-gradient(160deg,#1a2547,#0e1730);transition:.1s}
+.bcard img{width:100%;height:100%;object-fit:cover;display:block}
+.bcard .bnm{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;font-size:8px;padding:3px;color:#aeb9d6;line-height:1.15}
+.bcard.bnoart .bnm{display:flex}.bcard.bnoart img{display:none}
+.bcard.bsel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 4px 12px rgba(232,198,106,.4);z-index:3}
+.bcard.bdef{transform:rotate(90deg) scale(.68)}
+.bback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--gold);background:linear-gradient(135deg,#2a2350,#3a2d63);text-shadow:0 0 10px rgba(232,198,106,.5);border-radius:7px}
+.bpile{width:72px;cursor:pointer;text-align:center}
+.bpile .bptop{aspect-ratio:59/86;border:1px solid var(--line2);border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(12,20,46,.5)}
+.bpile.bempty .bptop{border-style:dashed;background:rgba(12,20,46,.3)}
+.bpile:hover .bptop{border-color:var(--acc)}
+.bpile .bptop .bcard,.bpile .bptop .bback{width:100%;height:100%}
+.bpcount{font-size:9px;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.bhandwrap{margin-top:10px;border:1px solid var(--line2);border-radius:11px;padding:8px 10px;background:linear-gradient(180deg,rgba(24,38,78,.5),rgba(12,20,46,.55))}
+.bhlab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:6px}
+.bhcards{display:flex;flex-wrap:wrap;gap:7px}
+.bhcards>div{width:58px;aspect-ratio:59/86;cursor:pointer}
+.bviewer{position:fixed;inset:0;background:rgba(4,8,20,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.bvbox{background:linear-gradient(180deg,#141f42,#0c1430);border:1px solid var(--gold);border-radius:14px;max-width:840px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(2,6,20,.7)}
+.bvhead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line2)}
+.bvcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:9px;padding:14px;overflow:auto}
+.bvcard{aspect-ratio:59/86;border-radius:7px;overflow:hidden;position:relative;cursor:pointer;border:1px solid var(--line2);background:linear-gradient(160deg,#1a2547,#0e1730);transition:.1s}
+.bvcard:hover{border-color:var(--gold);transform:translateY(-2px)}
+.bvcard img{width:100%;height:100%;object-fit:cover;display:block}
+.bvcard .bnm{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;font-size:8px;padding:3px;color:#aeb9d6;line-height:1.15}
+.bvcard.bnoart .bnm{display:flex}.bvcard.bnoart img{display:none}
 .simcard.drawn{border-color:var(--gold);box-shadow:0 0 0 1px rgba(232,198,106,.4),0 6px 16px rgba(3,8,24,.5)}
 .simtags{display:flex;gap:3px;justify-content:center;margin-top:4px;flex-wrap:wrap}
 .simtag{width:8px;height:8px;border-radius:50%;display:inline-block}
@@ -426,6 +472,8 @@ function load(){var s;try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
     else{var flat=d||{},nd={main:{},extra:{},side:{}};for(var id in flat){nd[(BY[id]&&BY[id].ex)?'extra':'main'][id]=flat[id];}s.decks[nm]=nd;}});
   if(!s.active||!s.decks[s.active])s.active=Object.keys(s.decks)[0];
   if(!s.collection)s.collection={};if(!s.wishlist)s.wishlist={};
+  ['collection','wishlist'].forEach(function(k){var m=s[k]||{};for(var id in m){var e=m[id];   // -> multi-line: [{rar,cond,q,ov,pr}]
+    if(!Array.isArray(e))m[id]=[{rar:(e&&e.rar)||'__m',q:(e&&e.q)||1,ov:(e&&e.ov),cond:(e&&e.cond)||'',pr:(e&&e.pr)}];}s[k]=m;});
   if(!s.bank||!s.bank.tx)s.bank={budget:(s.bank&&s.bank.budget)||0,tx:(s.bank&&s.bank.tx)||[]};
   if(!s.bank.catBudgets)s.bank.catBudgets={};
   if(!s.roles)s.roles={};
@@ -439,6 +487,9 @@ function sv(){localStorage.setItem(KEY,JSON.stringify(St));}
 function curDeck(){return St.decks[St.active];}
 function bucket(k){return (k==='main'||k==='extra'||k==='side')?curDeck()[k]:St[k];}
 function items(list){return bucket(list);}
+function isMulti(list){return list==='collection'||list==='wishlist';}     // multi-line lists
+function ownQ(id){var a=St.collection[id];if(!a)return 0;if(a.length!=null){var s=0;for(var i=0;i<a.length;i++)s+=a[i].q;return s;}return a.q||0;}
+function lref(list,id,li){var m=bucket(list);return isMulti(list)?(m[id]?m[id][li||0]:null):m[id];}
 function deckSecOf(id){return (BY[id]&&BY[id].ex)?'extra':'main';}
 function newDeck(){var n=(prompt('New deck name:','')||'').trim();if(!n)return;if(!St.decks[n])St.decks[n]={main:{},extra:{},side:{}};St.active=n;sv();go('deck');}
 function renDeck(){var n=(prompt('Rename deck:',St.active)||'').trim();if(!n||n===St.active)return;St.decks[n]=St.decks[St.active];delete St.decks[St.active];St.active=n;sv();go('deck');}
@@ -454,7 +505,7 @@ function rarClass(r){r=(r||'').toLowerCase();if(!r)return 'mut';
 function numv(x){var v=parseFloat(x);return isNaN(v)?null:v;}
 function priceOf(c,rar){ if(!rar||rar==='__m'||!(rar in c.rp))return c.m; var p=c.rp[rar]; return p==null?c.m:p; }
 function entPrice(e,c){ return (e&&e.ov!=null)?e.ov:priceOf(c,e?e.rar:null); }   // your override wins, else the feed
-function setOv(list,id,v){var e=items(list)[id]; if(!e)return; var n=parseFloat(v); if(v!==''&&!isNaN(n)&&n>=0)e.ov=n; else delete e.ov; sv(); kpis(); rTable();}
+function setOv(list,id,v,li){var e=lref(list,id,li); if(!e)return; var n=parseFloat(v); if(v!==''&&!isNaN(n)&&n>=0)e.ov=n; else delete e.ov; sv(); kpis(); rTable();}
 
 (function(){document.getElementById('rar').innerHTML='<option value="">rarity: any</option>'+
   RAR.map(function(r){return '<option>'+r+'</option>';}).join('');})();
@@ -493,24 +544,34 @@ function go(v){view=v;
 }
 function S(k){sd=(sk===k)?-sd:1;sk=k;rB();}
 function refreshAfterAdd(){if(view==='browse')rB(); else if(view==='deck'||view==='collection'||view==='wishlist'){rTable(); if(document.getElementById('addq'))addSearch();}}
-function add(list,id){var m=bucket(list); if(m[id])m[id].q++; else m[id]={q:1,rar:'__m'}; sv(); kpis(); refreshAfterAdd();}
+function add(list,id,rar,cond){var m=bucket(list);
+  if(isMulti(list)){rar=rar||'__m';cond=cond||'';var arr=m[id]||(m[id]=[]),ln=null;
+    for(var i=0;i<arr.length;i++)if(arr[i].rar===rar&&(arr[i].cond||'')===cond){ln=arr[i];break;}
+    if(ln)ln.q++;else arr.push({rar:rar,cond:cond,q:1});}
+  else{if(m[id])m[id].q++;else m[id]={q:1,rar:'__m'};}
+  sv(); kpis(); refreshAfterAdd();}
+function addLine(list,id){var m=bucket(list); if(!isMulti(list))return; (m[id]||(m[id]=[])).push({rar:'__m',cond:'',q:1}); sv(); kpis(); rTable();}
 function addToDeck(id){add(deckSecOf(id),id);}
 function moveTo(id,from,to){var fm=bucket(from); if(!fm[id])return; var tm=bucket(to); if(tm[id])tm[id].q+=fm[id].q; else tm[id]=fm[id]; delete fm[id]; sv(); kpis(); rTable();}
-function setQ(list,id,d){var e=items(list)[id]; if(!e)return; e.q+=d; if(e.q<=0)delete items(list)[id]; sv(); kpis(); rTable();}
-function setR(list,id,r){if(items(list)[id]){items(list)[id].rar=r; sv(); kpis(); rTable();}}
-function setP(id,pr){if(St.wishlist[id]){St.wishlist[id].pr=pr; sv(); rTable();}}
-function del(list,id){delete items(list)[id]; sv(); kpis(); rTable();}
+function delLine(list,id,li){var m=bucket(list); if(isMulti(list)){if(m[id]){m[id].splice(li||0,1); if(!m[id].length)delete m[id];}} else delete m[id];}
+function setQ(list,id,d,li){var e=lref(list,id,li); if(!e)return; e.q+=d; if(e.q<=0)delLine(list,id,li); sv(); kpis(); rTable();}
+function setR(list,id,r,li){var e=lref(list,id,li); if(e){e.rar=r; sv(); kpis(); rTable();}}
+function setCond(list,id,cv,li){var e=lref(list,id,li); if(e){if(cv)e.cond=cv; else delete e.cond; sv(); rTable();}}
+function setP(id,pr,li){var e=lref('wishlist',id,li); if(e){e.pr=pr; sv(); rTable();}}
+function del(list,id,li){delLine(list,id,li); sv(); kpis(); rTable();}
 function addSearch(){var el=document.getElementById('addq'),box=document.getElementById('addres'); if(!el||!box)return;
   var vq=el.value.toLowerCase(); if(vq.length<2){box.innerHTML='';return;}
   var hits=[],i=0; for(;i<CARDS.length&&hits.length<8;i++){if(CARDS[i].n.toLowerCase().indexOf(vq)>=0)hits.push(CARDS[i]);}
-  box.innerHTML=hits.map(function(c){var own=St.collection[c.i]?' · own '+St.collection[c.i].q:'';
+  box.innerHTML=hits.map(function(c){var own=ownQ(c.i)?' · own '+ownQ(c.i):'';
     var fn=view==='deck'?'addToDeck('+c.i+')':'add(\''+view+'\','+c.i+')';
     return '<span class=ares onclick="'+fn+'"><span class=nm>'+esc(c.n)+'</span><span class=mut> '+(c.m==null?'':'$'+c.m.toFixed(2))+own+'</span> <span class=addb>+'+view+'</span></span>';}).join('');}
 
-function lt(list){var s=0,m=bucket(list); for(var id in m){var c=BY[id]; if(!c)continue; var p=entPrice(m[id],c); if(p!=null)s+=p*m[id].q;} return s;}
+function lt(list){var s=0,m=bucket(list),mu=isMulti(list); for(var id in m){var c=BY[id]; if(!c)continue;
+  if(mu){m[id].forEach(function(ln){var p=entPrice(ln,c); if(p!=null)s+=p*ln.q;});}
+  else{var p=entPrice(m[id],c); if(p!=null)s+=p*m[id].q;}} return s;}
 function deckVal(){return lt('main')+lt('extra')+lt('side');}
 function comp(){var d=curDeck(),need={},rarOf={};['main','extra','side'].forEach(function(sec){for(var id in d[sec]){need[id]=(need[id]||0)+d[sec][id].q;rarOf[id]=d[sec][id].rar;}});
-  var s=0,co=St.collection; for(var id in need){var c=BY[id]; if(!c)continue; var own=co[id]?co[id].q:0, buy=Math.max(0,need[id]-own), p=priceOf(c,rarOf[id]); if(p!=null)s+=p*buy;} return s;}
+  var s=0; for(var id in need){var c=BY[id]; if(!c)continue; var own=ownQ(id), buy=Math.max(0,need[id]-own), p=priceOf(c,rarOf[id]); if(p!=null)s+=p*buy;} return s;}
 function kpis(){document.getElementById('kColl').textContent='$'+lt('collection').toFixed(2);
   document.getElementById('kDeck').textContent='$'+deckVal().toFixed(2);
   document.getElementById('kWish').textContent='$'+lt('wishlist').toFixed(2);
@@ -736,8 +797,13 @@ function playCombos(){return St.combos.filter(function(c){return c.play!==false;
 function simPlayable(T){var deck=simMainList();if(!deck.length)return null;var pcs=playCombos();if(!pcs.length)return null;var n=nOpen(),hit=0;
   for(var t=0;t<T;t++){var seen=simResolve(shuffle(deck),n),ok=false;for(var i=0;i<pcs.length;i++){if(comboOK(seen,pcs[i].reqs)){ok=true;break;}}if(ok)hit++;}
   return hit/T;}
-function renderSim(){var name=simName(),N=simMainList().length,n=nOpen();
-  var h='<div class=deckstats style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
+var simMode='odds';
+function setSimMode(m){simMode=m;renderSim();}
+function renderSim(){
+  var toggle='<div class=vtog style="margin:0 0 12px"><span class="vt'+(simMode==='odds'?' on':'')+'" onclick="setSimMode(\'odds\')">📊 Opening odds</span><span class="vt'+(simMode==='board'?' on':'')+'" onclick="setSimMode(\'board\')">🎴 Solo board</span></div>';
+  if(simMode==='board'){renderBoard(toggle);return;}
+  var name=simName(),N=simMainList().length,n=nOpen();
+  var h=toggle+'<div class=deckstats style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
     +'<label class=mut>Deck <select onchange="simDeck=this.value;simOrder=null;renderSim()">'+Object.keys(St.decks).map(function(nm){return '<option'+(nm===name?' selected':'')+'>'+esc(nm)+'</option>';}).join('')+'</select></label>'
     +'<label class=mut>On the <select onchange="simGo=this.value;if(simOrder)simSeen=Math.min(nOpen(),simOrder.length);renderSim()"><option value=first'+(simGo==='first'?' selected':'')+'>play · draw 5</option><option value=second'+(simGo==='second'?' selected':'')+'>draw · draw 6</option></select></label>'
     +'<button onclick="drawHand()">🎴 '+(simOrder?'New hand':'Draw hand')+'</button>'
@@ -790,6 +856,107 @@ function renderSim(){var name=simName(),N=simMainList().length,n=nOpen();
     :'<div class=mut style="font-size:11px;margin-bottom:8px">Tap tags to toggle (a card can have several). “Draws” = how many extra cards you see when you activate it (draw/dig spells) — used by the odds simulation. Tags are remembered per card across decks.</div><table><tr><th>Card</th><th>Qty</th><th>Tags</th><th>Draws</th></tr>'+uniq.map(function(u){var c=BY[u.id];
       return '<tr><td class=nm onclick="openM('+u.id+')">'+esc(c?c.n:''+u.id)+'</td><td>'+u.q+'</td><td style="white-space:normal"><div class=tchips>'+TAGS.map(function(T){var on=cardTags(u.id).indexOf(T[0])>=0;return '<span class="tchip'+(on?' on':'')+'"'+(on?' style="background:'+T[2]+';border-color:'+T[2]+';color:#0b1330"':'')+' onclick="toggleTag('+u.id+',\''+T[0]+'\')">'+T[1]+'</span>';}).join('')+'</div></td><td><input class=cnum type=number min=0 value="'+(St.draws[u.id]||'')+'" placeholder="0" onchange="setDraws('+u.id+',this.value)"></td></tr>';}).join('')+'</table>';
   h+=grp('sroles','Card roles &amp; tags',uniq.length+' cards',rolesBody);
+  document.getElementById('simBody').innerHTML=h;}
+
+/* ===== Solo playtest board (DuelingBook-like: interactable piles + proper field) ===== */
+var board=null, sel=null, placeMode='atk', viewer=null;
+function boardNew(){var d=St.decks[simName()];if(!d){board=null;renderSim();return;}
+  var deck=[];for(var id in d.main)for(var k=0;k<d.main[id].q;k++)deck.push(+id);
+  var ex=[];for(var id in d.extra)for(var k=0;k<d.extra[id].q;k++)ex.push(+id);
+  board={deck:shuffle(deck),ex:ex,hand:[],gy:[],ban:[],
+    mon:[[],[],[],[],[]],st:[[],[],[],[],[]],emz:[[],[]],fs:[[]]};
+  sel=null;viewer=null;placeMode='atk';renderSim();}
+function inst(id){return {id:+id,fd:false,def:false};}
+function isSlot(k){return k==='mon'||k==='st'||k==='emz'||k==='fs';}
+function zArr(k,s){return isSlot(k)?board[k][s]:board[k];}
+function selInst(){if(!sel||!board)return null;
+  if(sel.k==='deck')return board.deck.length?inst(board.deck[sel.i]):null;
+  if(sel.k==='ex')return board.ex.length?inst(board.ex[sel.i]):null;
+  var a=zArr(sel.k,sel.s);return a?a[sel.i]:null;}
+function selRemove(){if(!sel)return null;var it,id;
+  if(sel.k==='deck'){id=board.deck.splice(sel.i,1)[0];it=inst(id);}
+  else if(sel.k==='ex'){id=board.ex.splice(sel.i,1)[0];it=inst(id);}
+  else{var a=zArr(sel.k,sel.s);it=a.splice(sel.i,1)[0];}
+  return it;}
+function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();return;}
+  if(isSlot(destK)){
+    if(destK==='fs'){it.fd=false;it.def=false;}
+    else if(placeMode==='set'){it.fd=true;it.def=(destK==='mon'||destK==='emz');}
+    else if(placeMode==='def'){it.fd=false;it.def=true;}
+    else{it.fd=false;it.def=false;}
+    board[destK][destS].push(it);
+  } else if(destK==='deckTop'){board.deck.unshift(it.id);}
+  else if(destK==='deckBtm'){board.deck.push(it.id);}
+  else if(destK==='ex'){board.ex.push(it.id);}
+  else if(destK==='off'){/*removed from play*/}
+  else if(destK==='hand'){it.fd=false;it.def=false;board.hand.push(it);}
+  else{it.fd=false;board[destK].push(it);} /* gy, ban */
+  sel=null;renderSim();}
+function bSelect(k,s,i){if(sel&&sel.k===k&&sel.s===s&&sel.i===i)sel=null;else sel={k:k,s:s,i:i};viewer=null;renderSim();}
+function bSlotTap(k,s){if(sel){place(k,s);return;}var a=board[k][s];if(a&&a.length)bSelect(k,s,a.length-1);}
+function bFlip(){var it=selInst();if(!it)return;it.fd=!it.fd;renderSim();}
+function bRot(){var it=selInst();if(!it)return;it.def=!it.def;renderSim();}
+function setPlace(m){placeMode=m;renderSim();}
+function bDraw(n){if(!board)return;for(var i=0;i<(n||1)&&board.deck.length;i++)board.hand.push(inst(board.deck.shift()));sel=null;renderSim();}
+function bMillTop(){if(!board||!board.deck.length)return;board.gy.push(inst(board.deck.shift()));renderSim();}
+function bBanishTop(){if(!board||!board.deck.length)return;board.ban.push(inst(board.deck.shift()));renderSim();}
+function bShuffle(){if(!board)return;board.deck=shuffle(board.deck);sel=null;renderSim();}
+function bView(v){viewer=(viewer===v)?null:v;sel=null;renderSim();}
+function bCardHTML(it,seld,mini){var c=BY[it.id];
+  var inner=it.fd?'<div class=bback>&#9672;</div>'
+    :'<img src="data/images/'+it.id+'.jpg" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(c?c.n:'')+'</span>';
+  return '<div class="bcard'+(seld?' bsel':'')+(it.def?' bdef':'')+(mini?' bmini':'')+'" title="'+eatt((c?c.n:'')+(it.fd?' (face-down)':'')+(it.def?' (DEF)':''))+'">'+inner+'</div>';}
+function slotHTML(k,s,label){var a=board[k][s],has=a&&a.length,seld=sel&&sel.k===k&&sel.s===s;
+  var body=has?a.map(function(it,i){return bCardHTML(it,seld&&sel.i===i,false);}).join(''):'<span class=bslab>'+label+'</span>';
+  return '<div class="bslot'+(has?'':' bempty')+((sel&&!has)?' bdrop':'')+'" onclick="bSlotTap(\''+k+'\','+s+')">'+body+'</div>';}
+function pileHTML(k,label){var a=k==='deck'?board.deck:(k==='ex'?board.ex:board[k]),n=a.length,top;
+  if((k==='gy'||k==='ban')&&n)top=bCardHTML(board[k][n-1],false,true);
+  else if(n)top='<div class=bback>&#9672;</div>';
+  else top='<span class=bslab>'+label+'</span>';
+  return '<div class="bpile'+(n?'':' bempty')+'" onclick="bView(\''+k+'\')"><div class=bpcount>'+label+' &middot; '+n+'</div><div class=bptop>'+top+'</div></div>';}
+function boardToolbar(){var it=selInst();if(!it)return '';var c=BY[it.id],onField=isSlot(sel.k);
+  var h='<div class=btoolbar><span class=btsel>'+esc(c?c.n:'')+(it.fd?' &middot; face-down':'')+(it.def?' &middot; DEF':'')+'</span><span class=btsep></span>'
+    +'<span class=mut style="font-size:11px">place as</span>'
+    +'<button class="'+(placeMode==='atk'?'bon':'')+'" onclick="setPlace(\'atk\')">ATK</button>'
+    +'<button class="'+(placeMode==='def'?'bon':'')+'" onclick="setPlace(\'def\')">DEF</button>'
+    +'<button class="'+(placeMode==='set'?'bon':'')+'" onclick="setPlace(\'set\')">Set</button>'
+    +'<span class=mut style="font-size:11px">&rarr; then tap a zone</span><span class=btsep></span>';
+  if(onField)h+='<button onclick="bFlip()">Flip</button><button onclick="bRot()">ATK/DEF</button><span class=btsep></span>';
+  h+='<button onclick="place(\'hand\')">Hand</button><button onclick="place(\'gy\')">GY</button><button onclick="place(\'ban\')">Banish</button>'
+    +'<button onclick="place(\'deckTop\')">Deck top</button><button onclick="place(\'deckBtm\')">Deck btm</button>'
+    +'<button onclick="place(\'ex\')">Extra</button>'
+    +'<span class=btsep></span><button onclick="place(\'off\')" title="remove from play">&times; off</button>'
+    +'<button onclick="sel=null;renderSim()">Cancel</button></div>';
+  return h;}
+function handHTML(){var h='<div class=bhandwrap><div class=bhlab>Hand &middot; '+board.hand.length+'</div><div class=bhcards>';
+  h+=board.hand.map(function(it,i){return '<div onclick="bSelect(\'hand\',null,'+i+')">'+bCardHTML(it,sel&&sel.k==='hand'&&sel.i===i,false)+'</div>';}).join('');
+  return h+'</div></div>';}
+function viewerHTML(){if(!viewer)return '';var k=viewer,title,arr;
+  if(k==='deck'){title='Deck ('+board.deck.length+')';arr=board.deck.map(function(id,i){return {id:id,i:i};});}
+  else if(k==='ex'){title='Extra Deck ('+board.ex.length+')';arr=board.ex.map(function(id,i){return {id:id,i:i};});}
+  else{title=(k==='gy'?'Graveyard':'Banished')+' ('+board[k].length+')';arr=board[k].map(function(it,i){return {id:it.id,i:i};});}
+  var cards=arr.map(function(o){var c=BY[o.id];
+    return '<div class=bvcard onclick="bSelect(\''+k+'\',null,'+o.i+')"><img src="data/images/'+o.id+'.jpg" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(c?c.n:'')+'</span></div>';}).join('');
+  return '<div class=bviewer onclick="bView(\''+k+'\')"><div class=bvbox onclick="event.stopPropagation()">'
+    +'<div class=bvhead><b>'+title+'</b>'+(k==='deck'?' <span class=mut style="font-size:11px">order hidden &mdash; pick any card to act on it</span>':'')+'<button onclick="bView(\''+k+'\')" style="margin-left:auto">Close</button></div>'
+    +'<div class=bvcards>'+(cards||'<span class=mut>Empty.</span>')+'</div></div></div>';}
+function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
+  h+='<div class=bctrl><label class=mut>Deck <select onchange="simDeck=this.value;boardNew()">'+decks.map(function(nm){return '<option'+(nm===simName()?' selected':'')+'>'+esc(nm)+'</option>';}).join('')+'</select></label>'
+    +'<button onclick="boardNew()">&#8635; New game</button>';
+  if(board)h+='<button onclick="bDraw(1)">Draw</button><button onclick="bDraw(5)">Open 5</button><button onclick="bDraw(6)">Open 6</button>'
+    +'<span class=btsep></span><button onclick="bMillTop()">Mill top</button><button onclick="bBanishTop()">Banish top</button><button onclick="bShuffle()">&#128256; Shuffle</button>';
+  h+='</div>';
+  if(!board){h+='<div class=ins style="margin-top:12px">Pick a deck and press <b>New game</b>. Then <b>tap the Deck</b> to draw or search it, <b>tap a hand card</b> then a field zone to summon or set, and <b>tap any pile</b> (GY, Banished, Extra) to open it and act on the cards inside &mdash; the way DuelingBook works.</div>';document.getElementById('simBody').innerHTML=h;return;}
+  h+=boardToolbar();
+  if(!sel)h+='<div class=bhint>Tap a card to pick it up, then tap a zone to place it (ATK/DEF/Set chosen in the toolbar). Tap a pile to view and act on its cards.</div>';
+  h+='<div class=bfield>';
+  h+='<div class=bemzrow>'+slotHTML('emz',0,'EMZ')+slotHTML('emz',1,'EMZ')+'</div>';
+  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('gy','GY')+'</div></div>';
+  h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';
+  h+='<div class=bbanrow>'+pileHTML('ban','Banished')+'</div>';
+  h+='</div>';
+  h+=handHTML();
+  h+=viewerHTML();
   document.getElementById('simBody').innerHTML=h;}
 
 /* ===== Match log & win-rate analytics ===== */
@@ -947,7 +1114,7 @@ function metaDel(id){St.meta=St.meta.filter(function(d){return d.id!==id;});sv()
 function renderMeta(){var M=St.meta,RED='#ff9aa8';
   var freq={},cop={};M.forEach(function(d){for(var id in d.cnt){freq[id]=(freq[id]||0)+1;cop[id]=(cop[id]||0)+d.cnt[id];}});
   var staples=Object.keys(freq).map(function(id){return {id:+id,f:freq[id],avg:cop[id]/freq[id]};}).sort(function(a,b){return b.f-a.f||b.avg-a.avg||((BY[b.id]?BY[b.id].m:0)-(BY[a.id]?BY[a.id].m:0));});
-  var owned=function(id){return St.collection[id]?St.collection[id].q:0;};
+  var owned=function(id){return ownQ(id);};
   var missing=staples.filter(function(s){return owned(s.id)<Math.round(s.avg);});
   var missCost=missing.reduce(function(t,s){var c=BY[s.id];var need=Math.round(s.avg)-owned(s.id);return t+((c&&c.m!=null)?c.m*Math.max(0,need):0);},0);
   var h='<div class=deckstats style="display:flex;gap:26px;flex-wrap:wrap;align-items:center">'
@@ -996,7 +1163,7 @@ function rB(){
     if(dl&&!c.deal)continue;
     v.push({c:c,rp:rarPrice(c,rs)});
   }
-  var ow=function(c){return St.collection[c.i]?St.collection[c.i].q:0;};
+  var ow=function(c){return ownQ(c.i);};
   v.sort(function(a,b){var x=sk==='m'?a.c.m:sk==='rarity'?a.rp:sk==='own'?ow(a.c):a.c[sk], y=sk==='m'?b.c.m:sk==='rarity'?b.rp:sk==='own'?ow(b.c):b.c[sk];
     if(x==null)return 1; if(y==null)return -1; if(typeof x==='string')return x.localeCompare(y)*sd; return (x-y)*sd;});
   cnt_.textContent=v.length.toLocaleString()+' cards'+(v.length>LIMIT?' (first '+LIMIT+')':'');
@@ -1004,47 +1171,53 @@ function rB(){
     return '<tr><td class="nm" onclick="openM('+c.i+')">'+esc(c.n)+'</td><td>'+c.cl+'</td>'
     +'<td>'+(c.bn==='Unlimited'?'<span class=mut>—</span>':'<span class=pill>'+c.bn+'</span>')+'</td>'
     +'<td class="mut">'+esc(c.ar)+'</td><td class="'+rarClass(c.hr)+'">'+(c.hr||'')+'</td><td class="r mut">'+(c.ag==null?'':c.ag)+'</td>'
-    +'<td class="r'+(St.collection[c.i]?' own':' mut')+'">'+(St.collection[c.i]?St.collection[c.i].q:'·')+'</td>'
+    +'<td class="r'+(ownQ(c.i)?' own':' mut')+'">'+(ownQ(c.i)||'·')+'</td>'
     +'<td class="r">'+f(c.m)+'</td><td class="r rar">'+f(o.rp)+'</td>'
     +'<td class="r '+(c.deal?'deal':'mut')+'">'+(c.gap==null?'':c.gap+'×')+'</td>'
     +'<td><span class=addb onclick="addToDeck('+c.i+')">+D</span><span class=addb onclick="add(\'collection\','+c.i+')">+C</span><span class=addb onclick="add(\'wishlist\','+c.i+')">+W</span></td></tr>';}).join('');
 }
 var listMode='list';
 function setListMode(m){listMode=m;var a=document.getElementById('vtList'),b=document.getElementById('vtGrid');if(a)a.classList.toggle('on',m==='list');if(b)b.classList.toggle('on',m==='grid');if(view==='deck')renderDeck();else rTable();}
-function gridTile(key,id,inDeck){var m=bucket(key),c=BY[id],e=m[id],p=entPrice(e,c),feed=priceOf(c,e.rar);
-  var own=inDeck?(St.collection[id]?St.collection[id].q:0):0, buy=inDeck?Math.max(0,e.q-own):e.q, unowned=inDeck&&buy>0;
+function gridTile(key,id,inDeck,li){var m=bucket(key),c=BY[id],e=inDeck?m[id]:(isMulti(key)?m[id][li]:m[id]),p=entPrice(e,c),feed=priceOf(c,e.rar);
+  var L=inDeck?'':(','+li);
+  var own=inDeck?ownQ(id):0, buy=inDeck?Math.max(0,e.q-own):e.q, unowned=inDeck&&buy>0;
   var addb=inDeck?'<span class=gab onclick="add(\'collection\','+id+')" title="add to collection">+C</span><span class=gab onclick="add(\'wishlist\','+id+')" title="add to wishlist">+W</span>'
-    :(key==='collection')?'<span class=gab onclick="addToDeck('+id+')" title="add to active deck">+D</span><span class=gab onclick="add(\'wishlist\','+id+')" title="add to wishlist">+W</span>'
-    :(key==='wishlist')?'<span class=gab onclick="addToDeck('+id+')" title="add to active deck">+D</span><span class=gab onclick="add(\'collection\','+id+')" title="add to collection">+C</span>':'';
+    :(key==='collection')?'<span class=gab onclick="addLine(\'collection\','+id+')" title="add another version">+v</span><span class=gab onclick="addToDeck('+id+')" title="add to active deck">+D</span><span class=gab onclick="add(\'wishlist\','+id+')" title="add to wishlist">+W</span>'
+    :(key==='wishlist')?'<span class=gab onclick="addLine(\'wishlist\','+id+')" title="add another version">+v</span><span class=gab onclick="addToDeck('+id+')" title="add to active deck">+D</span><span class=gab onclick="add(\'collection\','+id+')" title="add to collection">+C</span>':'';
   var raropts='<option value="__m"'+(e.rar==='__m'?' selected':'')+'>Mkt low</option>'+Object.keys(c.rp).map(function(rn){return '<option'+(e.rar===rn?' selected':'')+'>'+rn+'</option>';}).join('');
-  var prsel=(key==='wishlist')?'<select class=grar onchange="setP('+id+',this.value)">'+['High','Normal','Low'].map(function(x){return '<option'+((e.pr||'Normal')===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>':'';
+  var condsel=inDeck?'':'<select class=grar onchange="setCond(\''+key+'\','+id+',this.value'+L+')" title="condition">'+CONDS.map(function(x){return '<option value="'+x+'"'+((e.cond||'')===x?' selected':'')+'>'+(x||'cond')+'</option>';}).join('')+'</select>';
+  var prsel=(key==='wishlist')?'<select class=grar onchange="setP('+id+',this.value'+L+')">'+['High','Normal','Low'].map(function(x){return '<option'+((e.pr||'Normal')===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>':'';
   var mv=inDeck?(key==='side'?'<span class=gab onclick="moveTo('+id+',\'side\',\''+deckSecOf(id)+'\')" title="to main/extra">→M</span>':'<span class=gab onclick="moveTo('+id+',\''+key+'\',\'side\')" title="to side deck">→S</span>'):'';
   return '<div class="gcard'+(unowned?' unowned':'')+'">'
     +'<div class=gimgwrap onclick="openM('+id+')"><img class=gimg src="data/images/'+id+'.jpg" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'noart\')"><div class=gph>'+esc(c.n)+'</div>'
       +'<div class=gqty>×'+e.q+'</div>'+(unowned?'<div class=gneed title="you still need '+buy+'">◆'+buy+'</div>':'')+'</div>'
     +'<div class=gname onclick="openM('+id+')" title="'+eatt(c.n)+'">'+esc(c.n)+'</div>'
-    +'<div class=gmeta>'+(inDeck?'<span>'+f(p)+'</span><span class=mut>own '+own+'</span>':'<input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value)" title="your price — blank uses the feed" onclick="event.stopPropagation()"><span class=mut>'+(e.ov!=null?'yours':'')+'</span>')+'</div>'
-    +'<div class=gact><span class=qbtn onclick="setQ(\''+key+'\','+id+',-1)">–</span><span class=gqn>'+e.q+'</span><span class=qbtn onclick="setQ(\''+key+'\','+id+',1)">+</span><span class=gsp></span>'+addb+'<span class=x onclick="del(\''+key+'\','+id+')">✕</span></div>'
-    +'<div class=gact><select class=grar onchange="setR(\''+key+'\','+id+',this.value)">'+raropts+'</select>'+prsel+mv+'</div>'
+    +'<div class=gmeta>'+(inDeck?'<span>'+f(p)+'</span><span class=mut>own '+own+'</span>':'<input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed" onclick="event.stopPropagation()"><span class=mut>'+((e.cond||'')||(e.ov!=null?'yours':''))+'</span>')+'</div>'
+    +'<div class=gact><span class=qbtn onclick="setQ(\''+key+'\','+id+',-1'+L+')">–</span><span class=gqn>'+e.q+'</span><span class=qbtn onclick="setQ(\''+key+'\','+id+',1'+L+')">+</span><span class=gsp></span>'+addb+'<span class=x onclick="del(\''+key+'\','+id+''+L+')">✕</span></div>'
+    +'<div class=gact><select class=grar onchange="setR(\''+key+'\','+id+',this.value'+L+')">'+raropts+'</select>'+condsel+prsel+mv+'</div>'
     +'</div>';}
-function listRow(key,id,inDeck){var m=bucket(key),c=BY[id],e=m[id],p=entPrice(e,c),feed=priceOf(c,e.rar);
+var CONDS=['','NM','LP','MP','HP','DMG'];
+function listRow(key,id,inDeck,li){var m=bucket(key),c=BY[id],e=inDeck?m[id]:(isMulti(key)?m[id][li]:m[id]),p=entPrice(e,c),feed=priceOf(c,e.rar);
+  var L=inDeck?'':(','+li);
   var opts='<option value="__m"'+(e.rar==='__m'?' selected':'')+'>Market low</option>'+
     Object.keys(c.rp).map(function(rn){return '<option'+(e.rar===rn?' selected':'')+'>'+rn+'</option>';}).join('');
-  var own=inDeck?(St.collection[id]?St.collection[id].q:0):0, buy=inDeck?Math.max(0,e.q-own):e.q;
+  var own=inDeck?ownQ(id):0, buy=inDeck?Math.max(0,e.q-own):e.q;
   var unowned=inDeck&&buy>0;
   var pr=e.pr||'Normal';
-  var prcell=(key==='wishlist')?'<td><select onchange="setP('+id+',this.value)" style="font-size:11px">'+['High','Normal','Low'].map(function(x){return '<option'+(pr===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></td>':'';
+  var prcell=(key==='wishlist')?'<td><select onchange="setP('+id+',this.value'+L+')" style="font-size:11px">'+['High','Normal','Low'].map(function(x){return '<option'+(pr===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select></td>':'';
+  var condcell=inDeck?'':'<td><select onchange="setCond(\''+key+'\','+id+',this.value'+L+')" style="font-size:11px">'+CONDS.map(function(x){return '<option value="'+x+'"'+((e.cond||'')===x?' selected':'')+'>'+(x||'—')+'</option>';}).join('')+'</select></td>';
   var extra=inDeck?'<span class=addb onclick="add(\'collection\','+id+')" title="add to collection">+Coll</span><span class=addb onclick="add(\'wishlist\','+id+')" title="add to wishlist">+Wish</span>'
-    :(key==='collection')?'<span class=addb onclick="addToDeck('+id+')" title="add to active deck">+Deck</span><span class=addb onclick="add(\'wishlist\','+id+')" title="add to wishlist">+Wish</span>'
-    :(key==='wishlist')?'<span class=addb onclick="addToDeck('+id+')" title="add to active deck">+Deck</span><span class=addb onclick="add(\'collection\','+id+')" title="add to collection">+Coll</span>':'';
+    :(key==='collection')?'<span class=addb onclick="addLine(\'collection\','+id+')" title="add another rarity/version you own">+ver</span><span class=addb onclick="addToDeck('+id+')" title="add to active deck">+Deck</span><span class=addb onclick="add(\'wishlist\','+id+')" title="add to wishlist">+Wish</span>'
+    :(key==='wishlist')?'<span class=addb onclick="addLine(\'wishlist\','+id+')" title="add another rarity/version">+ver</span><span class=addb onclick="addToDeck('+id+')" title="add to active deck">+Deck</span><span class=addb onclick="add(\'collection\','+id+')" title="add to collection">+Coll</span>':'';
   var mv=inDeck?(key==='side'?'<span class=addb onclick="moveTo('+id+',\'side\',\''+deckSecOf(id)+'\')" title="move to main/extra">→ main</span>':'<span class=addb onclick="moveTo('+id+',\''+key+'\',\'side\')" title="move to side deck">→ side</span>'):'';
   return '<tr'+(unowned?' class=unowned':'')+'><td class="nm" onclick="openM('+id+')">'+(unowned?'<span class=needdot title="you still need '+buy+'">◆</span>':'')+esc(c.n)+'</td>'
-    +'<td><span class=qbtn onclick="setQ(\''+key+'\','+id+',-1)">–</span>'+e.q+'<span class=qbtn onclick="setQ(\''+key+'\','+id+',1)">+</span></td>'
+    +'<td><span class=qbtn onclick="setQ(\''+key+'\','+id+',-1'+L+')">–</span>'+e.q+'<span class=qbtn onclick="setQ(\''+key+'\','+id+',1'+L+')">+</span></td>'
     +prcell+(inDeck?'<td class="r mut">'+own+'</td><td class="r"'+(buy>0?' style="color:var(--warn);font-weight:700"':'')+'>'+buy+'</td>':'')
-    +'<td><select onchange="setR(\''+key+'\','+id+',this.value)" style="font-size:11px">'+opts+'</select></td>'
-    +(inDeck?'<td class="r">'+f(p)+'</td>':'<td class="r"><input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value)" title="your price — blank uses the feed price"></td>')
+    +'<td><select onchange="setR(\''+key+'\','+id+',this.value'+L+')" style="font-size:11px">'+opts+'</select></td>'
+    +condcell
+    +(inDeck?'<td class="r">'+f(p)+'</td>':'<td class="r"><input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed price"></td>')
     +'<td class="r">'+f(p==null?null:p*(inDeck?buy:e.q))+'</td>'
-    +'<td>'+extra+mv+' <span class=x onclick="del(\''+key+'\','+id+')">✕</span></td></tr>';}
+    +'<td>'+extra+mv+' <span class=x onclick="del(\''+key+'\','+id+''+L+')">✕</span></td></tr>';}
 function secTable(sec,label,lim,lq){var m=curDeck()[sec];var cnt=0;Object.keys(m).forEach(function(id){cnt+=m[id].q;});
   var ids=Object.keys(m).filter(function(id){var c=BY[id];return c&&(!lq||c.n.toLowerCase().indexOf(lq)>=0);});
   var over=(lim&&cnt>lim)?' <span style="color:#e0607a">(max '+lim+')</span>':'';
@@ -1059,34 +1232,35 @@ function renderDeck(){var d=curDeck(),lqel=document.getElementById('lq'),lq=lqel
   var mainCt=0;for(var mid in d.main)mainCt+=d.main[mid].q;
   var legal=viol.length?'<span style="color:#e0607a">⚠ '+viol.length+' over banlist limit — '+viol.join(', ')+'</span>':'<span style="color:var(--pos)">✓ banlist-legal</span>';
   var mw=(mainCt<40||mainCt>60)?' <span style="color:'+(mainCt<40?'var(--warn)':'#e0607a')+'">(main 40–60)</span>':'';
-  var ownTot=0,needTot=0;for(var nid in need){needTot+=need[nid];var oc=St.collection[nid]?St.collection[nid].q:0;ownTot+=Math.min(need[nid],oc);}
+  var ownTot=0,needTot=0;for(var nid in need){needTot+=need[nid];var oc=ownQ(nid);ownTot+=Math.min(need[nid],oc);}
   var ownMsg=needTot?' · <span style="color:'+(ownTot>=needTot?'var(--pos)':'var(--warn)')+'">◆ owned '+ownTot+'/'+needTot+' ('+Math.round(100*ownTot/needTot)+'%)</span>':'';
   var banner='<div class=deckstats>Deck <b>'+esc(St.active)+'</b> · value <b>$'+deckVal().toFixed(2)+'</b> · to finish <b>$'+comp().toFixed(2)+'</b>'+ownMsg+' · '+legal+mw+'</div>';
   ltbl_.innerHTML=banner+secTable('main','Main Deck',60,lq)+secTable('extra','Extra Deck',15,lq)+secTable('side','Side Deck',15,lq);}
 function rTable(){
   if(view==='deck'){renderDeck();return;}
+  if(view!=='collection'&&view!=='wishlist')return;   // guard: only list views have a table
   var m=bucket(view),lqel=document.getElementById('lq'),lq=lqel?lqel.value.toLowerCase():'';
   var total=Object.keys(m).length;
   if(!total){ltbl_.innerHTML='<div class=empty>Nothing in your '+view+' yet — go to Browse and click +'+(view==='collection'?'Coll':'Wish')+', or use “add a card” above.</div>';return;}
   var clel=document.getElementById('lclass'),cl=clel?clel.value:'all';
   var srel=document.getElementById('lsort'),sr=srel?srel.value:(view==='wishlist'?'pr':'name');
-  var ids=Object.keys(m).filter(function(id){var c=BY[id];return c&&(!lq||c.n.toLowerCase().indexOf(lq)>=0)&&(cl==='all'||c.cl===cl);});
   var po={High:0,Normal:1,Low:2};
-  var uval=function(id){var c=BY[id],p=priceOf(c,m[id].rar);return p==null?-1:p;};
-  ids.sort(function(a,b){var ca=BY[a],cb=BY[b];
-    if(sr==='name')return ca.n<cb.n?-1:ca.n>cb.n?1:0;
-    if(sr==='price')return uval(b)-uval(a);
-    if(sr==='value')return (uval(b)<0?0:uval(b)*m[b].q)-(uval(a)<0?0:uval(a)*m[a].q);
-    if(sr==='qty')return m[b].q-m[a].q;
-    if(sr==='rarity')return (ORD[m[b].rar]||-1)-(ORD[m[a].rar]||-1);
-    if(sr==='pr')return (po[m[a].pr]||1)-(po[m[b].pr]||1)||(ca.n<cb.n?-1:1);
-    return 0;});
-  var cnt='<div class=count>'+ids.length+' of '+total+' shown · <span class=mut>tip: the <b>Unit</b> price is yours to edit — type your own value (blank uses the feed)</span></div>';
-  if(listMode==='grid'){ltbl_.innerHTML=cnt+'<div class=grid>'+ids.map(function(id){return gridTile(view,id,false);}).join('')+'</div>';return;}
-  var rows=ids.map(function(id){return listRow(view,id,false);}).join('');
+  var D=[]; Object.keys(m).forEach(function(id){var c=BY[id]; if(!c)return; if(lq&&c.n.toLowerCase().indexOf(lq)<0)return; if(cl!=='all'&&c.cl!==cl)return;
+    m[id].forEach(function(ln,li){D.push({id:+id,li:li,ln:ln,c:c});});});
+  var lp=function(o){var p=entPrice(o.ln,o.c);return p==null?-1:p;};
+  D.sort(function(a,b){
+    if(sr==='price')return lp(b)-lp(a);
+    if(sr==='value')return (lp(b)<0?0:lp(b)*b.ln.q)-(lp(a)<0?0:lp(a)*a.ln.q);
+    if(sr==='qty')return b.ln.q-a.ln.q;
+    if(sr==='rarity')return (ORD[b.ln.rar]||-1)-(ORD[a.ln.rar]||-1);
+    if(sr==='pr')return (po[a.ln.pr]||1)-(po[b.ln.pr]||1)||(a.c.n<b.c.n?-1:1);
+    return a.c.n<b.c.n?-1:a.c.n>b.c.n?1:(a.li-b.li);});   // default: name
+  var cnt='<div class=count>'+D.length+' line'+(D.length===1?'':'s')+' · '+total+' card'+(total===1?'':'s')+' · <span class=mut>tip: edit <b>Unit</b> to your value; <b>+ver</b> adds another rarity/condition you own</span></div>';
+  if(listMode==='grid'){ltbl_.innerHTML=cnt+'<div class=grid>'+D.map(function(o){return gridTile(view,o.id,false,o.li);}).join('')+'</div>';return;}
+  var rows=D.map(function(o){return listRow(view,o.id,false,o.li);}).join('');
   ltbl_.innerHTML=cnt
     +'<table><tr><th>Card</th><th>Qty</th>'+(view==='wishlist'?'<th>Priority</th>':'')
-    +'<th>Rarity (which you own)</th><th class=r>Unit (yours)</th><th class=r>Value</th><th></th></tr>'+rows+'</table>';
+    +'<th>Rarity</th><th>Cond.</th><th class=r>Unit (yours)</th><th class=r>Value</th><th></th></tr>'+rows+'</table>';
 }
 function med(a){if(!a.length)return null;a=a.slice().sort(function(x,y){return x-y;});return a[Math.floor(a.length/2)];}
 function grpMed(kf){var g={};PRICED.forEach(function(c){var k=kf(c);if(k==null||k==='')return;(g[k]=g[k]||[]).push(c.m);});
@@ -1189,7 +1363,7 @@ function importList(ev){var fl=ev.target.files[0]; if(!fl)return; var rd=new Fil
       var counts={};
       if(isYdk){var s=parseYdk(txt);['main','extra','side'].forEach(function(sec){for(var id in s[sec])counts[id]=(counts[id]||0)+s[sec][id];});}
       else counts=parseTextList(txt);
-      var m=bucket(view),n=0;for(var id in counts){if(m[id])m[id].q+=counts[id];else m[id]={q:counts[id],rar:'__m'};n++;}
+      var m=bucket(view),n=0;for(var id in counts){if(isMulti(view)){var arr=m[id]||(m[id]=[]),ln=null;for(var i=0;i<arr.length;i++)if(arr[i].rar==='__m'&&!arr[i].cond){ln=arr[i];break;}if(ln)ln.q+=counts[id];else arr.push({rar:'__m',cond:'',q:counts[id]});}else{if(m[id])m[id].q+=counts[id];else m[id]={q:counts[id],rar:'__m'};}n++;}
       sv();kpis();rTable();alert('Imported '+n+' cards into your '+view+'.');
     }
     ev.target.value='';}; rd.readAsText(fl);}

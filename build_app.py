@@ -613,6 +613,11 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bvcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:9px;padding:14px;overflow:auto}
 .bvcard{aspect-ratio:59/86;border-radius:7px;overflow:hidden;position:relative;cursor:pointer;border:1px solid var(--line2);background:linear-gradient(160deg,#1a2547,#0e1730);transition:.1s}
 .bvcard:hover{border-color:var(--gold);transform:translateY(-2px)}
+.bvfdc{border-color:var(--gold);border-style:dashed}
+.bvfdc img{opacity:.45;filter:grayscale(.5)}
+.bvfd{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:2px 0;text-align:center;
+  background:rgba(232,198,106,.92);color:#1a1300;font-size:8px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.04em}
 .bvcard img{width:100%;height:100%;object-fit:cover;display:block}
 .bvcard .bnm{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;font-size:8px;padding:3px;color:#aeb9d6;line-height:1.15}
 .bvcard.bnoart .bnm{display:flex}.bvcard.bnoart img{display:none}
@@ -739,10 +744,6 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .bfield{padding:6px 0;border-radius:11px;margin-left:auto;margin-right:auto;
     max-width:min(100%,calc((100vh - 300px) * 0.72))}
   .boppbar .boplab{font-size:7px}
-  .bemzrow .bslot:nth-child(2){grid-column:2}
-  .bemzrow .lpchip{grid-column:3}
-  .bemzrow .bslot:nth-child(4){grid-column:4}
-  .bemzside:nth-child(5){grid-column:5}
   .boppbar{padding-bottom:4px}
   .boplab{font-size:8px}
   .bviewer{padding:10px}
@@ -1329,27 +1330,38 @@ function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();retu
   } else if(destK==='deckTop'){board.deck.unshift(it.id);}
   else if(destK==='deckBtm'){board.deck.push(it.id);}
   else if(destK==='off'){/*removed from play*/}
+  /* banished face-down: the only destination that keeps a card hidden, so it needs its own
+     path — every other pile forces fd=false on the way in */
+  else if(destK==='banFD'||destK==='obanFD'){var bk=destK==='banFD'?'ban':'oban';
+    it.fd=true;it.def=false;board[bk].push(it);
+    sel={k:bk,s:null,i:board[bk].length-1}; renderSim(); return;}
   else if(isIdPile(destK)){board[destK].push(it.id);}        /* deck / extra, either side */
   else if(destK==='hand'||destK==='ohand'){it.fd=false;it.def=false;board[destK].push(it);
     sel={k:destK,s:null,i:board[destK].length-1}; renderSim(); return;}
-  else{it.fd=false;board[destK].push(it);} /* gy, ban, ogy, oban */
+  else{it.fd=false;board[destK].push(it);
+    sel={k:destK,s:null,i:board[destK].length-1}; renderSim(); return;} /* gy, ban, ogy, oban */
   sel=null;renderSim();}
 /* fxDraft must reset here: it's global, so leaving it set meant the next card you selected
    (typically straight out of the deck or extra viewer) opened the note field and popped the
    keyboard before you'd asked for anything. */
 function bSelect(k,s,i){if(sel&&sel.k===k&&sel.s===s&&sel.i===i)sel=null;else sel={k:k,s:s,i:i};
   viewer=null;fxDraft=false;attachMode=false;renderSim();}
+/* Tapping only ever MOVES a card into an empty zone. Tapping an occupied one selects the
+   card sitting there instead — otherwise every tap while something was held flung it across
+   the board, which made simply looking around the field impossible. Stacking deliberately
+   (Xyz materials, overlays) is still available via Attach or by dragging. */
 function bSlotTap(k,s){
   if(dragJustEnded)return;                       /* a drag already handled this */
+  var a=board[k][s];
   if(sel&&attachMode){                           /* attach the held card under the monster here */
-    var a=board[k][s];
     if(a&&a.length){var host=a[a.length-1];var it=selRemove();
       if(it){it.fd=false;it.def=false;(host.mat=host.mat||[]).push(it);}
-      attachMode=false;sel=null;renderSim();return;}
+      attachMode=false;renderSim();return;}
     return;                                      /* empty zone: nothing to attach to */
   }
-  if(sel){place(k,s);return;}
-  var a=board[k][s];if(a&&a.length)bSelect(k,s,a.length-1);}
+  if(a&&a.length){bSelect(k,s,a.length-1);return;}   /* occupied: take the card, don't displace it */
+  if(sel){place(k,s);return;}                        /* empty: place what you're holding */
+}
 
 /* ----- Xyz materials ----- */
 var attachMode=false;
@@ -1402,12 +1414,12 @@ function lpReset(){if(!board)return;board.lp={you:8000,opp:8000};board.lpHist=[]
    clarify what the card is doing. `dec` marks it declared; `fx` holds the optional note. */
 function bDeclare(){var it=selInst();if(!it)return;
   it.dec=true; board.log.push({n:nameOf(it),t:it.fx||''});
-  fxDraft=false; sel=null; renderSim();}
+  fxDraft=false; renderSim();}
 function bNoteOpen(){fxDraft=!fxDraft;renderSim();}
 function bNoteSave(){var it=selInst();if(!it){fxDraft=false;renderSim();return;}
   var el=document.getElementById('fxIn'),t=(el&&el.value||'').trim();
   it.fx=t; it.dec=true; board.log.push({n:nameOf(it),t:t});
-  fxDraft=false; sel=null; renderSim();}
+  fxDraft=false; renderSim();}
 function bClearFx(){var it=selInst();if(!it)return;delete it.fx;delete it.dec;renderSim();}
 function bDeselect(){sel=null;fxDraft=false;attachMode=false;renderSim();}
 /* the full card detail popup, from the board — tokens have no card to show */
@@ -1471,9 +1483,14 @@ var pmenu=null;
 var PILE_DEST={deck:'deckTop',ex:'ex',gy:'gy',ban:'ban',hand:'hand',
   odeck:'odeck',oex:'oex',ogy:'ogy',oban:'oban',ohand:'ohand'};
 function bPileTap(k){ if(dragJustEnded)return;
-  /* Holding a card? Then the pile is a destination, not a menu — otherwise picking a card
-     out of the deck viewer left no way to send it to the graveyard by tapping. */
-  if(sel){ pmenu=null; place(PILE_DEST[k]||k); return; }
+  var a=board[k]||[];
+  if(sel){
+    /* same rule as the zones: a stocked pile hands you its top card rather than swallowing
+       what you're holding. The toolbar's Hand/GY/Banish/Deck buttons are the deliberate
+       way to send a card to a pile that already has cards in it. */
+    if(a.length){ pmenu=null; bSelect(k,null,a.length-1); return; }
+    pmenu=null; place(PILE_DEST[k]||k); return;
+  }
   pmenu=(pmenu===k)?null:k; viewer=null; renderSim(); }
 function pmClose(){ pmenu=null; renderSim(); }
 function pmAct(a){
@@ -1527,7 +1544,9 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
   else h+='<button onclick="bNoteOpen()" title="optional note to clarify">&#9998; note</button>';
   if((it.fx||it.dec)&&!fxDraft)h+='<button onclick="bClearFx()" title="clear the declaration">clear</button>';
   h+='<span class=btsep></span>';
-  h+='<button onclick="place(\'hand\')">Hand</button><button onclick="place(\'gy\')">GY</button><button onclick="place(\'ban\')">Banish</button>'
+  h+='<button onclick="place(\'hand\')">Hand</button><button onclick="place(\'gy\')">GY</button>'
+    +'<button onclick="place(\'ban\')">Banish</button>'
+    +'<button onclick="place(\'banFD\')" title="banish face-down">Banish FD</button>'
     +'<button onclick="place(\'deckTop\')">Deck top</button><button onclick="place(\'deckBtm\')">Deck btm</button>'
     +'<button onclick="place(\'ex\')">Extra</button>'
     +'<span class=btsep></span><button onclick="place(\'off\')" title="remove from play">&times; off</button>'
@@ -1558,7 +1577,10 @@ function viewerHTML(){if(!viewer)return '';var k=viewer,title,arr,act;
     var body=it.tok
       ? '<div class=btok><span class=btokn>'+esc(it.tok.n)+'</span></div>'
       : '<img draggable="false" src="'+imgSrc(it.id)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(nameOf(it))+'</span>';
-    return '<div class=bvcard onclick="'+act(o.i)+'">'+body+'</div>';}).join('');
+    /* art still shows — it's your own card and you need to find it — but face-down has to be
+       unmistakable, since it changes what you may legally do with it */
+    var fd=it.fd?'<span class=bvfd>face-down</span>':'';
+    return '<div class="bvcard'+(it.fd?' bvfdc':'')+'" onclick="'+act(o.i)+'">'+body+fd+'</div>';}).join('');
   return '<div class=bviewer onclick="bView(\''+k+'\')"><div class=bvbox onclick="event.stopPropagation()">'
     +'<div class=bvhead><b>'+title+'</b>'+(k==='deck'?' <span class=mut style="font-size:11px">order hidden &mdash; pick any card to act on it</span>':'')+'<button onclick="bView(\''+k+'\')" style="margin-left:auto">Close</button></div>'
     +'<div class=bvcards>'+(cards||'<span class=mut>Empty.</span>')+'</div></div></div>';}

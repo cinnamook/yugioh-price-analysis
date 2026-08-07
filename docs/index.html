@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>&lt;CYBERSE&gt; — 2026-08-06</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#070c1c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,10 +35,11 @@
      .bemzrow's padding is derived from these, so shrinking the board is a two-value change. */
   --bside:72px;--bgap:7px}
 *{box-sizing:border-box}
-/* kills the iOS double-tap-to-zoom delay/jump on every control. `manipulation` still allows
-   scrolling and pinch-zoom — only the double-tap gesture is dropped, which is what makes
-   rapid tapping (+/- steppers, life points, board zones) feel broken otherwise. */
-html,body{touch-action:manipulation}
+/* No zooming at all: `pan-x pan-y` permits scrolling but drops BOTH the double-tap and the
+   pinch gestures, so rapid tapping (steppers, life points, board zones) and dragging cards
+   never fight the browser. The viewport meta and the gesture handlers below back this up on
+   iOS, which ignores parts of each on its own. */
+html,body{touch-action:pan-x pan-y}
 body{font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;
   background:radial-gradient(1100px 560px at 78% -12%,#161e30 0%,var(--bg) 55%) fixed,var(--bg)}
 /* padding-top carries the status-bar/notch inset; the background still bleeds full-width
@@ -1964,7 +1965,13 @@ paint();
      for the one case this is here to catch. */
   if(window.ResizeObserver)try{new ResizeObserver(syncHH).observe(hd,{box:'border-box'});}
   catch(e){new ResizeObserver(syncHH).observe(hd);}
-})();</script>
+})();
+/* iOS Safari raises its own gesture events for pinch and doesn't reliably honour
+   touch-action for them, so this is the layer that actually stops pinch-zoom on iPhone.
+   Desktop double-click-to-select-a-word is deliberately left alone. */
+['gesturestart','gesturechange','gestureend'].forEach(function(t){
+  addEventListener(t,function(e){e.preventDefault();},{passive:false});
+});</script>
 <script>/* PWA: register the service worker only when hosted (not on file://) */
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});

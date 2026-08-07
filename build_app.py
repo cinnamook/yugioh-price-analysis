@@ -22,8 +22,8 @@ TODAY = datetime.date(2026, 8, 6)
 # The ANON key is public by design and safe to commit — row-level security is what
 # protects the data. NEVER put the service_role key here; it bypasses RLS.
 # Leaving either empty builds the app with sync switched off.
-SUPABASE_URL      = ""
-SUPABASE_ANON_KEY = ""
+SUPABASE_URL      = "https://hkonoxawtdsfzjovfdku.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_kiBcVCdAjWI8_CvalphVGg_Iv6BfSFH"
 
 
 def supabase_lib():

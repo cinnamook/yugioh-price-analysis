@@ -83,15 +83,16 @@ def main():
             .replace("__RAR__", json.dumps(RARITY_ORDER)).replace("__SETS__", json.dumps(sets_list).replace("</", "<\\/")).replace("__DATA__", payload))
     out = os.path.join(HERE, "app.html"); open(out, "w").write(html)
     mb = os.path.getsize(out)/1e6
-    write_pwa(html, date)
+    build = write_pwa(html)
     print(f"snapshot {date} | {len(cards):,} cards | {flagged} gap flags | app.html {mb:.1f} MB")
     print(f"wrote {out} — open it (double-click, or: open app.html). Lists save in the browser.")
-    print(f"wrote docs/ (GitHub Pages bundle) — run publish.command to push it to your phone.")
+    print(f"wrote docs/ (GitHub Pages bundle, sw cache cyberse-{build}) — run publish.command to push it to your phone.")
 
 
-def write_pwa(html, date):
+def write_pwa(html):
     """Emit the hosted bundle for GitHub Pages / the phone PWA into docs/.
-    Same page as app.html; card art auto-switches to the CDN when hosted."""
+    Same page as app.html; card art auto-switches to the CDN when hosted.
+    Returns the build id stamped into the service-worker cache name."""
     docs = os.path.join(HERE, "docs")
     os.makedirs(os.path.join(docs, "icons"), exist_ok=True)
     open(os.path.join(docs, "index.html"), "w").write(html)
@@ -107,12 +108,17 @@ def write_pwa(html, date):
         ],
     }
     open(os.path.join(docs, "manifest.json"), "w").write(json.dumps(manifest, indent=2))
-    sw = SW_JS.replace("__DATE__", date)
+    # Cache-bust per BUILD, not per day: the browser only reinstalls the worker when sw.js itself
+    # changes byte-for-byte, so a date-only version made the second rebuild of a day serve the
+    # stale page from cache. A timestamp guarantees every publish reaches the phone.
+    build = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    sw = SW_JS.replace("__BUILD__", build)
     open(os.path.join(docs, "sw.js"), "w").write(sw)
+    return build
 
 
-SW_JS = r"""/* <CYBERSE> service worker — versioned by build date so a fresh publish updates the phone. */
-const CACHE='cyberse-__DATE__';
+SW_JS = r"""/* <CYBERSE> service worker — versioned by build timestamp so every publish updates the phone. */
+const CACHE='cyberse-__BUILD__';
 const CORE=['./index.html','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(CORE).catch(function(){});}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return k===CACHE?null:caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
@@ -137,15 +143,25 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>&lt
 <link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet"><style>
 :root{--bg:#070c1c;--bg2:#0b1330;--surf:#111d3f;--surf2:#182a55;--line:#2c3d70;--line2:#43598f;
   --ink:#eaf0ff;--mut:#93a0c4;--acc:#8fdcff;--acc2:#5566d8;--pos:#6ee0a0;--warn:#e8c66a;--dang:#ff6b81;
-  --gold:#e8c66a;--gold2:#f3dd94;--sh:0 8px 30px rgba(2,6,20,.6)}
+  --gold:#e8c66a;--gold2:#f3dd94;--sh:0 8px 30px rgba(2,6,20,.6);
+  /* --hh = header height. Sticky table heads and the board toolbar offset from it, so it MUST
+     be re-declared in every breakpoint that changes the header's height. */
+  --hh:57px;
+  /* solo-board geometry: side column (field/GY/extra/deck piles) and the gap between zones.
+     .bemzrow's padding is derived from these, so shrinking the board is a two-value change. */
+  --bside:72px;--bgap:7px}
 *{box-sizing:border-box}
 body{font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;
   background:radial-gradient(1100px 560px at 78% -12%,#161e30 0%,var(--bg) 55%) fixed,var(--bg)}
 header{padding:12px 22px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;background:rgba(11,15,23,.82);backdrop-filter:blur(12px);z-index:20}
 h1{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
 h1::before{content:"◆";color:var(--acc);font-size:14px}
-.nav{display:flex;gap:3px;background:var(--surf);padding:3px;border-radius:12px;border:1px solid var(--line)}
-.nav .t{padding:6px 15px;border-radius:9px;cursor:pointer;font-size:13px;color:var(--mut);transition:.15s}
+/* 11 tabs never fit a phone: the strip scrolls sideways instead of overflowing the page.
+   Harmless on desktop, where it doesn't overflow in the first place. */
+.nav{display:flex;gap:3px;background:var(--surf);padding:3px;border-radius:12px;border:1px solid var(--line);
+  max-width:100%;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav .t{padding:6px 15px;border-radius:9px;cursor:pointer;font-size:13px;color:var(--mut);transition:.15s;flex:none;white-space:nowrap;scroll-snap-align:center}
 .nav .t:hover{color:var(--ink)} .nav .t.on{background:var(--acc2);color:#fff;font-weight:600}
 .kpis{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
 .kpi{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:6px 14px;text-align:right;min-width:78px}
@@ -162,7 +178,7 @@ label{color:var(--mut);font-size:12px;display:flex;gap:5px;align-items:center}
 table{border-collapse:separate;border-spacing:0;width:100%}
 th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{color:var(--mut);font-weight:600;cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:var(--bg2)}
-#browse th{position:sticky;top:57px;z-index:2}
+#browse th{position:sticky;top:var(--hh);z-index:2}
 tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .r{text-align:right;font-variant-numeric:tabular-nums}
 .rar{color:var(--acc)}.nm{font-weight:600;cursor:pointer}.nm:hover{color:var(--acc)}.mut{color:var(--mut)}
@@ -327,22 +343,26 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .distn{font-size:11px;color:#c3ccdb;margin-top:4px;font-variant-numeric:tabular-nums}
 .distlab{font-size:10px;color:var(--mut);margin-top:1px}
 /* solo board */
-.btoolbar{position:sticky;top:57px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:5px;background:linear-gradient(180deg,rgba(24,38,78,.96),rgba(14,22,50,.96));border:1px solid var(--gold);border-radius:11px;padding:8px 11px;margin:10px 0;box-shadow:0 6px 20px rgba(2,6,20,.5)}
+.btoolbar{position:sticky;top:var(--hh);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:5px;background:linear-gradient(180deg,rgba(24,38,78,.96),rgba(14,22,50,.96));border:1px solid var(--gold);border-radius:11px;padding:8px 11px;margin:10px 0;box-shadow:0 6px 20px rgba(2,6,20,.5)}
 .btoolbar button{font-size:11px;padding:5px 9px}
 .btsel{font-weight:700;color:var(--gold2);font-size:12px}
 .btsep{width:1px;height:16px;background:var(--line2);margin:0 3px}
 .btoolbar button.bon{background:var(--gold);color:#1a1300;border-color:var(--gold);font-weight:700}
 .bctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .bhint{font-size:11.5px;color:var(--mut);margin:8px 0 2px}
-.bfield{display:flex;flex-direction:column;gap:7px;margin:6px auto 0;max-width:720px;background:radial-gradient(ellipse at 50% 38%,rgba(30,46,96,.35),rgba(8,13,32,.42));border:1px solid var(--line2);border-radius:14px;padding:12px}
-.bemzrow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;padding:0 79px}
+.bfield{display:flex;flex-direction:column;gap:var(--bgap);margin:6px auto 0;max-width:720px;background:radial-gradient(ellipse at 50% 38%,rgba(30,46,96,.35),rgba(8,13,32,.42));border:1px solid var(--line2);border-radius:14px;padding:12px}
+/* the EMZ row is inset by exactly one side column so its 5 tracks line up with .bzones below.
+   minmax(0,1fr) rather than 1fr: .bslot has an aspect-ratio, so a taller row (e.g. a pile label
+   wrapping to two lines) would otherwise raise each track's automatic min-content floor and push
+   the tracks wider than the container — which silently knocks the two rows out of alignment. */
+.bemzrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);padding:0 calc(var(--bside) + var(--bgap))}
 .bemzrow .bslot:nth-child(1){grid-column:2}.bemzrow .bslot:nth-child(2){grid-column:4}
-.bmainrow{display:flex;gap:7px;align-items:stretch}
-.bzones{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
-.bside{width:72px;flex:none;display:flex;align-items:center;justify-content:center}
+.bmainrow{display:flex;gap:var(--bgap);align-items:stretch}
+.bzones{flex:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);min-width:0}
+.bside{width:var(--bside);flex:none;min-width:0;display:flex;align-items:center;justify-content:center}
 .bbanrow{display:flex;justify-content:flex-end;padding-right:2px}
 .bslot{border:1px dashed var(--line2);border-radius:9px;aspect-ratio:59/86;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:.12s;background:rgba(12,20,46,.35);overflow:visible}
-.bside .bslot{width:72px}
+.bside .bslot{width:var(--bside)}
 .bslot.bempty:hover{border-color:var(--acc)}
 .bslot.bdrop{border-color:var(--gold);border-style:solid;box-shadow:0 0 0 2px rgba(232,198,106,.22) inset;background:rgba(232,198,106,.06)}
 .bslab{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
@@ -353,7 +373,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bcard.bsel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 4px 12px rgba(232,198,106,.4);z-index:3}
 .bcard.bdef{transform:rotate(90deg) scale(.68)}
 .bback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--gold);background:linear-gradient(135deg,#2a2350,#3a2d63);text-shadow:0 0 10px rgba(232,198,106,.5);border-radius:7px}
-.bpile{width:72px;cursor:pointer;text-align:center}
+.bpile{width:var(--bside);cursor:pointer;text-align:center}
 .bpile .bptop{aspect-ratio:59/86;border:1px solid var(--line2);border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(12,20,46,.5)}
 .bpile.bempty .bptop{border-style:dashed;background:rgba(12,20,46,.3)}
 .bpile:hover .bptop{border-color:var(--acc)}
@@ -361,8 +381,8 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bpcount{font-size:9px;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
 .bhandwrap{margin-top:10px;border:1px solid var(--line2);border-radius:11px;padding:8px 10px;background:linear-gradient(180deg,rgba(24,38,78,.5),rgba(12,20,46,.55))}
 .bhlab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:6px}
-.bhcards{display:flex;flex-wrap:wrap;gap:7px}
-.bhcards>div{width:58px;aspect-ratio:59/86;cursor:pointer}
+.bhcards{display:flex;flex-wrap:wrap;gap:var(--bgap)}
+.bhcards>div{width:var(--bhand,58px);aspect-ratio:59/86;cursor:pointer}
 .bviewer{position:fixed;inset:0;background:rgba(4,8,20,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
 .bvbox{background:linear-gradient(180deg,#141f42,#0c1430);border:1px solid var(--gold);border-radius:14px;max-width:840px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(2,6,20,.7)}
 .bvhead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line2)}
@@ -434,6 +454,92 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .grar{font-size:10px;padding:2px 4px;flex:1;min-width:0}
 .ovin{width:72px;text-align:right;font-size:11px;padding:4px 6px}
 .ovin.ovset{border-color:var(--gold);color:var(--gold2);font-weight:700}
+/* Tables keep white-space:nowrap for readability, so on narrow screens they scroll inside
+   their own box rather than dragging the whole page sideways. NOTE: an overflow container
+   is also a scroll container, which kills position:sticky on <th> — so this only engages
+   below 900px, and sticky headers are explicitly turned off there. */
+.tscroll{max-width:100%}
+/* ============================================================================
+   RESPONSIVE LAYER — everything below only applies to narrow screens.
+   Desktop (>=901px) renders exactly as it did before this block existed.
+   ============================================================================ */
+@media(max-width:900px){
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tscroll table{min-width:660px}
+  #browse th{position:static}          /* can't stay sticky inside a scroll container */
+  .wrap{padding:14px 14px 64px}
+  .controls{padding:10px 14px}
+  /* two deterministic rows (title + KPIs, then the tab strip) instead of the desktop header
+     wrapping into three — the nav scrolls, so it always occupies exactly one row */
+  header{padding:10px 14px;gap:10px;flex-wrap:wrap;row-gap:8px}
+  h1{order:1;flex:none}
+  .kpis{order:2;margin-left:auto}
+  .nav{order:3;width:100%}
+}
+@media(max-width:640px){
+  /* header becomes two rows: title + KPIs, then the tab strip. Its real height is measured
+     into --hh at runtime by syncHH(), so nothing here has to be kept in sync by hand. */
+  :root{--bside:46px;--bgap:4px;--bhand:44px}
+  header{padding:8px 10px;gap:8px}
+  h1{font-size:15px}
+  /* grid tracks shrink instead of wrapping, so the KPI row can never overflow the header
+     or push it onto a third line */
+  .kpis{flex:1 1 0;min-width:0;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .kpi{min-width:0;overflow:hidden;padding:4px 6px;border-radius:9px;text-align:center}
+  .kpi .v{font-size:12px}
+  .kpi .l{font-size:8px;letter-spacing:.04em}
+  .nav{order:3;width:100%;border-radius:10px}
+  .nav .t{padding:7px 13px;font-size:13px}
+  .wrap{padding:12px 12px 64px}
+  .controls{padding:10px 12px;gap:6px}
+  .controls input[type=text]{width:100%;min-width:0;flex:1 1 100%}
+  .controls .num{width:70px}
+  .tscroll table{min-width:600px}
+  th,td{padding:7px 9px}
+  /* modals: the desktop padding wastes a third of a phone screen */
+  #ov{padding:10px}
+  .modal{padding:16px 15px;max-height:92vh;border-radius:14px}
+  .modal h2{font-size:18px}
+  .cimg{width:104px;margin:0 0 10px 12px}
+  .rsets{max-width:none}
+  /* ---- solo board: scale the field, never stack it (the spatial layout IS the feature) ---- */
+  .bfield{padding:7px;border-radius:11px}
+  .bviewer{padding:10px}
+  .bvbox{max-height:90vh;border-radius:12px}
+  .bvcards{grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;padding:10px}
+  .bslab{font-size:8px}
+  /* pile captions wrap to two lines in a 40px column; reserve the same height for every pile
+     so the board's rows stay level with each other */
+  .bpcount{font-size:8px;line-height:1.15;min-height:2.1em;display:flex;align-items:flex-end;justify-content:center}
+  /* the toolbar is the board's primary control surface — give it real tap targets */
+  .btoolbar{padding:7px 8px;gap:4px;border-radius:9px}
+  .btoolbar button{font-size:11px;padding:7px 10px;min-height:34px}
+  .bctrl button,.bctrl select{min-height:34px}
+  /* charts and label columns sized for a desktop gutter */
+  .clab{width:120px;font-size:11px}
+  .cval{width:88px;font-size:11px}
+  .wrlab{width:104px}
+  .wrval{width:92px;font-size:11px}
+  .impnm{width:118px}
+  .cblab{width:88px}
+  .cbspent{width:74px}
+  .simcard{width:78px}
+  .oddscard{min-width:0;flex:1 1 44%;padding:10px 12px}
+  .oddspct{font-size:20px}
+  .menuwrap{padding:34px 14px 70px}
+  .mitem{padding:13px 14px;gap:12px}
+  .mitem:hover{transform:none}   /* no hover on touch; the shift just looks like a glitch */
+  .mt{font-size:16px}
+  .md{font-size:11.5px}
+  .mic{font-size:21px;width:30px}
+  .savebar{gap:14px}
+}
+@media(max-width:400px){
+  :root{--bside:40px;--bhand:40px}
+  .kpi{padding:4px 6px}
+  .kpi .v{font-size:11px}
+  .nav .t{padding:7px 11px}
+}
 </style></head><body><canvas id="bg"></canvas><div id="aura"></div>
 <header><h1 onclick="go('menu')" style="cursor:pointer" title="main menu">&lt;CYBERSE&gt;</h1>
 <div class="nav">
@@ -476,12 +582,12 @@ tr:hover td{background:rgba(40,58,110,.3)}
   <label><input type="checkbox" id="deal" onchange="rB()"> gap deals</label>
 </div>
 <div class="wrap"><div class="count" id="cnt"></div>
-<table><thead><tr>
+<div class="tscroll"><table><thead><tr>
 <th onclick="S('n')">Card</th><th onclick="S('cl')">Class</th><th onclick="S('bn')">Ban</th>
 <th onclick="S('ar')">Archetype</th><th onclick="S('hr')">Top rarity</th><th class="r" onclick="S('ag')">Age</th>
 <th class="r" onclick="S('own')" title="how many you own">Own</th>
 <th class="r" onclick="S('m')">Market $</th><th class="r rar" id="ph" onclick="S('rarity')">Rarity $</th>
-<th class="r" onclick="S('gap')">Gap×</th><th>Add</th></tr></thead><tbody id="tb"></tbody></table></div>
+<th class="r" onclick="S('gap')">Gap×</th><th>Add</th></tr></thead><tbody id="tb"></tbody></table></div></div>
 </div>
 
 <div id="list" class="hide"><div class="wrap"><div id="lctrl" class="controls" style="padding:0 0 8px;border:0"></div><div id="addres" class="addres"></div><div id="ltbl"></div>
@@ -562,7 +668,10 @@ function setOv(list,id,v,li){var e=lref(list,id,li); if(!e)return; var n=parseFl
   RAR.map(function(r){return '<option>'+r+'</option>';}).join('');})();
 
 function go(v){view=v;
-  document.querySelectorAll('.nav .t').forEach(function(t){t.classList.toggle('on',t.dataset.v===v);});
+  document.querySelectorAll('.nav .t').forEach(function(t){var on=t.dataset.v===v;t.classList.toggle('on',on);
+    /* keep the active tab visible in the scrolling strip on narrow screens.
+       block:'nearest' so this never yanks the page vertically. */
+    if(on&&t.scrollIntoView)try{t.scrollIntoView({inline:'center',block:'nearest'});}catch(e){}});
   document.getElementById('menu').classList.toggle('hide',v!=='menu');
   document.getElementById('browse').classList.toggle('hide',v!=='browse');
   document.getElementById('analytics').classList.toggle('hide',v!=='analytics');
@@ -742,14 +851,14 @@ function renderBank(){var tx=St.bank.tx,bud=St.bank.budget||0,now=new Date().toI
     +'<label class=mut>Month <select onchange="bkFMonth=this.value;renderBank()"><option value=all'+(bkFMonth==='all'?' selected':'')+'>all</option>'+months.map(function(m){return '<option value="'+m+'"'+(bkFMonth===m?' selected':'')+'>'+mName(m)+'</option>';}).join('')+'</select></label>'
     +'<label class=mut>Category <select onchange="bkFCat=this.value;renderBank()"><option value=all'+(bkFCat==='all'?' selected':'')+'>all</option>'+cats.map(function(c){return '<option'+(bkFCat===c?' selected':'')+'>'+esc(c)+'</option>';}).join('')+'</select></label></div>';
   if(!ftx.length)lb+='<div class=empty>'+(tx.length?'No transactions match the filter.':'No transactions yet — log one above.')+'</div>';
-  else lb+='<table><tr><th>Date</th><th>Type</th><th>Category</th><th class=r>Amount</th><th>Note</th><th></th></tr>'+ftx.map(function(t){var col=t.dir==='out'?RED:'var(--pos)';
+  else lb+='<div class=tscroll><table><tr><th>Date</th><th>Type</th><th>Category</th><th class=r>Amount</th><th>Note</th><th></th></tr>'+ftx.map(function(t){var col=t.dir==='out'?RED:'var(--pos)';
     if(t.id===bkEditId)return '<tr class=edrow><td><input type=date id=edDate value="'+t.date+'"></td>'
       +'<td><select id=edDir onchange="renderBankEditCats()"><option value=out'+(t.dir==='out'?' selected':'')+'>Spend</option><option value=in'+(t.dir==='in'?' selected':'')+'>Income</option></select></td>'
       +'<td><select id=edCat>'+bankCats(t.dir).map(function(c){return '<option'+(c===t.cat?' selected':'')+'>'+esc(c)+'</option>';}).join('')+'</select></td>'
       +'<td class=r><input class=num id=edAmt value="'+t.amt+'"></td>'
       +'<td><input type=text id=edNote value="'+eatt(t.note)+'"></td>'
       +'<td style="white-space:nowrap"><span class=addb onclick="bankSave('+t.id+')">Save</span><span class=x onclick="bankCancel()">✕</span></td></tr>';
-    return '<tr><td>'+t.date+'</td><td style="color:'+col+'">'+(t.dir==='out'?'Spend':'Income')+'</td><td>'+esc(t.cat)+'</td><td class="r" style="color:'+col+'">'+(t.dir==='out'?'−':'+')+'$'+t.amt.toFixed(2)+'</td><td class=mut>'+esc(t.note||'')+'</td><td style="white-space:nowrap"><span class=addb onclick="bankEdit('+t.id+')" title="edit">✎</span><span class=x onclick="bankDel('+t.id+')" title="delete">✕</span></td></tr>';}).join('')+'</table>';
+    return '<tr><td>'+t.date+'</td><td style="color:'+col+'">'+(t.dir==='out'?'Spend':'Income')+'</td><td>'+esc(t.cat)+'</td><td class="r" style="color:'+col+'">'+(t.dir==='out'?'−':'+')+'$'+t.amt.toFixed(2)+'</td><td class=mut>'+esc(t.note||'')+'</td><td style="white-space:nowrap"><span class=addb onclick="bankEdit('+t.id+')" title="edit">✎</span><span class=x onclick="bankDel('+t.id+')" title="delete">✕</span></td></tr>';}).join('')+'</table></div>';
   h+=grp('ledger','Ledger',tx.length?ftx.length+' of '+tx.length+' shown':null,lb);
   // ---- 3. Category budgets ----
   var cb=St.bank.catBudgets||{},mByCat={};
@@ -783,8 +892,8 @@ function renderBank(){var tx=St.bank.tx,bud=St.bank.budget||0,now=new Date().toI
   h+=grp('bycat','Spending by category',bkFMonth==='all'?'all time':mName(bkFMonth),bankBar(catRows));
   // ---- 6. Monthly statements ----
   var stBody=!months.length?'<div class=empty>—</div>'
-    :'<table><tr><th>Month</th><th class=r>Earned</th><th class=r>Spent</th><th class=r>Net</th></tr>'+months.map(function(k){var mo=byMonth[k],net=mo.i-mo.o;
-    return '<tr><td>'+mName(k)+'</td><td class="r" style="color:var(--pos)">$'+mo.i.toFixed(2)+'</td><td class="r" style="color:'+RED+'">$'+mo.o.toFixed(2)+'</td><td class="r" style="color:'+(net>=0?'var(--pos)':RED)+'">'+(net>=0?'+':'−')+'$'+Math.abs(net).toFixed(2)+'</td></tr>';}).join('')+'</table>';
+    :'<div class=tscroll><table><tr><th>Month</th><th class=r>Earned</th><th class=r>Spent</th><th class=r>Net</th></tr>'+months.map(function(k){var mo=byMonth[k],net=mo.i-mo.o;
+    return '<tr><td>'+mName(k)+'</td><td class="r" style="color:var(--pos)">$'+mo.i.toFixed(2)+'</td><td class="r" style="color:'+RED+'">$'+mo.o.toFixed(2)+'</td><td class="r" style="color:'+(net>=0?'var(--pos)':RED)+'">'+(net>=0?'+':'−')+'$'+Math.abs(net).toFixed(2)+'</td></tr>';}).join('')+'</table></div>';
   h+=grp('stmts','Monthly statements',months.length?months.length+(months.length===1?' month':' months'):null,stBody);
   document.getElementById('bankBody').innerHTML=h; renderBankCats();}
 
@@ -904,8 +1013,8 @@ function renderSim(){
   // ---- roles ----
   var uniq=simUniq().sort(function(a,b){var na=BY[a.id]?BY[a.id].n:'',nb=BY[b.id]?BY[b.id].n:'';return na<nb?-1:na>nb?1:0;});
   var rolesBody=!uniq.length?'<div class=empty>No Main Deck cards yet.</div>'
-    :'<div class=mut style="font-size:11px;margin-bottom:8px">Tap tags to toggle (a card can have several). “Draws” = how many extra cards you see when you activate it (draw/dig spells) — used by the odds simulation. Tags are remembered per card across decks.</div><table><tr><th>Card</th><th>Qty</th><th>Tags</th><th>Draws</th></tr>'+uniq.map(function(u){var c=BY[u.id];
-      return '<tr><td class=nm onclick="openM('+u.id+')">'+esc(c?c.n:''+u.id)+'</td><td>'+u.q+'</td><td style="white-space:normal"><div class=tchips>'+TAGS.map(function(T){var on=cardTags(u.id).indexOf(T[0])>=0;return '<span class="tchip'+(on?' on':'')+'"'+(on?' style="background:'+T[2]+';border-color:'+T[2]+';color:#0b1330"':'')+' onclick="toggleTag('+u.id+',\''+T[0]+'\')">'+T[1]+'</span>';}).join('')+'</div></td><td><input class=cnum type=number min=0 value="'+(St.draws[u.id]||'')+'" placeholder="0" onchange="setDraws('+u.id+',this.value)"></td></tr>';}).join('')+'</table>';
+    :'<div class=mut style="font-size:11px;margin-bottom:8px">Tap tags to toggle (a card can have several). “Draws” = how many extra cards you see when you activate it (draw/dig spells) — used by the odds simulation. Tags are remembered per card across decks.</div><div class=tscroll><table><tr><th>Card</th><th>Qty</th><th>Tags</th><th>Draws</th></tr>'+uniq.map(function(u){var c=BY[u.id];
+      return '<tr><td class=nm onclick="openM('+u.id+')">'+esc(c?c.n:''+u.id)+'</td><td>'+u.q+'</td><td style="white-space:normal"><div class=tchips>'+TAGS.map(function(T){var on=cardTags(u.id).indexOf(T[0])>=0;return '<span class="tchip'+(on?' on':'')+'"'+(on?' style="background:'+T[2]+';border-color:'+T[2]+';color:#0b1330"':'')+' onclick="toggleTag('+u.id+',\''+T[0]+'\')">'+T[1]+'</span>';}).join('')+'</div></td><td><input class=cnum type=number min=0 value="'+(St.draws[u.id]||'')+'" placeholder="0" onchange="setDraws('+u.id+',this.value)"></td></tr>';}).join('')+'</table></div>';
   h+=grp('sroles','Card roles &amp; tags',uniq.length+' cards',rolesBody);
   document.getElementById('simBody').innerHTML=h;}
 
@@ -1064,7 +1173,7 @@ function renderLog(){var L=St.log,RED='#ff9aa8';
     +'<label class=mut>Deck <select onchange="lfDeck=this.value;renderLog()"><option value=all'+(lfDeck==='all'?' selected':'')+'>all</option>'+decks.map(function(d){return '<option'+(lfDeck===d?' selected':'')+'>'+esc(d)+'</option>';}).join('')+'</select></label>'
     +'<label class=mut>Opponent <select onchange="lfOpp=this.value;renderLog()"><option value=all'+(lfOpp==='all'?' selected':'')+'>all</option>'+opps.map(function(o){return '<option'+(lfOpp===o?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></label></div>';
   if(!fm.length)lb+='<div class=empty>'+(L.length?'No matches match the filter.':'No matches logged yet — record one above after your next locals.')+'</div>';
-  else lb+='<div style="overflow-x:auto"><table><tr><th>Date</th><th>Event</th><th>My deck</th><th>Opponent</th><th>Result</th><th>P/D</th><th>Games</th><th>Note</th><th></th></tr>'+fm.map(function(m){var rc=m.res==='W'?'var(--pos)':m.res==='L'?RED:'var(--mut)',rl=m.res==='W'?'Win':m.res==='L'?'Loss':'Tie';
+  else lb+='<div class=tscroll><table><tr><th>Date</th><th>Event</th><th>My deck</th><th>Opponent</th><th>Result</th><th>P/D</th><th>Games</th><th>Note</th><th></th></tr>'+fm.map(function(m){var rc=m.res==='W'?'var(--pos)':m.res==='L'?RED:'var(--mut)',rl=m.res==='W'?'Win':m.res==='L'?'Loss':'Tie';
     return '<tr><td>'+m.date+'</td><td class=mut>'+esc(m.event||'')+'</td><td>'+esc(m.deck||'')+'</td><td>'+esc(m.opp||'')+'</td><td style="color:'+rc+';font-weight:700">'+rl+'</td><td class=mut>'+(m.play==='second'?'2nd':'1st')+'</td><td class=mut>'+((m.gw||m.gl)?m.gw+'–'+m.gl:'—')+'</td><td class=mut style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+esc(m.note||'')+'</td><td style="white-space:nowrap"><span class=addb onclick="logEdit('+m.id+')" title="edit">✎</span><span class=x onclick="logDel('+m.id+')" title="delete">✕</span></td></tr>';}).join('')+'</table></div>';
   h+=grp('lhist','Match history',L.length?fm.length+' of '+L.length:null,lb);
   // by deck
@@ -1122,8 +1231,8 @@ function fSets(){var q=(document.getElementById('setq')?document.getElementById(
     return y.a.cards-x.a.cards;});
   var shown=rows.slice(0,400);
   document.getElementById('setList').innerHTML='<div class=count>'+rows.length+' sets'+(rows.length>400?' · showing top 400':'')+'</div>'
-    +'<table><tr><th>Set</th><th>Code</th><th class=r>Cards</th><th class=r>Total value</th><th>Newest card</th></tr>'
-    +shown.map(function(o){return '<tr class=setrow onclick="openSet('+o.i+')"><td class=nm>'+esc(o.s.n)+'</td><td class=mut>'+esc(o.s.c||'')+'</td><td class="r">'+o.a.cards+'</td><td class="r">'+f(o.a.tot||null)+'</td><td class=mut>'+(o.a.date?fdate(o.a.date):'—')+'</td></tr>';}).join('')+'</table>';}
+    +'<div class=tscroll><table><tr><th>Set</th><th>Code</th><th class=r>Cards</th><th class=r>Total value</th><th>Newest card</th></tr>'
+    +shown.map(function(o){return '<tr class=setrow onclick="openSet('+o.i+')"><td class=nm>'+esc(o.s.n)+'</td><td class=mut>'+esc(o.s.c||'')+'</td><td class="r">'+o.a.cards+'</td><td class="r">'+f(o.a.tot||null)+'</td><td class=mut>'+(o.a.date?fdate(o.a.date):'—')+'</td></tr>';}).join('')+'</table></div>';}
 function renderSetDetail(i){var s=SETS[i];if(!s){setView=null;renderSets();return;}var a=setAgg(s);
   var h='<div class=bar style="margin-bottom:8px"><button onclick="backSets()">← All sets</button></div>';
   h+='<div class=deckstats><b style="font-size:16px">'+esc(s.n)+'</b>'+(s.c?' <span class=mut>('+esc(s.c)+')</span>':'')+(a.date?' · <span class=mut>newest card '+fdate(a.date)+'</span>':'')+'</div>';
@@ -1134,7 +1243,7 @@ function renderSetDetail(i){var s=SETS[i];if(!s){setView=null;renderSets();retur
   var byCard={};s.k.forEach(function(p){(byCard[p[0]]=byCard[p[0]]||[]).push(p[1]);});
   var cs=Object.keys(byCard).map(function(id){id=+id;var rs=byCard[id].slice().sort(function(x,y){return y-x;}).map(function(ix){return RAR[ix]||'—';});return {id:id,rs:rs,m:BY[id]?BY[id].m:null};});
   cs.sort(function(x,y){return (y.m==null?-1:y.m)-(x.m==null?-1:x.m);});
-  h+='<h2 class=sec>Cards ('+cs.length+')</h2><div style="overflow-x:auto"><table><tr><th>Card</th><th>Rarities in set</th><th class=r>Market low</th></tr>'
+  h+='<h2 class=sec>Cards ('+cs.length+')</h2><div class=tscroll><table><tr><th>Card</th><th>Rarities in set</th><th class=r>Market low</th></tr>'
     +cs.map(function(o){var c=BY[o.id];return '<tr><td class=nm onclick="openM('+o.id+')">'+esc(c?c.n:''+o.id)+'</td><td>'+o.rs.map(function(rn){return '<span class="'+rarClass(rn)+'">'+esc(rn)+'</span>';}).join(', ')+'</td><td class="r">'+f(o.m)+'</td></tr>';}).join('')+'</table></div>';
   if(St.meta&&St.meta.length){var mf=metaFreq();var ms=cs.filter(function(o){return mf[o.id];}).sort(function(x,y){return mf[y.id]-mf[x.id];});
     if(ms.length)h+='<h2 class=sec>Meta cards in this set</h2>'+ms.map(function(o){var c=BY[o.id];return '<div class=crow><div class=clab style="text-align:left;width:auto;min-width:180px">'+esc(c?c.n:'')+'</div><div class=mut style="font-size:11px">in '+mf[o.id]+'/'+St.meta.length+' of your meta decks · '+o.rs.join(', ')+' · '+f(o.m)+'</div></div>';}).join('');
@@ -1180,18 +1289,18 @@ function renderMeta(){var M=St.meta,RED='#ff9aa8';
     +'<button onclick="metaPaste()">Add deck</button></div>'
     +'<textarea id=mpTxt placeholder="paste a .ydk (card IDs) — or a list like:  3x Ash Blossom &amp; Joyous Spring"></textarea></details>';
   if(!M.length)imp+='<div class=ins style="margin-top:8px">Export current top decks as <code>.ydk</code> (from YGOPRODeck, your sim, wherever you read the meta) and drop them in — you can select many files at once. Tag a tier, and CYBERSE finds the <b>staples</b> shared across them and flags which ones you’re <b>missing</b> — priced, one click onto your wishlist. You curate the decks; nothing is scraped.</div>';
-  else imp+='<div style="overflow-x:auto;margin-top:10px"><table><tr><th>Deck</th><th>Tier</th><th class=r>Cards</th><th class=r>Value</th><th class=r>Cost to you</th><th></th></tr>'+M.map(function(d){
+  else imp+='<div class=tscroll style="margin-top:10px"><table><tr><th>Deck</th><th>Tier</th><th class=r>Cards</th><th class=r>Value</th><th class=r>Cost to you</th><th></th></tr>'+M.map(function(d){
     var val=0,toyou=0;for(var id in d.cnt){var c=BY[id];if(!c||c.m==null)continue;val+=c.m*d.cnt[id];toyou+=c.m*Math.max(0,d.cnt[id]-owned(id));}
     return '<tr><td class=nm onclick="metaRename('+d.id+')" title="click to rename">'+esc(d.name)+'</td><td><select onchange="metaSetTier('+d.id+',this.value)" style="font-size:11px">'+TIERS.map(function(t){return '<option'+((d.tier||'Tier 1')===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select></td><td class=r>'+Object.keys(d.cnt).length+'</td><td class="r">$'+val.toFixed(2)+'</td><td class="r">$'+toyou.toFixed(2)+'</td><td class=x onclick="metaDel('+d.id+')" title="remove">✕</td></tr>';}).join('')+'</table></div>';
   h+=grp('mdecks','Meta decks',M.length?M.length+' imported':null,imp);
   var stBody=!staples.length?'<div class=empty>Import a couple of meta decks to surface staples.</div>'
-    :'<table><tr><th>Card</th><th class=r>In decks</th><th class=r>Typical</th><th class=r>Market low</th><th class=r>You own</th></tr>'+staples.slice(0,80).map(function(s){var c=BY[s.id],own=owned(s.id),need=Math.round(s.avg);
-      return '<tr><td class=nm onclick="openM('+s.id+')">'+esc(c?c.n:''+s.id)+'</td><td class=r>'+s.f+'/'+M.length+'</td><td class=r>'+need+'×</td><td class="r">'+f(c?c.m:null)+'</td><td class="r" style="color:'+(own>=need?'var(--pos)':own>0?'var(--warn)':RED)+'">'+own+'</td></tr>';}).join('')+'</table>';
+    :'<div class=tscroll><table><tr><th>Card</th><th class=r>In decks</th><th class=r>Typical</th><th class=r>Market low</th><th class=r>You own</th></tr>'+staples.slice(0,80).map(function(s){var c=BY[s.id],own=owned(s.id),need=Math.round(s.avg);
+      return '<tr><td class=nm onclick="openM('+s.id+')">'+esc(c?c.n:''+s.id)+'</td><td class=r>'+s.f+'/'+M.length+'</td><td class=r>'+need+'×</td><td class="r">'+f(c?c.m:null)+'</td><td class="r" style="color:'+(own>=need?'var(--pos)':own>0?'var(--warn)':RED)+'">'+own+'</td></tr>';}).join('')+'</table></div>';
   h+=grp('mstaples','Staples across your meta decks',staples.length?staples.length+' cards':null,stBody);
   var gapBody;
   if(!M.length)gapBody='<div class=empty>Import meta decks first.</div>';
   else if(!missing.length)gapBody='<div class=ins style="border-left-color:var(--pos)">You already own every staple in your tracked meta decks. Nicely positioned.</div>';
-  else gapBody='<div style="overflow-x:auto"><table><tr><th>Missing staple</th><th class=r>In decks</th><th class=r>Need</th><th class=r>Unit</th><th class=r>Cost</th><th></th></tr>'+missing.map(function(s){var c=BY[s.id],need=Math.round(s.avg)-owned(s.id);
+  else gapBody='<div class=tscroll><table><tr><th>Missing staple</th><th class=r>In decks</th><th class=r>Need</th><th class=r>Unit</th><th class=r>Cost</th><th></th></tr>'+missing.map(function(s){var c=BY[s.id],need=Math.round(s.avg)-owned(s.id);
       return '<tr><td class=nm onclick="openM('+s.id+')">'+esc(c?c.n:''+s.id)+'</td><td class=r>'+s.f+'/'+M.length+'</td><td class=r>'+need+'</td><td class="r">'+f(c?c.m:null)+'</td><td class="r">'+f((c&&c.m!=null)?c.m*need:null)+'</td><td style="white-space:nowrap"><span class=addb onclick="add(\'wishlist\','+s.id+')" title="add to wishlist">+Wish</span></td></tr>';}).join('')+'</table></div>'
       +'<div class=mut style="font-size:11px;margin-top:6px">Ranked by how many of your meta decks run each card. Total to close every gap: <b>$'+missCost.toFixed(2)+'</b>.</div>';
   h+=grp('mgaps','Your gaps — staples you’re missing',missing.length?missing.length+' missing':null,gapBody);
@@ -1227,7 +1336,9 @@ function rB(){
     +'<td class="r '+(c.deal?'deal':'mut')+'">'+(c.gap==null?'':c.gap+'×')+'</td>'
     +'<td><span class=addb onclick="addToDeck('+c.i+')">+D</span><span class=addb onclick="add(\'collection\','+c.i+')">+C</span><span class=addb onclick="add(\'wishlist\','+c.i+')">+W</span></td></tr>';}).join('');
 }
-var listMode='list';
+/* Phones get the grid view by default — it already reflows (.grid is auto-fill), whereas the
+   list table needs sideways scrolling. The ☰/▦ toggle still switches back either way. */
+var listMode=(window.matchMedia&&window.matchMedia('(max-width:640px)').matches)?'grid':'list';
 function setListMode(m){listMode=m;var a=document.getElementById('vtList'),b=document.getElementById('vtGrid');if(a)a.classList.toggle('on',m==='list');if(b)b.classList.toggle('on',m==='grid');if(view==='deck')renderDeck();else rTable();}
 function gridTile(key,id,inDeck,li){var m=bucket(key),c=BY[id],e=inDeck?m[id]:(isMulti(key)?m[id][li]:m[id]),p=entPrice(e,c),feed=priceOf(c,e.rar);
   var L=inDeck?'':(','+li);
@@ -1276,7 +1387,7 @@ function secTable(sec,label,lim,lq){var m=curDeck()[sec];var cnt=0;Object.keys(m
   if(!Object.keys(m).length)return head+'<div class=empty style="padding:4px 2px">empty</div>';
   if(listMode==='grid')return head+(ids.length?'<div class=grid>'+ids.map(function(id){return gridTile(sec,id,true);}).join('')+'</div>':'<div class=empty style="padding:4px 2px">no matches</div>');
   var rows=ids.map(function(id){return listRow(sec,id,true);}).join('');
-  return head+'<table><tr><th>Card</th><th>Qty</th><th class=r>Own</th><th class=r>Buy</th><th>Rarity (which you own)</th><th class=r>Unit</th><th class=r>To-buy</th><th></th></tr>'+rows+'</table>';}
+  return head+'<div class=tscroll><table><tr><th>Card</th><th>Qty</th><th class=r>Own</th><th class=r>Buy</th><th>Rarity (which you own)</th><th class=r>Unit</th><th class=r>To-buy</th><th></th></tr>'+rows+'</table></div>';}
 function renderDeck(){var d=curDeck(),lqel=document.getElementById('lq'),lq=lqel?lqel.value.toLowerCase():'';
   var need={};['main','extra','side'].forEach(function(sec){for(var id in d[sec])need[id]=(need[id]||0)+d[sec][id].q;});
   var viol=[];for(var id in need){var c=BY[id];if(!c)continue;var al={Forbidden:0,Limited:1,'Semi-Limited':2}[c.bn];if(al===undefined)al=3;if(need[id]>al)viol.push(esc(c.n)+' ('+need[id]+'/'+al+')');}
@@ -1310,8 +1421,8 @@ function rTable(){
   if(listMode==='grid'){ltbl_.innerHTML=cnt+'<div class=grid>'+D.map(function(o){return gridTile(view,o.id,false,o.li);}).join('')+'</div>';return;}
   var rows=D.map(function(o){return listRow(view,o.id,false,o.li);}).join('');
   ltbl_.innerHTML=cnt
-    +'<table><tr><th>Card</th><th>Qty</th>'+(view==='wishlist'?'<th>Priority</th>':'')
-    +'<th>Rarity</th><th>Cond.</th><th class=r>Unit (yours)</th><th class=r>Value</th><th></th></tr>'+rows+'</table>';
+    +'<div class=tscroll><table><tr><th>Card</th><th>Qty</th>'+(view==='wishlist'?'<th>Priority</th>':'')
+    +'<th>Rarity</th><th>Cond.</th><th class=r>Unit (yours)</th><th class=r>Value</th><th></th></tr>'+rows+'</table></div>';
 }
 function med(a){if(!a.length)return null;a=a.slice().sort(function(x,y){return x-y;});return a[Math.floor(a.length/2)];}
 function grpMed(kf){var g={};PRICED.forEach(function(c){var k=kf(c);if(k==null||k==='')return;(g[k]=g[k]||[]).push(c.m);});
@@ -1435,6 +1546,15 @@ function tick(t){cx.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){var p=ps[i];
   cx.fillStyle=g;cx.beginPath();cx.arc(p.x,p.y,R,0,6.283);cx.fill();}
   requestAnimationFrame(tick);}requestAnimationFrame(tick);})();
 </script>
+<script>/* Sticky offsets (Browse table head, solo-board toolbar) key off --hh. The header's height
+   changes with viewport width — one row on desktop, two on a phone — so measure it instead of
+   hardcoding it per breakpoint, and nothing can drift out of sync. */
+(function(){var hd=document.querySelector('header');if(!hd)return;
+  function syncHH(){document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');}
+  syncHH();
+  addEventListener('resize',syncHH);addEventListener('orientationchange',syncHH);
+  if(window.ResizeObserver)new ResizeObserver(syncHH).observe(hd);   /* fonts/KPI text reflow */
+})();</script>
 <script>/* PWA: register the service worker only when hosted (not on file://) */
 if('serviceWorker' in navigator && location.protocol!=='file:'){
   addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});

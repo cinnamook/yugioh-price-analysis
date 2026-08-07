@@ -258,11 +258,12 @@ tr:hover td{background:rgba(40,58,110,.3)}
    without scrolling back up to wherever the card happened to be. Out of flow, so nothing
    below it shifts when it appears. */
 .btoolbar{position:fixed;top:calc(var(--hh) + 8px);left:12px;right:12px;z-index:30;
+  max-width:calc(100vw - 16px);box-sizing:border-box;
   display:flex;flex-wrap:wrap;align-items:center;gap:5px;max-height:44vh;overflow-y:auto;
   background:linear-gradient(180deg,rgba(24,38,78,.985),rgba(14,22,50,.985));
   border:1px solid var(--gold);border-radius:11px;padding:9px 11px;margin:0;
   box-shadow:0 10px 34px rgba(2,6,20,.7);backdrop-filter:blur(8px)}
-@media(min-width:901px){.btoolbar{left:50%;right:auto;transform:translateX(-50%);width:min(1000px,calc(100% - 44px))}}
+@media(min-width:901px){.btoolbar{width:min(1000px,calc(100vw - 44px))}}
 /* NO position:relative here — it would override the position:fixed above at equal
    specificity and drop the toolbar back into the flow, pushing the whole field down.
    position:fixed already establishes the containing block .btx needs. */
@@ -444,15 +445,23 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bfxrow{font-size:11.5px;color:#c3ccdb;padding:3px 0;border-bottom:1px solid rgba(67,89,143,.25);line-height:1.4}
 .bfxrow:last-child{border:0}
 .bfxrow b{color:var(--gold2)}
+.blogundo{font-size:10px;padding:3px 8px;min-height:24px;margin-left:6px}
+.bctr{position:absolute;left:2px;top:2px;z-index:4;min-width:15px;height:15px;padding:0 3px;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;
+  background:rgba(110,224,160,.95);color:#052015;font-size:9.5px;font-weight:800}
+.bstat{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:1px 0;text-align:center;
+  background:rgba(6,10,26,.86);color:var(--gold2);font-size:8px;font-weight:700;
+  font-variant-numeric:tabular-nums}
 /* --- pile action menu / floating panels --- */
 .bpmenu{position:fixed;top:calc(var(--hh) + 8px);left:12px;right:12px;z-index:31;
+  max-width:calc(100vw - 16px);box-sizing:border-box;
   display:flex;flex-wrap:wrap;align-items:center;gap:5px;max-height:60vh;overflow-y:auto;
   background:linear-gradient(180deg,rgba(24,38,78,.985),rgba(14,22,50,.985));
   border:1px solid var(--acc);border-radius:11px;padding:9px 11px;
   box-shadow:0 10px 34px rgba(2,6,20,.7);backdrop-filter:blur(8px)}
 .bpmenu button{font-size:11px;padding:7px 10px;min-height:34px}
 .bpmenu .btsel{width:100%;font-size:13px;color:var(--acc)}
-@media(min-width:901px){.bpmenu{left:50%;right:auto;transform:translateX(-50%);width:min(900px,calc(100% - 44px))}}
+@media(min-width:901px){.bpmenu{width:min(900px,calc(100vw - 44px))}}
 .lppanel{border-color:var(--gold)}
 .lppanel .lpside{flex:1 1 190px}
 /* --- turn phases --- */
@@ -894,7 +903,7 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
   document.getElementById('menugrid').innerHTML=html;
   document.getElementById('savebar').innerHTML='<span>Snapshot <b>2026-08-07</b></span><span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span>'
     +(window.syncChip?window.syncChip():'')+'<span class=qlink onclick="showIntro()">▸ quick start</span>'
-    +'<span class=mut style="font-size:10px" title="build 20260807154256 — check this matches after publishing">build 20260807154256</span>';}
+    +'<span class=mut style="font-size:10px" title="build 20260807155540 — check this matches after publishing">build 20260807155540</span>';}
 
 /* ===== Bank ===== */
 var CATS_OUT=['Singles','Sealed Product','Locals / Entry','Accessories','Grading','Shipping','Gift / Giveaway','Other'];
@@ -1157,16 +1166,21 @@ var board=null, sel=null, placeMode='atk', viewer=null, dragJustEnded=false;
    travel to a fixed spot at the top of the screen. */
 var lastPt=null;
 addEventListener('pointerdown',function(e){lastPt={x:e.clientX,y:e.clientY};},{passive:true,capture:true});
+/* The anchor is captured when a panel first appears and reused until every panel closes —
+   otherwise pressing a button inside it re-anchored to that button and the panel walked
+   across the screen as you worked. */
+var panelAnchor=null;
 function placePanels(){
-  if(!lastPt)return;
-  ['.btoolbar','.bpmenu'].forEach(function(q){
-    var el=document.querySelector(q); if(!el)return;
+  var els=['.btoolbar','.bpmenu'].map(function(q){return document.querySelector(q);}).filter(Boolean);
+  if(!els.length){panelAnchor=null;return;}
+  if(!panelAnchor)panelAnchor=lastPt||{x:innerWidth/2,y:innerHeight/3};
+  var pad=8, hh=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hh'))||60;
+  els.forEach(function(el){
     el.style.left='0px'; el.style.top='0px'; el.style.right='auto'; el.style.transform='none';
-    var w=el.offsetWidth, h=el.offsetHeight, pad=8;
-    var hh=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hh'))||60;
-    var x=Math.min(Math.max(pad,lastPt.x-w/2), innerWidth-w-pad);
-    var y=lastPt.y+18;                                  /* just below the finger */
-    if(y+h>innerHeight-pad)y=Math.max(hh+pad,lastPt.y-h-18);   /* flip above if it would overflow */
+    var w=Math.min(el.offsetWidth, innerWidth-pad*2), h=el.offsetHeight;
+    var x=Math.min(Math.max(pad,panelAnchor.x-w/2), Math.max(pad,innerWidth-w-pad));
+    var y=panelAnchor.y+18;                              /* just below the finger */
+    if(y+h>innerHeight-pad)y=panelAnchor.y-h-18;         /* flip above if it would overflow */
     y=Math.min(Math.max(hh+pad,y), Math.max(hh+pad,innerHeight-h-pad));
     el.style.left=x+'px'; el.style.top=y+'px';
   });
@@ -1208,7 +1222,7 @@ function selRemove(){if(!sel)return null;var it,id;
   if(isIdPile(sel.k)){id=board[sel.k].splice(sel.i,1)[0];it=inst(id);}
   else{var a=zArr(sel.k,sel.s);it=a.splice(sel.i,1)[0];}
   return it;}
-function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();return;}
+function place(destK,destS){var __n=nameOf(selInst());snap('Move '+__n+' \u2192 '+(PLACE_LABEL[destK]||destK));var it=selRemove();if(!it){sel=null;renderSim();return;}
   /* An Xyz leaving the field sends its materials to the GY — otherwise they'd vanish
      with the host. Moving between field zones keeps them attached. */
   if(!isSlot(destK)&&it.mat&&it.mat.length){
@@ -1262,7 +1276,7 @@ function bSlotTap(k,s){
 /* ----- Xyz materials ----- */
 var attachMode=false;
 function bAttach(){attachMode=!attachMode;renderSim();}
-function bDetach(){var it=selInst();if(!it||!it.mat||!it.mat.length)return;
+function bDetach(){var it=selInst();if(!it||!it.mat||!it.mat.length)return;snap('Detach material');
   var m=it.mat.pop();m.fd=false;m.def=false;board.gy.push(m);renderSim();}
 function bViewMat(){var it=selInst();if(!it||!it.mat||!it.mat.length)return;
   viewer='mat';renderSim();}
@@ -1270,11 +1284,11 @@ function bViewMat(){var it=selInst();if(!it||!it.mat||!it.mat.length)return;
 /* ----- turn phases ----- */
 var PHASES=[['dp','DP','Draw Phase'],['sp','SP','Standby Phase'],['m1','M1','Main Phase 1'],
             ['bp','BP','Battle Phase'],['m2','M2','Main Phase 2'],['ep','EP','End Phase']];
-function setPhase(p){if(!board)return;board.phase=p;renderSim();}
+function setPhase(p){if(!board)return;snap('Phase \u2192 '+p.toUpperCase());board.phase=p;renderSim();}
 function nextPhase(){if(!board)return;
   var i=0;PHASES.forEach(function(p,n){if(p[0]===board.phase)i=n;});
   if(i>=PHASES.length-1)newTurn(); else {board.phase=PHASES[i+1][0];renderSim();}}
-function newTurn(){if(!board)return;board.turn=(board.turn||1)+1;board.phase='dp';renderSim();}
+function newTurn(){if(!board)return;snap('New turn');board.turn=(board.turn||1)+1;board.phase='dp';renderSim();}
 /* compact stand-ins that live in the EMZ row's spare columns */
 function phaseMini(){var cur='M1';PHASES.forEach(function(p){if(p[0]===board.phase)cur=p[1];});
   return '<div class=bmini2 onclick="lpOpen=false;phOpen=!phOpen;renderSim()" title="phase — tap to change">'
@@ -1288,7 +1302,7 @@ function phPanel(){if(!phOpen||!board)return '';
       +'" onclick="setPhase(\''+p[0]+'\');phOpen=false;renderSim()">'+p[1]+'</button>';}).join('')
     +'<span class=btsep></span><button onclick="newTurn();phOpen=false;renderSim()">&#8635; New turn</button>'
     +'<span class=btx onclick="phOpen=false;renderSim()" title="close">&times;</span></div>';}
-function lpAdj(who,d){if(!board)return;
+function lpAdj(who,d){if(!board)return;snap('LP '+(who==='you'?'You':'Opp')+' '+(d>0?'+':'')+d);
   var before=board.lp[who];
   board.lp[who]=Math.max(0,before+d);
   board.lpHist.push({w:who,d:board.lp[who]-before});   /* store the APPLIED delta so undo is exact even at 0 */
@@ -1309,32 +1323,68 @@ function lpReset(){if(!board)return;board.lp={you:8000,opp:8000};board.lpHist=[]
 /* Declaring is one tap and records immediately — typing is optional, for when you want to
    clarify what the card is doing. `dec` marks it declared; `fx` holds the optional note. */
 function bDeclare(){var it=selInst();if(!it)return;
-  it.dec=true; board.log.push({n:nameOf(it),t:it.fx||''});
+  snap('Declare '+nameOf(it)+(it.fx?' \u2014 '+it.fx:''));it.dec=true;
   fxDraft=false; renderSim();}
 function bNoteOpen(){fxDraft=!fxDraft;renderSim();}
 function bNoteSave(){var it=selInst();if(!it){fxDraft=false;renderSim();return;}
   var el=document.getElementById('fxIn'),t=(el&&el.value||'').trim();
-  it.fx=t; it.dec=true; board.log.push({n:nameOf(it),t:t});
+  snap('Declare '+nameOf(it)+' \u2014 '+t);it.fx=t; it.dec=true;
   fxDraft=false; renderSim();}
+/* Counters and temporary ATK/DEF. Stored on the instance so they travel with the card and
+   are captured by undo snapshots for free. oatk/odef are named apart from `def`, which is
+   already the defence-position flag. */
+function bCtr(d){var it=selInst();if(!it)return;
+  snap((d>0?'+1':'-1')+' counter on '+nameOf(it));
+  it.ctr=Math.max(0,(it.ctr||0)+d); if(!it.ctr)delete it.ctr; renderSim();}
+function bStat(){var it=selInst();if(!it)return;
+  var a=document.getElementById('stA'), d2=document.getElementById('stD');
+  var av=a&&a.value.trim(), dv=d2&&d2.value.trim();
+  snap('Set ATK/DEF on '+nameOf(it));
+  if(av==='')delete it.oatk; else it.oatk=parseInt(av,10)||0;
+  if(dv==='')delete it.odef; else it.odef=parseInt(dv,10)||0;
+  renderSim();}
+function bStatClear(){var it=selInst();if(!it)return;
+  snap('Reset ATK/DEF on '+nameOf(it)); delete it.oatk; delete it.odef; renderSim();}
 function bClearFx(){var it=selInst();if(!it)return;delete it.fx;delete it.dec;renderSim();}
 function bDeselect(){sel=null;fxDraft=false;attachMode=false;renderSim();}
 /* the full card detail popup, from the board — tokens have no card to show */
 function bInfo(){var it=selInst();if(!it||it.tok||!it.id)return;openM(it.id);}
 function fxLogClear(){if(!board)return;board.log=[];renderSim();}
-function fxLogPanel(){if(!board.log.length)return '';
-  return '<div class=bfxlog><div class=bhlab>Declared &middot; '+board.log.length
-    +' <span class=qlink style="font-size:10px;margin-left:6px" onclick="fxLogClear()">clear</span></div>'
-    +board.log.slice(-8).reverse().map(function(e){
-      return '<div class=bfxrow><b>'+esc(e.n)+'</b>'+(e.t?' &middot; '+esc(e.t):'')+'</div>';}).join('')
+function fxLogPanel(){
+  var n=board.log.length;
+  return '<div class=bfxlog><div class=bhlab>Action log &middot; '+n
+    +' <button class=blogundo onclick="bUndo()"'+(undoStack.length?'':' disabled')+' title="undo the last action">&#8630; Undo</button>'
+    +(n?' <span class=qlink style="font-size:10px;margin-left:6px" onclick="fxLogClear()">clear</span>':'')
+    +'</div>'
+    +(n?board.log.slice(-logShown).reverse().map(function(e){
+      return '<div class=bfxrow>'+esc(e.t||'')+'</div>';}).join('')
+      +(n>logShown?'<div class=bfxrow style="border:0"><span class=qlink onclick="logShown+=12;renderSim()">show more</span></div>':'')
+     :'<div class=mut style="font-size:11px">Nothing yet.</div>')
     +'</div>';}
+var logShown=8;
+
+/* ----- action log & undo -----
+   Undo restores a snapshot of the whole board rather than inverting each operation. The
+   board is a plain object, so a JSON clone is exact, cheap at this size, and — unlike
+   hand-written inverses — cannot drift out of sync as new actions are added. */
+var undoStack=[];
+function logAct(t){ if(!board)return; board.log.push({t:t});
+  if(board.log.length>240)board.log.shift(); }
+function snap(desc){ if(!board)return;
+  undoStack.push(JSON.stringify(board));          /* taken BEFORE the mutation */
+  if(undoStack.length>40)undoStack.shift();
+  logAct(desc); }
+function bUndo(){ if(!undoStack.length)return;
+  board=JSON.parse(undoStack.pop());
+  sel=null;pmenu=null;viewer=null;fxDraft=false;attachMode=false;renderSim(); }
 
 /* ----- dice & coin -----
    Both write into the same Declared list as effects, so a line you review afterwards shows
    the rolls in sequence alongside what was activated. */
-function bRoll(){if(!board)return;var v=1+Math.floor(Math.random()*6);
-  board.rng={t:'die',v:v}; board.log.push({n:'\u{1F3B2} Die',t:'rolled '+v}); renderSim();}
-function bCoin(){if(!board)return;var v=Math.random()<0.5?'Heads':'Tails';
-  board.rng={t:'coin',v:v}; board.log.push({n:'\u{1FA99} Coin',t:v}); renderSim();}
+function bRoll(){if(!board)return;var v=1+Math.floor(Math.random()*6);snap('\u{1F3B2} '+v);
+  board.rng={t:'die',v:v}; renderSim();}
+function bCoin(){if(!board)return;var v=Math.random()<0.5?'Heads':'Tails';snap('\u{1FA99} '+v);
+  board.rng={t:'coin',v:v}; renderSim();}
 function rngChip(){if(!board||!board.rng)return '';
   var r=board.rng;
   return '<span class=brng title="latest roll">'+(r.t==='die'?'\u{1F3B2} '+r.v:'\u{1FA99} '+r.v)+'</span>';}
@@ -1352,13 +1402,13 @@ function tokMake(){
   if(k===null){alert('No free monster zone — move something first.');return;}
   board[k][s].push(tokInst(n,isNaN(a)?null:a,isNaN(d)?null:d));
   tokDraft=false;renderSim();}
-function bFlip(){var it=selInst();if(!it)return;it.fd=!it.fd;renderSim();}
-function bRot(){var it=selInst();if(!it)return;it.def=!it.def;renderSim();}
+function bFlip(){var it=selInst();if(!it)return;snap((it.fd?'Flip up ':'Set down ')+nameOf(it));it.fd=!it.fd;renderSim();}
+function bRot(){var it=selInst();if(!it)return;snap((it.def?'To ATK ':'To DEF ')+nameOf(it));it.def=!it.def;renderSim();}
 function setPlace(m){placeMode=m;renderSim();}
-function bDraw(n){if(!board)return;for(var i=0;i<(n||1)&&board.deck.length;i++)board.hand.push(inst(board.deck.shift()));sel=null;renderSim();}
-function bMillTop(){if(!board||!board.deck.length)return;board.gy.push(inst(board.deck.shift()));renderSim();}
-function bBanishTop(){if(!board||!board.deck.length)return;board.ban.push(inst(board.deck.shift()));renderSim();}
-function bShuffle(){if(!board)return;board.deck=shuffle(board.deck);sel=null;renderSim();}
+function bDraw(n){if(!board)return;snap('Draw '+(n||1));for(var i=0;i<(n||1)&&board.deck.length;i++)board.hand.push(inst(board.deck.shift()));sel=null;renderSim();}
+function bMillTop(){if(!board||!board.deck.length)return;snap('Mill top');board.gy.push(inst(board.deck.shift()));renderSim();}
+function bBanishTop(){if(!board||!board.deck.length)return;snap('Banish top');board.ban.push(inst(board.deck.shift()));renderSim();}
+function bShuffle(){if(!board)return;snap('Shuffle deck');board.deck=shuffle(board.deck);sel=null;renderSim();}
 function bView(v){viewer=(viewer===v)?null:v;sel=null;pmenu=null;renderSim();}
 function bCardHTML(it,seld,mini){var c=cardOf(it),nm=nameOf(it);
   var inner;
@@ -1370,7 +1420,9 @@ function bCardHTML(it,seld,mini){var c=cardOf(it),nm=nameOf(it);
      renders even face-down (an Xyz keeps its materials while face-down) */
   var badge=(it.mat&&it.mat.length)?'<span class=bmat title="Xyz materials">'+it.mat.length+'</span>':'';
   var fx=(it.dec||it.fx)?'<span class=bfx>&#9733;</span>':'';
-  return '<div class="bcard'+(seld?' bsel':'')+(it.def?' bdef':'')+(mini?' bmini':'')+(it.tok?' btokc':'')+'" title="'+eatt(nm+(it.fd?' (face-down)':'')+(it.def?' (DEF)':'')+(it.mat&&it.mat.length?' · '+it.mat.length+' material'+(it.mat.length===1?'':'s'):'')+(it.fx?' — '+it.fx:''))+'">'+inner+badge+fx+'</div>';}
+  var ctr=it.ctr?'<span class=bctr title="counters">'+it.ctr+'</span>':'';
+  var st=(it.oatk!=null||it.odef!=null)?'<span class=bstat>'+(it.oatk!=null?it.oatk:'\u2013')+'/'+(it.odef!=null?it.odef:'\u2013')+'</span>':'';
+  return '<div class="bcard'+(seld?' bsel':'')+(it.def?' bdef':'')+(mini?' bmini':'')+(it.tok?' btokc':'')+'" title="'+eatt(nm+(it.fd?' (face-down)':'')+(it.def?' (DEF)':'')+(it.mat&&it.mat.length?' · '+it.mat.length+' material'+(it.mat.length===1?'':'s'):'')+(it.fx?' — '+it.fx:''))+'">'+inner+badge+fx+ctr+st+'</div>';}
 function slotHTML(k,s,label){var a=board[k][s],has=a&&a.length,seld=sel&&sel.k===k&&sel.s===s;
   var body=has?a.map(function(it,i){return bCardHTML(it,seld&&sel.i===i,false);}).join(''):'<span class=bslab>'+label+'</span>';
   return '<div class="bslot'+(has?'':' bempty')+((sel&&!has)?' bdrop':'')+'" data-z="'+k+'" data-s="'+s+'" onclick="bSlotTap(\''+k+'\','+s+')">'+body+'</div>';}
@@ -1387,6 +1439,7 @@ function pileHTML(k,label,compact){var a=board[k]||[],n=a.length,top;
    and they used to live in a control bar far above the field. */
 var pmenu=null;
 /* Destination for each pile when a card is already in hand — deck means the top. */
+var PLACE_LABEL={hand:'hand',gy:'GY',ban:'banished',banFD:'banished face-down',ohand:'opp hand',ogy:'opp GY',oban:'opp banished',obanFD:'opp banished FD',ex:'extra',deckTop:'deck top',deckBtm:'deck bottom',off:'out of play',mon:'monster zone',st:'S/T zone',emz:'EMZ',fs:'field',omon:'opp monster',ost:'opp S/T',ofs:'opp field'};
 var PILE_DEST={deck:'deckTop',ex:'ex',gy:'gy',ban:'ban',hand:'hand',
   odeck:'odeck',oex:'oex',ogy:'ogy',oban:'oban',ohand:'ohand'};
 /* A pile always opens its menu — never grabs the top card, never swallows what you're
@@ -1446,6 +1499,14 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
   h+='<button class="'+(attachMode?'bon':'')+'" onclick="bAttach()" title="attach this card under a monster as an Xyz material">'+(attachMode?'Attach &rarr; tap a monster':'Attach')+'</button>';
   if(it.mat&&it.mat.length)h+='<button onclick="bViewMat()">Materials ('+it.mat.length+')</button><button onclick="bDetach()">Detach &rarr; GY</button>';
   h+='<span class=btsep></span>';
+  if(onField){
+    h+='<span class=btsep></span><span class=mut style="font-size:11px">ctr</span>'
+      +'<button onclick="bCtr(-1)">&minus;</button><span class=btsel style="width:auto;min-width:14px;text-align:center">'+(it.ctr||0)+'</span><button onclick="bCtr(1)">+</button>'
+      +'<input type=text id=stA class=gnum inputmode=numeric placeholder="ATK" value="'+(it.oatk!=null?it.oatk:'')+'" style="width:58px">'
+      +'<input type=text id=stD class=gnum inputmode=numeric placeholder="DEF" value="'+(it.odef!=null?it.odef:'')+'" style="width:58px">'
+      +'<button onclick="bStat()">Set</button>'
+      +((it.oatk!=null||it.odef!=null)?'<button onclick="bStatClear()">reset</button>':'');
+  }
   if(!it.tok)h+='<button onclick="bInfo()" title="card text, printings and prices">&#8505; Info</button>';
   h+='<button onclick="bDeclare()" title="record that this card activated">'+(it.dec?'Declared &#9733;':'Declare')+'</button>';
   if(fxDraft)h+='<input type=text id=fxIn placeholder="optional: what is it doing?" value="'+eatt(it.fx||'')+'" style="min-width:170px" onkeydown="if(event.key===\'Enter\')bNoteSave()"><button onclick="bNoteSave()">Save note</button>';
@@ -1528,10 +1589,11 @@ function lpPanel(){if(!lpOpen||!board)return '';
    otherwise open one-at-a-time live there permanently: what the selected card actually does,
    and the contents of whichever pile you're working with. Hidden below 1200px, where the
    modal/overlay versions remain the only sensible option. */
-function sideInfoHTML(){
-  var it=selInst(); if(!it)return '<div class="bsidepanel bsideleft"></div>';
+function sideInfoHTML(){ return '<div class="bsidepanel bsideleft">'+sideInfoBody(hoverIt||selInst(),!!hoverIt)+'</div>'; }
+function sideInfoBody(it,isHover){
+  if(!it)return '';
   var c=cardOf(it);
-  var h='<div class="bsidepanel bsideleft"><div class=bsphead>Selected</div>';
+  var h='<div class=bsphead>'+(isHover?'Hovering':'Selected')+'</div>';
   if(it.tok){h+='<div class=bspname>'+esc(it.tok.n)+'</div><div class=bspmeta>Token'
     +(it.tok.atk!=null?' &middot; ATK '+it.tok.atk:'')+(it.tok.df!=null?' / DEF '+it.tok.df:'')+'</div>';}
   else if(c){
@@ -1545,11 +1607,37 @@ function sideInfoHTML(){
   }
   if(it.fx)h+='<div class=bspfx>&#9733; '+esc(it.fx)+'</div>';
   if(it.mat&&it.mat.length)h+='<div class=bspmeta>'+it.mat.length+' Xyz material'+(it.mat.length===1?'':'s')+'</div>';
-  return h+'</div>';}
+  return h;}
+
+/* Hovering a card fills the left panel without a full board redraw — it falls back to the
+   selected card when the pointer leaves, so the panel is never blank while something is held. */
+var hoverIt=null;
+function paintSideInfo(){var el=document.querySelector('.bsideleft');
+  if(el)el.innerHTML=sideInfoBody(hoverIt||selInst(),!!hoverIt);}
+function instAt(cardEl){
+  var host=cardEl.closest('[data-z],[data-pile]'); if(!host||!board)return null;
+  var z=host.getAttribute('data-z');
+  if(z==='hand'||z==='ohand')return board[z][+host.getAttribute('data-i')];
+  if(z)return (board[z][+host.getAttribute('data-s')]||[]).slice(-1)[0];
+  var pk=host.getAttribute('data-pile'); if(!pk)return null;
+  var a=board[pk]||[]; if(!a.length)return null;
+  return isIdPile(pk)?{id:a[a.length-1]}:a[a.length-1];
+}
+addEventListener('pointerover',function(e){
+  if(typeof view==='undefined'||view!=='sim'||!board)return;
+  if(!e.target||!e.target.closest)return;
+  var cardEl=e.target.closest('.bcard,.bvcard');
+  if(!cardEl){ if(hoverIt){hoverIt=null;paintSideInfo();} return; }
+  var it=cardEl.classList.contains('bvcard')?null:instAt(cardEl);
+  if(it!==hoverIt){hoverIt=it;paintSideInfo();}
+});
 var SIDE_CAP=60;   /* a full deck is thousands of cards; the panel is a peek, not the viewer */
 function sidePileHTML(){
-  var k=pmenu||viewer; 
-  if(!k||k==='mat')return '<div class="bsidepanel bsideright"></div>';
+  var k=pmenu||viewer;
+  /* deliberately excludes deck/odeck: the main deck is hidden information, and showing it
+     permanently would spoil every draw. It's still inspectable via the pile menu's View. */
+  var OPEN_PILES={gy:1,ban:1,ogy:1,oban:1,ex:1,oex:1};
+  if(!k||!OPEN_PILES[k])return '<div class="bsidepanel bsideright"></div>';
   var a=board[k]||[];
   var h='<div class="bsidepanel bsideright"><div class=bsphead>'+esc(PILE_LABEL[k]||k)+' &middot; '+a.length+'</div>';
   if(!a.length)h+='<div class=mut style="font-size:11px">Empty.</div>';

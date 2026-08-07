@@ -81,20 +81,21 @@ meaningful step is the networked opponent, which belongs to the online-duel
 milestone below — so the remaining Tier 1/2 items wait unless something specific
 gets in the way while playing.
 
+**Third pass 2026-08-07:** per-card **counters**, temporary **ATK/DEF**, a real
+**action log** (one readable line per action) and **undo** — implemented as
+whole-board JSON snapshots rather than per-action inverses, so it can't drift as
+the vocabulary grows. Left panel now follows the pointer; the right panel excludes
+the main deck as hidden information.
+
 ## Tier 1 — remaining
 
-- **Per-card counters** — add / remove / set a counter number on any card, shown
-  as a small badge (spell counters, Sylvan, etc.).
-- **Manual ATK/DEF adjustment** — set a temporary ATK/DEF on a monster to
-  represent buffs/debuffs and continuous effects, with a one-tap reset.
 - **Equip / attach card-to-card** — attach a spell (or a monster) to a monster as
   an equip; they move together; unattach to the right pile. (The `mat` array added
   for Xyz materials is the obvious mechanism to reuse.)
 - **Place to any specific zone, any orientation** — confirm a card can be sent to
   *any* zone or pile in face-up/face-down and ATK/DEF from anywhere (the manual
   "escape hatch" that makes odd effects representable).
-- LP changes are not yet written into the declared/action log — only the last
-  delta is shown. Worth folding in when the full action log lands.
+- (LP changes now land in the action log, as do dice, coin and phase changes.)
 
 ## Tier 2 — fuller vocabulary
 
@@ -106,14 +107,8 @@ gets in the way while playing.
   is offered).
 - **Multi-select / group move** — select several cards at once (e.g. shuffle 3 back
   from hand).
-- **Coin flip & dice roll** — with the result written to the log.
 - **Phase indicator + turn/pass** — a DP / SP / MP1 / BP / MP2 / EP tracker and a
   "new turn" that handles the standby/draw step; structures goldfish reps.
-- **Action log** — a running text log of every board action (DuelingBook's "duel
-  log"). Invaluable for reviewing a line — and it's the backbone for future
-  replays.
-- **Undo last action** — enormously useful on a manual board; a misclick shouldn't
-  end a test.
 
 ## Tier 3 — snapshots & review
 

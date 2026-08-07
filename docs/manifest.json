@@ -1,0 +1,31 @@
+{
+  "name": "CYBERSE \u2014 Yu-Gi-Oh! Hub",
+  "short_name": "CYBERSE",
+  "description": "Your personal Yu-Gi-Oh! collection, decks, budget, playtest and meta \u2014 all in one place.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070c1c",
+  "theme_color": "#070c1c",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

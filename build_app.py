@@ -83,10 +83,57 @@ def main():
             .replace("__RAR__", json.dumps(RARITY_ORDER)).replace("__SETS__", json.dumps(sets_list).replace("</", "<\\/")).replace("__DATA__", payload))
     out = os.path.join(HERE, "app.html"); open(out, "w").write(html)
     mb = os.path.getsize(out)/1e6
+    write_pwa(html, date)
     print(f"snapshot {date} | {len(cards):,} cards | {flagged} gap flags | app.html {mb:.1f} MB")
     print(f"wrote {out} — open it (double-click, or: open app.html). Lists save in the browser.")
+    print(f"wrote docs/ (GitHub Pages bundle) — run publish.command to push it to your phone.")
 
-HTML = r"""<!doctype html><html><head><meta charset="utf-8"><title>&lt;CYBERSE&gt; — __DATE__</title>
+
+def write_pwa(html, date):
+    """Emit the hosted bundle for GitHub Pages / the phone PWA into docs/.
+    Same page as app.html; card art auto-switches to the CDN when hosted."""
+    docs = os.path.join(HERE, "docs")
+    os.makedirs(os.path.join(docs, "icons"), exist_ok=True)
+    open(os.path.join(docs, "index.html"), "w").write(html)
+    manifest = {
+        "name": "CYBERSE — Yu-Gi-Oh! Hub", "short_name": "CYBERSE",
+        "description": "Your personal Yu-Gi-Oh! collection, decks, budget, playtest and meta — all in one place.",
+        "start_url": ".", "scope": ".", "display": "standalone", "orientation": "any",
+        "background_color": "#070c1c", "theme_color": "#070c1c",
+        "icons": [
+            {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }
+    open(os.path.join(docs, "manifest.json"), "w").write(json.dumps(manifest, indent=2))
+    sw = SW_JS.replace("__DATE__", date)
+    open(os.path.join(docs, "sw.js"), "w").write(sw)
+
+
+SW_JS = r"""/* <CYBERSE> service worker — versioned by build date so a fresh publish updates the phone. */
+const CACHE='cyberse-__DATE__';
+const CORE=['./index.html','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
+self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(CORE).catch(function(){});}));});
+self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return k===CACHE?null:caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
+self.addEventListener('fetch',function(e){var req=e.request;if(req.method!=='GET')return;
+  if(req.mode==='navigate'){e.respondWith(caches.match('./index.html').then(function(h){return h||fetch(req);}));return;}
+  if(new URL(req.url).origin!==location.origin)return; /* let card art (CDN) and fonts hit the network */
+  e.respondWith(caches.match(req).then(function(h){return h||fetch(req).then(function(res){var cp=res.clone();caches.open(CACHE).then(function(c){c.put(req,cp);});return res;});}));
+});
+"""
+
+HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>&lt;CYBERSE&gt; — __DATE__</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070c1c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CYBERSE">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://images.ygoprodeck.com">
 <link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet"><style>
 :root{--bg:#070c1c;--bg2:#0b1330;--surf:#111d3f;--surf2:#182a55;--line:#2c3d70;--line2:#43598f;
   --ink:#eaf0ff;--mut:#93a0c4;--acc:#8fdcff;--acc2:#5566d8;--pos:#6ee0a0;--warn:#e8c66a;--dang:#ff6b81;
@@ -458,6 +505,10 @@ tr:hover td{background:rgba(40,58,110,.3)}
 var CARDS=__DATA__, RAR=__RAR__, ORD={}; RAR.forEach(function(r,i){ORD[r]=i;});
 var SETS=__SETS__;
 var BY={}; CARDS.forEach(function(c){BY[c.i]=c;});
+/* Card art: use the local 2.3GB cache when opened as a file on the desktop;
+   pull from YGOPRODeck's CDN when the app is hosted (phone / GitHub Pages). */
+var IMGBASE=(location.protocol==='file:')?'data/images/':'https://images.ygoprodeck.com/images/cards/';
+function imgSrc(id){return IMGBASE+id+'.jpg';}
 var PRICED=CARDS.filter(function(c){return c.m!=null&&c.m>0;});
 var NAME2ID={}; CARDS.forEach(function(c){NAME2ID[c.n.toLowerCase()]=c.i;});
 var KEY="ygo_builder_v1", view="browse", sk="m", sd=-1, LIMIT=250;
@@ -813,7 +864,7 @@ function renderSim(){
     if(!simOrder.length)h+='<div class=empty>This deck has no Main Deck cards yet — add some in the Deck tab.</div>';
     else{var hand=simOrder.slice(0,simSeen);
       var cardHtml=function(id,extra){var c=BY[id],tg=cardTags(id);
-        return '<div class="simcard'+(extra?' drawn':'')+'" onclick="openM('+id+')"><img src="data/images/'+id+'.jpg" onerror="this.style.display=\'none\'"><div class=simnm>'+esc(c?c.n:''+id)+'</div>'+(tg.length?'<div class=simtags>'+tg.map(function(t){return '<span class=simtag title="'+tagLabel(t)+'" style="background:'+tagColor(t)+'"></span>';}).join('')+'</div>':'')+'</div>';};
+        return '<div class="simcard'+(extra?' drawn':'')+'" onclick="openM('+id+')"><img src="'+imgSrc(id)+'" onerror="this.style.display=\'none\'"><div class=simnm>'+esc(c?c.n:''+id)+'</div>'+(tg.length?'<div class=simtags>'+tg.map(function(t){return '<span class=simtag title="'+tagLabel(t)+'" style="background:'+tagColor(t)+'"></span>';}).join('')+'</div>':'')+'</div>';};
       h+='<div class=simhand>'+hand.slice(0,n).map(function(id){return cardHtml(id,false);}).join('')
         +(simSeen>n?'<div class=simsep><span>drew</span></div>'+hand.slice(n).map(function(id){return cardHtml(id,true);}).join(''):'')+'</div>';
       var comp={};hand.forEach(function(id){cardTags(id).forEach(function(t){comp[t]=(comp[t]||0)+1;});});
@@ -904,7 +955,7 @@ function bShuffle(){if(!board)return;board.deck=shuffle(board.deck);sel=null;ren
 function bView(v){viewer=(viewer===v)?null:v;sel=null;renderSim();}
 function bCardHTML(it,seld,mini){var c=BY[it.id];
   var inner=it.fd?'<div class=bback>&#9672;</div>'
-    :'<img src="data/images/'+it.id+'.jpg" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(c?c.n:'')+'</span>';
+    :'<img src="'+imgSrc(it.id)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(c?c.n:'')+'</span>';
   return '<div class="bcard'+(seld?' bsel':'')+(it.def?' bdef':'')+(mini?' bmini':'')+'" title="'+eatt((c?c.n:'')+(it.fd?' (face-down)':'')+(it.def?' (DEF)':''))+'">'+inner+'</div>';}
 function slotHTML(k,s,label){var a=board[k][s],has=a&&a.length,seld=sel&&sel.k===k&&sel.s===s;
   var body=has?a.map(function(it,i){return bCardHTML(it,seld&&sel.i===i,false);}).join(''):'<span class=bslab>'+label+'</span>';
@@ -936,7 +987,7 @@ function viewerHTML(){if(!viewer)return '';var k=viewer,title,arr;
   else if(k==='ex'){title='Extra Deck ('+board.ex.length+')';arr=board.ex.map(function(id,i){return {id:id,i:i};});}
   else{title=(k==='gy'?'Graveyard':'Banished')+' ('+board[k].length+')';arr=board[k].map(function(it,i){return {id:it.id,i:i};});}
   var cards=arr.map(function(o){var c=BY[o.id];
-    return '<div class=bvcard onclick="bSelect(\''+k+'\',null,'+o.i+')"><img src="data/images/'+o.id+'.jpg" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(c?c.n:'')+'</span></div>';}).join('');
+    return '<div class=bvcard onclick="bSelect(\''+k+'\',null,'+o.i+')"><img src="'+imgSrc(o.id)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')"><span class=bnm>'+esc(c?c.n:'')+'</span></div>';}).join('');
   return '<div class=bviewer onclick="bView(\''+k+'\')"><div class=bvbox onclick="event.stopPropagation()">'
     +'<div class=bvhead><b>'+title+'</b>'+(k==='deck'?' <span class=mut style="font-size:11px">order hidden &mdash; pick any card to act on it</span>':'')+'<button onclick="bView(\''+k+'\')" style="margin-left:auto">Close</button></div>'
     +'<div class=bvcards>'+(cards||'<span class=mut>Empty.</span>')+'</div></div></div>';}
@@ -1189,7 +1240,7 @@ function gridTile(key,id,inDeck,li){var m=bucket(key),c=BY[id],e=inDeck?m[id]:(i
   var prsel=(key==='wishlist')?'<select class=grar onchange="setP('+id+',this.value'+L+')">'+['High','Normal','Low'].map(function(x){return '<option'+((e.pr||'Normal')===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>':'';
   var mv=inDeck?(key==='side'?'<span class=gab onclick="moveTo('+id+',\'side\',\''+deckSecOf(id)+'\')" title="to main/extra">→M</span>':'<span class=gab onclick="moveTo('+id+',\''+key+'\',\'side\')" title="to side deck">→S</span>'):'';
   return '<div class="gcard'+(unowned?' unowned':'')+'">'
-    +'<div class=gimgwrap onclick="openM('+id+')"><img class=gimg src="data/images/'+id+'.jpg" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'noart\')"><div class=gph>'+esc(c.n)+'</div>'
+    +'<div class=gimgwrap onclick="openM('+id+')"><img class=gimg src="'+imgSrc(id)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'noart\')"><div class=gph>'+esc(c.n)+'</div>'
       +'<div class=gqty>×'+e.q+'</div>'+(unowned?'<div class=gneed title="you still need '+buy+'">◆'+buy+'</div>':'')+'</div>'
     +'<div class=gname onclick="openM('+id+')" title="'+eatt(c.n)+'">'+esc(c.n)+'</div>'
     +'<div class=gmeta>'+(inDeck?'<span>'+f(p)+'</span><span class=mut>own '+own+'</span>':'<input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed" onclick="event.stopPropagation()"><span class=mut>'+((e.cond||'')||(e.ov!=null?'yours':''))+'</span>')+'</div>'
@@ -1325,7 +1376,7 @@ function openM(id){var c=BY[id]; if(!c)return;
     return '<tr><td><span class="'+rarClass(rn)+'">'+rn+'</span>'+tag+sets+'</td><td class="r" style="vertical-align:top">'+cell+'</td></tr>';}).join('')||'<tr><td class=mut colspan=2>no printings recorded for this card</td></tr>';
   var rnote='<div class=mut style="font-size:10.5px;margin-top:4px;line-height:1.45">Per-printing prices from the free feed (~30% coverage); “—” = no listed price for that printing, and the cheapest priced one is tagged <b style="color:var(--gold)">lowest listed</b>. <b>Market low</b> above is the cheapest copy across <i>all</i> printings and isn’t tied to a specific rarity in the free data. The line under each rarity is where it was printed.</div>';
   mBody.innerHTML='<span class=close onclick="closeM()">✕</span>'
-    +'<img class=cimg src="data/images/'+c.i+'.jpg" onerror="this.style.display=\'none\'">'
+    +'<img class=cimg src="'+imgSrc(c.i)+'" onerror="this.style.display=\'none\'">'
     +'<h2>'+esc(c.n)+'</h2><div class=sub>'+[c.cl,c.rc,stats].filter(Boolean).join(' · ')
     +(c.bn!=='Unlimited'?' · <b>'+c.bn+'</b>':'')+(c.ar?' · '+esc(c.ar):'')+(c.rd?' · released '+fdate(c.rd):'')+'</div>'
     +'<div class=tx>'+esc(c.tx)+'</div>'
@@ -1383,7 +1434,12 @@ function tick(t){cx.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){var p=ps[i];
   var g=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);g.addColorStop(0,'rgba('+p.c+','+tw+')');g.addColorStop(1,'rgba('+p.c+',0)');
   cx.fillStyle=g;cx.beginPath();cx.arc(p.x,p.y,R,0,6.283);cx.fill();}
   requestAnimationFrame(tick);}requestAnimationFrame(tick);})();
-</script></body></html>"""
+</script>
+<script>/* PWA: register the service worker only when hosted (not on file://) */
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}</script>
+</body></html>"""
 
 if __name__ == "__main__":
     main()

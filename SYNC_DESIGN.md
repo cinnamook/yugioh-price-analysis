@@ -117,10 +117,11 @@ saves.
   public LFS/LFT/LF listings, other users. The auth + RLS you built in Phase 1 is
   already the foundation.
 
-## Setting it up — the four things that actually went wrong
+## Setting it up — the five things that actually went wrong
 
-Phase 1 shipped 2026-08-07. Everything below was hit for real during setup; each
-one fails in a way that doesn't obviously point at its cause.
+Phase 1 shipped 2026-08-07 and is verified working end to end: desktop push,
+phone pull, real data. Everything below was hit for real getting there; each one
+fails in a way that doesn't obviously point at its cause.
 
 1. **A brand-new user gets the "Confirm signup" template, not "Magic Link."**
    `signInWithOtp({shouldCreateUser:true})` on an address that doesn't exist yet
@@ -152,11 +153,27 @@ one fails in a way that doesn't obviously point at its cause.
    permission denied` rather than `PGRST205`. Supabase's error text will suggest
    `GRANT ... TO anon` to fix it — **don't**, that would make the data public.
 
+5. **`sv()` is the sync hook, so anything that bypasses `sv()` bypasses sync.**
+   Hooking the single save function covers all 33 mutation sites — but `imJson()`
+   (restore-from-backup) deliberately writes the whole state blob straight to
+   localStorage and reloads, and so wrote straight past the hook. The failure is
+   quiet and looks like a *sync* bug rather than an *import* bug: sign in on an
+   empty device (which pushes that empty state up), import a backup, and the pull
+   after reload sees remote isn't newer, finds nothing dirty, and never pushes.
+   The device looks correct while the server still holds the empty state, and
+   every other device dutifully pulls nothing. `imJson()` now calls
+   `syncMarkDirty()`; the flag is in localStorage so it survives the reload.
+
+   General rule for future work: **grep for `localStorage.setItem(KEY` and check
+   every hit reaches the sync layer.** There are three — `sv()`, `imJson()`, and
+   `adopt()` — and only the first goes through the obvious path.
+
 **Migrating existing data.** `file://` and the hosted origin have separate
 localStorage, so the local app's collection does not follow you. Export **Backup
 all (.json)** from the local app and import it into the hosted app *before* the
 first sign-in — signing in empty pushes an empty state to the server, which other
-devices then pull.
+devices then pull. (Trap 5 above made this worse than it needed to be: the import
+itself didn't push either. Fixed, but the ordering advice still stands.)
 
 ## Cost
 

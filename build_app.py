@@ -1550,7 +1550,13 @@ function exYdk(){var d=curDeck(),out=[]; [['main','#main'],['extra','#extra'],['
   dl((St.active.replace(/[^a-z0-9]+/gi,'_')||'deck')+'.ydk',out.join('\n')+'\n','text/plain');}
 function exJson(){dl('ygo_backup.json',JSON.stringify(St,null,1),'application/json');}
 function imJson(ev){var fl=ev.target.files[0]; if(!fl)return; var rd=new FileReader();
-  rd.onload=function(){try{var o=JSON.parse(rd.result); localStorage.setItem(KEY,JSON.stringify(o)); location.reload();}catch(e){alert('Bad JSON');}}; rd.readAsText(fl);}
+  /* Writes the whole blob straight to storage and reloads, so it deliberately bypasses sv() —
+     which means it also bypasses the sync hook. Mark the state dirty explicitly, or an imported
+     backup would live only on this device: the pull after reload would see remote is not newer,
+     find nothing dirty, and never push. The flag is in localStorage, so it survives the reload. */
+  rd.onload=function(){try{var o=JSON.parse(rd.result); localStorage.setItem(KEY,JSON.stringify(o));
+    if(window.syncMarkDirty)window.syncMarkDirty();
+    location.reload();}catch(e){alert('Bad JSON');}}; rd.readAsText(fl);}
 function parseYdk(txt){var sec='main',out={main:{},extra:{},side:{}};
   txt.split(/\r?\n/).forEach(function(ln){ln=ln.trim();var lc=ln.toLowerCase();
     if(lc.indexOf('#extra')===0)sec='extra'; else if(lc.indexOf('!side')===0)sec='side'; else if(lc.indexOf('#main')===0)sec='main';
@@ -1781,6 +1787,10 @@ window.syncChip=function(){
 /* --- lifecycle --------------------------------------------------------- */
 window.syncTouch=function(){ if(!user)return; setDirty(true); set('pending');
   clearTimeout(pushT); pushT=setTimeout(pushNow,2500); };
+/* For code paths that replace the whole state blob and immediately reload (imJson), where a
+   debounced push would never get to run. The flag persists, so the pull on the next boot
+   pushes it — or raises the conflict prompt if the server moved on meanwhile. */
+window.syncMarkDirty=function(){ setDirty(true); };
 
 if(ready){
   sb.auth.getSession().then(function(r){

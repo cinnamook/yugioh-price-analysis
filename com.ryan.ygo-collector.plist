@@ -1,19 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Daily collector. Runs refresh.command, which pulls a snapshot AND rebuilds the app.
+
+     The project deliberately lives OUTSIDE ~/Downloads: that folder is TCC-protected, and a
+     launchd agent does not inherit Terminal's Full Disk Access, so bash there failed with
+     "Operation not permitted" (exit 126) and the daily snapshot was silently never taken.
+     Price history cannot be back-filled, so this location matters.
+
+     Install:  cp com.ryan.ygo-collector.plist ~/Library/LaunchAgents/
+               launchctl unload ~/Library/LaunchAgents/com.ryan.ygo-collector.plist 2>/dev/null
+               launchctl load   ~/Library/LaunchAgents/com.ryan.ygo-collector.plist
+     Test:     launchctl kickstart -k gui/$(id -u)/com.ryan.ygo-collector
+               launchctl list | grep ygo     # second column must be 0 -->
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.ryan.ygo-collector</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Library/Frameworks/Python.framework/Versions/3.13/bin/python3</string>
-    <string>/Users/ryannguyen/Downloads/TCG Market Analysis/collect_snapshot.py</string>
+    <string>/bin/bash</string>
+    <string>/Users/ryannguyen/CYBERSE/refresh.command</string>
   </array>
-  <key>WorkingDirectory</key>
-  <string>/Users/ryannguyen/Downloads/TCG Market Analysis</string>
-  <!-- Runs daily at 1:00pm. Asleep then? launchd runs it when the Mac next wakes. -->
+  <key>WorkingDirectory</key><string>/Users/ryannguyen/CYBERSE</string>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
-  <key>StandardOutPath</key><string>/Users/ryannguyen/Downloads/TCG Market Analysis/data/collector.log</string>
-  <key>StandardErrorPath</key><string>/Users/ryannguyen/Downloads/TCG Market Analysis/data/collector.log</string>
+  <!-- refresh.command keeps its own detailed log in data/collector.log; this catches
+       anything that fails before it gets that far. -->
+  <key>StandardOutPath</key><string>/Users/ryannguyen/CYBERSE/data/launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/ryannguyen/CYBERSE/data/launchd.log</string>
 </dict>
 </plist>

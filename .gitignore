@@ -13,6 +13,7 @@ data/cardinfo_raw.json
 # (e.g. Time Machine / a periodic copy). It's gitignored to keep the repo from bloating daily.
 data/ygo.db
 data/collector.log
+data/launchd.log
 
 # Generated tool outputs (rebuilt from the DB; snapshot-specific):
 screener.html

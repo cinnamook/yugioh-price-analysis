@@ -31,7 +31,7 @@ mkdir -p data
 #  ONE-TIME SETUP for full automation
 #  ----------------------------------
 #  1) Make this file runnable (only needed if you'll double-click it):
-#       chmod +x "$HOME/Downloads/TCG Market Analysis/refresh.command"
+#       chmod +x "$HOME/CYBERSE/refresh.command"
 #
 #  2) Point your existing collector job at this wrapper. Open
 #       ~/Library/LaunchAgents/com.ryan.ygo-collector.plist
@@ -40,7 +40,7 @@ mkdir -p data
 #       <key>ProgramArguments</key>
 #       <array>
 #         <string>/bin/bash</string>
-#         <string>/Users/ryannguyen/Downloads/TCG Market Analysis/refresh.command</string>
+#         <string>/Users/ryannguyen/CYBERSE/refresh.command</string>
 #       </array>
 #
 #  3) Reload the job so the change takes effect:

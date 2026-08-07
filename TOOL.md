@@ -22,7 +22,7 @@ Price history **cannot be back-filled**, so the collector must run every day goi
 Add a cron job (`crontab -e`) — use the full path to your Python (`which python3`):
 
 ```
-0 18 * * * cd "$HOME/Downloads/TCG Market Analysis" && /FULL/PATH/TO/python3 collect_snapshot.py >> data/collector.log 2>&1
+0 18 * * * cd "$HOME/CYBERSE" && /FULL/PATH/TO/python3 collect_snapshot.py >> data/collector.log 2>&1
 ```
 
 `data/ygo.db` is gitignored and irreplaceable once history accrues — **back it up** (Time Machine / a copy).

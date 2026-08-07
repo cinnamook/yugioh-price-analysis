@@ -2,9 +2,9 @@
 # ============================================================================
 #  ONE-TIME setup: make your daily 1pm job pull fresh data AND rebuild the app.
 #  You only run this once. It writes the launchd job for you — no XML editing.
-#  Run it with:   bash "$HOME/Downloads/TCG Market Analysis/setup_automation.command"
+#  Run it with:   bash "$HOME/CYBERSE/setup_automation.command"
 # ============================================================================
-DIR="$HOME/Downloads/TCG Market Analysis"
+DIR="$HOME/CYBERSE"
 PLIST="$HOME/Library/LaunchAgents/com.ryan.ygo-collector.plist"
 
 mkdir -p "$HOME/Library/LaunchAgents" "$DIR/data"

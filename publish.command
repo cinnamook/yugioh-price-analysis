@@ -8,7 +8,7 @@
 #
 #  Run it any time:
 #    • double-click this file, OR
-#    • bash "$HOME/Downloads/TCG Market Analysis/publish.command"
+#    • bash "$HOME/CYBERSE/publish.command"
 # =========================================================================
 cd "$(dirname "$0")" || exit 1
 

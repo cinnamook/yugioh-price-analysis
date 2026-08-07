@@ -244,16 +244,21 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .sec{font-size:14px;margin:22px 0 8px;color:var(--ink);font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
 .sec::before{content:"";width:3px;height:15px;background:var(--acc);border-radius:2px}
 #ov{position:fixed;inset:0;background:rgba(4,6,12,.72);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:40;padding:calc(20px + var(--sat)) calc(20px + var(--sar)) calc(20px + var(--sab)) calc(20px + var(--sal))}
-.modal{background:var(--surf);border:1px solid var(--line2);border-radius:18px;max-width:600px;width:100%;max-height:88vh;overflow:auto;padding:24px 26px;box-shadow:var(--sh)}
-.modal h2{margin:0 0 3px;font-size:21px;letter-spacing:-.01em}.modal .sub{color:var(--mut);font-size:12px;margin-bottom:12px}
+/* The shell does NOT scroll — #mBody inside it does. That's what keeps the close control
+   genuinely still: as a sticky element inside the scroller it shifted with the content. */
+.modal{position:relative;background:var(--surf);border:1px solid var(--line2);border-radius:18px;
+  max-width:600px;width:100%;max-height:88vh;display:flex;flex-direction:column;
+  padding:24px 26px;box-shadow:var(--sh)}
+#mBody{overflow:auto;min-height:0}
+.modal h2{margin:0 0 3px;font-size:21px;letter-spacing:-.01em;padding-right:46px}   /* clears the close */.modal .sub{color:var(--mut);font-size:12px;margin-bottom:12px}
 .modal .tx{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:12px 15px;font-size:13px;line-height:1.65;white-space:pre-wrap;margin:12px 0}
 .modal table{margin:8px 0}
 /* The close control was float:right inside .modal — which is the SCROLLING box — so on a tall
    card (many printings) it scrolled off the top and left no way out but tapping the backdrop.
    Sticky keeps it pinned to the top of the modal at any scroll position, and it's now a real
    44px-class target rather than a bare glyph. */
-.close{position:sticky;top:0;z-index:3;float:none;display:flex;align-items:center;justify-content:center;
-  width:38px;height:38px;margin:-8px -8px 0 auto;border-radius:50%;cursor:pointer;
+.close{position:absolute;top:10px;right:12px;z-index:5;display:flex;align-items:center;justify-content:center;
+  width:38px;height:38px;border-radius:50%;cursor:pointer;
   background:rgba(9,16,40,.92);border:1px solid var(--line2);color:var(--ink);
   font-size:23px;line-height:1;backdrop-filter:blur(6px);transition:.12s}
 .close:hover{color:var(--gold2);border-color:var(--gold);background:rgba(232,198,106,.12)}
@@ -429,28 +434,72 @@ tr:hover td{background:rgba(40,58,110,.3)}
    minmax(0,1fr) rather than 1fr: .bslot has an aspect-ratio, so a taller row (e.g. a pile label
    wrapping to two lines) would otherwise raise each track's automatic min-content floor and push
    the tracks wider than the container — which silently knocks the two rows out of alignment. */
-.bemzrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);padding:0 calc(var(--bside) + var(--bgap))}
-.bemzrow .bslot:nth-child(1){grid-column:2}.bemzrow .bslot:nth-child(2){grid-column:4}
+/* ONE 7-column grid for every row: side | five zones | side. Previously the side columns
+   were a fixed --bside while the zones were fluid, so on a short viewport the sides became
+   the tallest thing and dictated row height. Equal fr columns scale together and the rows
+   align by construction rather than by a matching calc(). */
+.bmainrow,.bzrow,.bemzrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:var(--bgap);align-items:start}
+.bzones{display:contents}
+.bzrow>.bslot:first-child{grid-column:2}
+.bside{min-width:0;display:flex;align-items:flex-start;justify-content:center}
+/* explicit columns: phase | EMZ | life points | EMZ | turn — the row was mostly empty */
+.bemzside:nth-child(1){grid-column:1}
+.bemzrow .bslot:nth-child(2){grid-column:3}
+.bemzrow .lpchip{grid-column:4}
+.bemzrow .bslot:nth-child(4){grid-column:5}
+.bemzside:nth-child(5){grid-column:7}
+.bemzside{display:flex;align-items:center;justify-content:center;min-width:0}
+.bmini2{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  cursor:pointer;border:1px solid var(--line2);border-radius:9px;padding:4px 2px;
+  background:linear-gradient(180deg,rgba(24,38,78,.6),rgba(12,20,46,.66));transition:.12s}
+.bmini2:hover{border-color:var(--gold)}
+.bmlab{font-size:7px;letter-spacing:.08em;color:var(--mut)}
+.bmval{font-family:"Cinzel",Georgia,serif;font-size:14px;font-weight:700;color:var(--gold2);line-height:1.1}
+.bmnext{font-size:11px;color:var(--acc);line-height:1}
+.phpanel{border-color:var(--acc)}
+/* banished stacks above the graveyard instead of taking its own row */
+.bsidestack{flex-direction:column;gap:2px;justify-content:flex-start}
+/* both piles share one zone's worth of height, so the stack costs no extra rows */
+.bsidestack .bpile{width:100%}
+.bsidestack .bptop{aspect-ratio:auto;height:34px}
+.bsidestack .bpcount{font-size:8px;margin-bottom:1px}
 /* the opponent's 5-wide rows use the same inset as the EMZ so all four rows line up */
-.bzrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);
-  padding:0 calc(var(--bside) + var(--bgap))}
+
 .bopp .bslot{border-color:rgba(255,107,129,.34);background:rgba(46,16,28,.28)}
 .bopp .bslot.bempty:hover{border-color:var(--dang)}
-.boppbar{display:flex;align-items:flex-end;gap:var(--bgap);flex-wrap:wrap;margin-bottom:2px;
-  padding-bottom:6px;border-bottom:1px dashed rgba(255,107,129,.3)}
+/* same 7-column grid as the rows, so it can never wrap regardless of the field's width */
+.boppbar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--bgap);
+  align-items:end;margin-bottom:2px;padding-bottom:5px;border-bottom:1px dashed rgba(255,107,129,.3)}
+.boppbar .boplab{grid-column:1}
+.boppbar .bopfs{grid-column:7;width:auto;margin:0}
 .boplab{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#ff9aa8;
   align-self:center;margin-right:2px}
-.bopfs{width:var(--bside);flex:none;min-width:0;margin-left:auto}
-.bopfs .bslot{width:var(--bside);border-color:rgba(255,107,129,.34)}
-/* compact piles for the opponent strip */
-.bpile.bpc{width:calc(var(--bside) * .82)}
+/* Zone height follows column width via aspect-ratio, so the only way to make a two-sided
+   board fit a short viewport is to cap the field's WIDTH against viewport height. Phones
+   are already width-constrained, so this only applies from tablet up. */
+/* Applies at every width, not just desktop: on a tablet the field was width-constrained to
+   something far taller than the viewport. On phones the width is still the binding limit, so
+   this is a no-op there. */
+.bfield{max-width:min(720px,calc((100vh - 290px) * 0.66))}
+.bopfs{min-width:0}
+.bopfs .bslot{width:100%;border-color:rgba(255,107,129,.34)}
+/* The opponent's strip is a status row, not a play area — full card-height piles made it
+   wrap to two lines and cost more than any actual card row. Short chips instead. */
+.bpile.bpc{width:100%}   /* fills its grid cell; a fixed width overflowed the column */
 .bpile.bpc .bpcount{font-size:8px}
-.bmainrow{display:flex;gap:var(--bgap);align-items:stretch}
-.bzones{flex:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);min-width:0}
-.bside{width:var(--bside);flex:none;min-width:0;display:flex;align-items:center;justify-content:center}
-.bbanrow{display:flex;justify-content:flex-end;padding-right:2px}
+.boppbar .bptop{aspect-ratio:auto;height:30px}
+.boppbar .bpcount{font-size:8px;margin-bottom:1px}
+.bopfs .bslot{aspect-ratio:auto;height:30px}
+.boppbar .bslab{font-size:7.5px}
+/* flex-start, not stretch: the side columns must not dictate the row's height. With
+   banished stacked over the graveyard that column is twice as tall, and stretch was
+   passing that height on to all five zones. */
+
+
+
 .bslot{border:1px dashed var(--line2);border-radius:9px;aspect-ratio:59/86;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:.12s;background:rgba(12,20,46,.35);overflow:visible}
-.bside .bslot{width:var(--bside)}
+.bside .bslot{width:100%}
 .bslot.bempty:hover{border-color:var(--acc)}
 .bslot.bdrop{border-color:var(--gold);border-style:solid;box-shadow:0 0 0 2px rgba(232,198,106,.22) inset;background:rgba(232,198,106,.06)}
 .bslab{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
@@ -461,7 +510,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bcard.bsel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 4px 12px rgba(232,198,106,.4);z-index:3}
 .bcard.bdef{transform:rotate(90deg) scale(.68)}
 .bback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--gold);background:linear-gradient(135deg,#2a2350,#3a2d63);text-shadow:0 0 10px rgba(232,198,106,.5);border-radius:7px}
-.bpile{width:var(--bside);cursor:pointer;text-align:center}
+.bpile{width:100%;cursor:pointer;text-align:center}
 .bpile .bptop{aspect-ratio:59/86;border:1px solid var(--line2);border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(12,20,46,.5)}
 .bpile.bempty .bptop{border-style:dashed;background:rgba(12,20,46,.3)}
 .bpile:hover .bptop{border-color:var(--acc)}
@@ -524,25 +573,19 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .lppanel{border-color:var(--gold)}
 .lppanel .lpside{flex:1 1 190px}
 /* --- turn phases --- */
-.bphase{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:8px 0 2px}
-.bphturn{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-right:4px}
 .bph{font-size:11px;padding:5px 9px;min-height:30px;min-width:38px;color:var(--mut)}
 .bph.on{background:linear-gradient(180deg,#26315f,#1a2247);color:var(--gold);font-weight:700;
   border-color:var(--gold);box-shadow:0 0 10px rgba(232,198,106,.22)}
 .bphnext{font-size:13px;padding:5px 10px;min-height:30px}
 /* --- life points --- */
 /* the chip sits in the EMZ row's empty middle column */
-.lpchip{grid-column:3;display:none;flex-direction:column;align-items:center;justify-content:center;
+.lpchip{display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;cursor:pointer;border:1px solid var(--line2);border-radius:9px;
   background:linear-gradient(180deg,rgba(24,38,78,.72),rgba(12,20,46,.78));padding:2px}
 .lpcv{font-family:"Cinzel",Georgia,serif;font-size:12px;font-weight:700;color:var(--gold2);
   font-variant-numeric:tabular-nums;line-height:1.15}
 .lpcv.lpco{color:#ff9aa8}
 .lpcs{font-size:7.5px;letter-spacing:.08em;color:var(--mut)}
-.lpbar{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin:8px 0 2px}
-/* NOTE: must come after .lpbar's own display — a media query adds no specificity, so a
-   later plain rule of equal specificity would win regardless of the viewport. */
-@media(max-width:900px){.lpbar{display:none}.lpchip{display:flex}}
 .lpside{flex:1 1 200px;min-width:0;background:linear-gradient(180deg,rgba(24,38,78,.55),rgba(12,20,46,.6));
   border:1px solid var(--line2);border-radius:12px;padding:9px 11px}
 .lpside.lpout{border-color:var(--dang);box-shadow:inset 0 0 0 1px rgba(255,107,129,.35)}
@@ -672,7 +715,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
   /* modals: the desktop padding wastes a third of a phone screen */
   #ov{padding:calc(10px + var(--sat)) calc(10px + var(--sar)) calc(10px + var(--sab)) calc(10px + var(--sal))}
   .modal{padding:16px 15px;max-height:92vh;border-radius:14px}
-  .close{width:44px;height:44px;font-size:26px;margin:-6px -6px 0 auto}   /* full thumb target */
+  .close{width:44px;height:44px;font-size:26px;top:8px;right:8px}   /* full thumb target */
   .modal h2{font-size:18px}
   .cimg{width:104px;margin:0 0 10px 12px}
   .rsets{max-width:none}
@@ -785,7 +828,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="sets" class="hide"><div class="wrap" id="setsBody"></div></div>
 <div id="meta" class="hide"><div class="wrap" id="metaBody"></div><input id="metaFile" type="file" accept=".ydk,.txt" multiple class="hide" onchange="metaImport(event)"></div>
 
-<div id="ov" onclick="if(event.target.id==='ov')closeM()"><div class="modal" id="mBody"></div></div>
+<div id="ov" onclick="if(event.target.id==='ov')closeM()"><div class="modal"><span class=close onclick="closeM()" title="close">&times;</span><div id="mBody"></div></div></div>
 
 <script>
 var CARDS=__DATA__, RAR=__RAR__, ORD={}; RAR.forEach(function(r,i){ORD[r]=i;});
@@ -850,7 +893,7 @@ function setOv(list,id,v,li){var e=lref(list,id,li); if(!e)return; var n=parseFl
 (function(){document.getElementById('rar').innerHTML='<option value="">rarity: any</option>'+
   RAR.map(function(r){return '<option>'+r+'</option>';}).join('');})();
 
-function go(v){view=v;
+function go(v){view=v;if(window.listReset)listReset();
   document.querySelectorAll('.nav .t').forEach(function(t){var on=t.dataset.v===v;t.classList.toggle('on',on);
     /* keep the active tab visible in the scrolling strip on narrow screens.
        block:'nearest' so this never yanks the page vertically. */
@@ -875,7 +918,7 @@ function go(v){view=v;
   var ctrl='';
   if(v==='deck'){ctrl+='<select onchange="pickDeck(this.value)">'+Object.keys(St.decks).map(function(n){return '<option'+(n===St.active?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select>'
     +'<button onclick="newDeck()">+ New deck</button><button onclick="renDeck()">Rename</button><button onclick="delDeck()">Delete</button>';}
-  ctrl+='<input type="text" id="lq" placeholder="filter this '+v+'…" oninput="rTable()">';
+  ctrl+='<input type="text" id="lq" placeholder="filter this '+v+'…" oninput="listReset();rTable()">';
   ctrl+='<span class=vtog><span class="vt'+(listMode==='list'?' on':'')+'" id="vtList" onclick="setListMode(\'list\')" title="list view">☰</span><span class="vt'+(listMode==='grid'?' on':'')+'" id="vtGrid" onclick="setListMode(\'grid\')" title="grid view">▦</span></span>';
   if(v==='collection'||v==='wishlist'){
     ctrl+='<select id="lclass" onchange="rTable()"><option value="all">all types</option><option>Monster</option><option>Spell</option><option>Trap</option></select>';
@@ -1291,14 +1334,19 @@ function nextPhase(){if(!board)return;
   var i=0;PHASES.forEach(function(p,n){if(p[0]===board.phase)i=n;});
   if(i>=PHASES.length-1)newTurn(); else {board.phase=PHASES[i+1][0];renderSim();}}
 function newTurn(){if(!board)return;board.turn=(board.turn||1)+1;board.phase='dp';renderSim();}
-function phaseBar(){
-  return '<div class=bphase><span class=bphturn>Turn '+(board.turn||1)+'</span>'
-    +PHASES.map(function(p){return '<button class="bph'+(board.phase===p[0]?' on':'')
-      +'" title="'+p[2]+'" onclick="setPhase(\''+p[0]+'\')">'+p[1]+'</button>';}).join('')
-    +'<button class=bphnext onclick="nextPhase()" title="advance one phase; from EP starts the next turn">&rsaquo;</button>'
-    +'<button class=bphnext onclick="newTurn()" title="new turn">&#8635;</button></div>';}
-
-/* ----- life points ----- */
+/* compact stand-ins that live in the EMZ row's spare columns */
+function phaseMini(){var cur='M1';PHASES.forEach(function(p){if(p[0]===board.phase)cur=p[1];});
+  return '<div class=bmini2 onclick="lpOpen=false;phOpen=!phOpen;renderSim()" title="phase — tap to change">'
+    +'<span class=bmlab>PHASE</span><span class=bmval>'+cur+'</span></div>';}
+function turnMini(){return '<div class=bmini2 onclick="nextPhase()" title="advance a phase; from EP starts the next turn">'
+  +'<span class=bmlab>TURN</span><span class=bmval>'+(board.turn||1)+'</span><span class=bmnext>&rsaquo;</span></div>';}
+var phOpen=false;
+function phPanel(){if(!phOpen||!board)return '';
+  return '<div class="bpmenu phpanel"><span class=btsel>Turn '+(board.turn||1)+'</span><span class=btsep></span>'
+    +PHASES.map(function(p){return '<button class="bph'+(board.phase===p[0]?' on':'')+'" title="'+p[2]
+      +'" onclick="setPhase(\''+p[0]+'\');phOpen=false;renderSim()">'+p[1]+'</button>';}).join('')
+    +'<span class=btsep></span><button onclick="newTurn();phOpen=false;renderSim()">&#8635; New turn</button>'
+    +'<span class=btx onclick="phOpen=false;renderSim()" title="close">&times;</span></div>';}
 function lpAdj(who,d){if(!board)return;
   var before=board.lp[who];
   board.lp[who]=Math.max(0,before+d);
@@ -1379,7 +1427,9 @@ function pileHTML(k,label,compact){var a=board[k]||[],n=a.length,top;
   if(FACEUP_PILE[k]&&n)top=bCardHTML(a[n-1],false,true);
   else if(n)top='<div class=bback>&#9672;</div>';
   else top='<span class=bslab>'+label+'</span>';
-  return '<div class="bpile'+(n?'':' bempty')+(compact?' bpc':'')+'" data-pile="'+k+'" onclick="bPileTap(\''+k+'\')"><div class=bpcount>'+label+' &middot; '+n+'</div><div class=bptop>'+top+'</div></div>';}
+  /* compact chips show the count alone — the box beneath already carries the name, and
+     "EXTRA · 0" overlaps its neighbours in a 46px column */
+  return '<div class="bpile'+(n?'':' bempty')+(compact?' bpc':'')+'" data-pile="'+k+'" onclick="bPileTap(\''+k+'\')"><div class=bpcount>'+(compact?n:label+' &middot; '+n)+'</div><div class=bptop>'+top+'</div></div>';}
 /* Tapping a pile opens a small action menu rather than dumping you straight into the
    viewer — drawing, milling and banishing are what you actually want most of the time,
    and they used to live in a control bar far above the field. */
@@ -1443,8 +1493,11 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
     +'<span class=btsep></span><button onclick="place(\'off\')" title="remove from play">&times; off</button>'
     +'<span class=btx onclick="bDeselect()" title="close">&times;</span></div>';
   return h;}
-function handHTML(){var h='<div class=bhandwrap data-pile="hand"><div class=bhlab>Hand &middot; '+board.hand.length+'</div><div class=bhcards>';
-  h+=board.hand.map(function(it,i){return '<div data-z="hand" data-i="'+i+'" onclick="bHandTap('+i+')">'+bCardHTML(it,sel&&sel.k==='hand'&&sel.i===i,false)+'</div>';}).join('');
+/* Tapping the hand area returns the held card, the same way tapping a zone or pile does —
+   it was a drop target for drags but had no click path. */
+function bHandZoneTap(){ if(dragJustEnded)return; if(sel)place('hand'); }
+function handHTML(){var h='<div class=bhandwrap data-pile="hand" onclick="bHandZoneTap()"><div class=bhlab>Hand &middot; '+board.hand.length+(sel?' &mdash; tap here to return the card':'')+'</div><div class=bhcards>';
+  h+=board.hand.map(function(it,i){return '<div data-z="hand" data-i="'+i+'" onclick="event.stopPropagation();bHandTap('+i+')">'+bCardHTML(it,sel&&sel.k==='hand'&&sel.i===i,false)+'</div>';}).join('');
   return h+'</div></div>';}
 function bHandTap(i){ if(dragJustEnded)return; bSelect('hand',null,i); }
 function bMatDetach(i){var host=selInst();if(!host||!host.mat||!host.mat[i])return;
@@ -1493,12 +1546,6 @@ function lpPanel(){if(!lpOpen||!board)return '';
   return '<div class="bpmenu lppanel">'+lpSide('you','You')+lpSide('opp','Opponent')
     +'<div class=lpmeta><button onclick="lpUndo()"'+(board.lpHist.length?'':' disabled')+'>Undo</button>'
     +'<button onclick="lpReset()">Reset</button><button onclick="lpToggle()">Close</button></div></div>';}
-function lpBar(){var last=board.lpHist[board.lpHist.length-1];
-  return '<div class=lpbar>'+lpSide('you','You')+lpSide('opp','Opponent')
-    +'<div class=lpmeta><button onclick="lpUndo()"'+(board.lpHist.length?'':' disabled')+'>Undo</button>'
-    +'<button onclick="lpReset()">Reset</button>'
-    +(last?'<span class=mut style="font-size:11px">last: '+(last.w==='you'?'You':'Opp')+' '+(last.d>0?'+':'')+last.d.toLocaleString()+'</span>':'')
-    +'</div></div>';}
 function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+='<div class=bctrl><label class=mut>Deck <select onchange="simDeck=this.value;boardNew()">'+decks.map(function(nm){return '<option'+(nm===simName()?' selected':'')+'>'+esc(nm)+'</option>';}).join('')+'</select></label>'
     +'<button onclick="boardNew()">&#8635; New game</button>';
@@ -1512,7 +1559,7 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
     +'<input type=text id=tkD class=gnum inputmode=numeric placeholder="DEF" style="width:74px">'
     +'<button onclick="tokMake()">Create</button><button onclick="tokOpen()">Cancel</button>'
     +'<span class=mut style="font-size:11px">goes to the first free monster zone &mdash; drag it anywhere after</span></div>';
-  if(board)h+=phaseBar()+lpBar()+lpPanel()+pmenuHTML();
+  if(board)h+=lpPanel()+phPanel()+pmenuHTML();
   if(!board){h+='<div class=ins style="margin-top:12px">Pick a deck and press <b>New game</b>. Then <b>tap the Deck</b> to draw or search it, <b>tap a hand card</b> then a field zone to summon or set, and <b>tap any pile</b> (GY, Banished, Extra) to open it and act on the cards inside &mdash; the way DuelingBook works.</div>';document.getElementById('simBody').innerHTML=h;return;}
   h+=boardToolbar();
   if(!sel)h+='<div class=bhint>Hold a card to drag it, or tap it and then tap the zone. Tap a pile to view and act on its cards.</div>';
@@ -1525,10 +1572,13 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
     +'<div class=bopfs>'+slotHTML('ofs',0,'Field')+'</div></div>';
   h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('ost',s,'S'+(5-s));}).join('')+'</div>';
   h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('omon',s,'M'+(5-s));}).join('')+'</div>';
-  h+='<div class=bemzrow>'+slotHTML('emz',0,'EMZ')+slotHTML('emz',1,'EMZ')+lpChip()+'</div>';
-  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('gy','GY')+'</div></div>';
+  /* The EMZ row's three spare columns carry the phase control, life points and the turn —
+     they were empty, and each of those used to cost a full row above the field. */
+  h+='<div class=bemzrow><div class=bemzside>'+phaseMini()+'</div>'
+    +slotHTML('emz',0,'EMZ')+lpChip()+slotHTML('emz',1,'EMZ')
+    +'<div class=bemzside>'+turnMini()+'</div></div>';
+  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class="bside bsidestack">'+pileHTML('ban','Ban',1)+pileHTML('gy','GY')+'</div></div>';
   h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';
-  h+='<div class=bbanrow>'+pileHTML('ban','Banished')+'</div>';
   h+='</div>';
   h+=handHTML();
   h+=fxLogPanel();
@@ -1571,31 +1621,25 @@ function dropAt(x,y){
   var k=z.getAttribute('data-z');
   return k==='hand'?{pile:'hand'}:{k:k,s:+z.getAttribute('data-s')};
 }
-/* Hold-to-drag. A bare movement threshold made every scroll swipe that began on a card
-   turn into a drag. Now the card must be held for HOLD ms before dragging arms; moving
-   more than SLOP before that cancels the intent, so a flick scrolls and a tap taps. */
-var HOLD=200, SLOP=10;
-function armDrag(){ if(!dragS)return; dragS.armed=true;
-  if(dragS.el)dragS.el.classList.add('bheld');       /* visible "picked up" cue */
-  if(navigator.vibrate)try{navigator.vibrate(12);}catch(e){} }
-function cancelDrag(){ if(dragS&&dragS.timer)clearTimeout(dragS.timer);
-  if(dragS&&dragS.el)dragS.el.classList.remove('bheld');
-  dragS=null; }
+/* Drag arms on movement, with no hold delay — the wait read as lag. Cards carry
+   touch-action:none, so a swipe starting on one was never going to scroll the page
+   anyway, which is what the hold was guarding against. */
+var SLOP=7;
+function cancelDrag(){ if(dragS&&dragS.el)dragS.el.classList.remove('bheld'); dragS=null; }
 addEventListener('pointerdown',function(e){
   if(typeof view==='undefined'||view!=='sim'||!board||viewer)return;
   if(!e.target||!e.target.closest)return;
   var cardEl=e.target.closest('.bcard');
   if(!cardEl||cardEl.classList.contains('bghost'))return;
   var src=srcOf(cardEl); if(!src)return;            /* pile tops aren't draggable */
-  dragS={src:src,x0:e.clientX,y0:e.clientY,el:cardEl,on:false,armed:false,last:e};
-  dragS.timer=setTimeout(armDrag,HOLD);
+  dragS={src:src,x0:e.clientX,y0:e.clientY,el:cardEl,on:false};
 },{passive:true});
 addEventListener('pointermove',function(e){
   if(!dragS)return;
-  dragS.last=e;
-  var moved=Math.abs(e.clientX-dragS.x0)+Math.abs(e.clientY-dragS.y0);
-  if(!dragS.armed){ if(moved>SLOP)cancelDrag(); return; }   /* a flick: let the page scroll */
-  if(!dragS.on){ dragS.on=true; ghostStart(dragS.el,e); dragS.el.classList.add('bdim'); }
+  if(!dragS.on){
+    if(Math.abs(e.clientX-dragS.x0)+Math.abs(e.clientY-dragS.y0)<SLOP)return;
+    dragS.on=true; ghostStart(dragS.el,e); dragS.el.classList.add('bdim');
+  }
   ghostMove(e);
   clearHot();
   var t=dropAt(e.clientX,e.clientY); if(!t)return;
@@ -1604,10 +1648,9 @@ addEventListener('pointermove',function(e){
 });
 addEventListener('pointerup',function(e){
   if(!dragS)return; var d=dragS;
-  if(d.timer)clearTimeout(d.timer);
   if(d.el)d.el.classList.remove('bheld');
   dragS=null;
-  if(!d.on)return;                                  /* never armed or never moved: it was a tap */
+  if(!d.on)return;                                  /* never moved: it was a tap */
   ghostEnd();
   /* the click event fires right after this; the tap handlers check this flag */
   dragJustEnded=true; setTimeout(function(){dragJustEnded=false;},0);
@@ -1923,13 +1966,24 @@ function rTable(){
     if(sr==='rarity')return (ORD[b.ln.rar]||-1)-(ORD[a.ln.rar]||-1);
     if(sr==='pr')return (po[a.ln.pr]||1)-(po[b.ln.pr]||1)||(a.c.n<b.c.n?-1:1);
     return a.c.n<b.c.n?-1:a.c.n>b.c.n?1:(a.li-b.li);});   // default: name
-  var cnt='<div class=count>'+D.length+' line'+(D.length===1?'':'s')+' · '+total+' card'+(total===1?'':'s')+' · <span class=mut>tip: edit <b>Unit</b> to your value; <b>+ver</b> adds another rarity/condition you own</span></div>';
-  if(listMode==='grid'){ltbl_.innerHTML=cnt+'<div class=grid>'+D.map(function(o){return gridTile(view,o.id,false,o.li);}).join('')+'</div>';return;}
-  var rows=D.map(function(o){return listRow(view,o.id,false,o.li);}).join('');
+  /* Long lists render in pages so a big collection doesn't build thousands of rows at once.
+     listShown resets whenever the view or filter changes (see rTable's callers). */
+  var shown=Math.min(D.length,listShown), more=D.length-shown;
+  var V=D.slice(0,shown);
+  var cnt='<div class=count>'+D.length+' line'+(D.length===1?'':'s')+' · '+total+' card'+(total===1?'':'s')
+    +(more?' · <span class=mut>showing '+shown+'</span>':'')
+    +' · <span class=mut>tip: edit <b>Unit</b> to your value; <b>+ver</b> adds another rarity/condition you own</span></div>';
+  var moreBtn=more?'<div class=bar style="justify-content:center"><button onclick="listMore()">Show '+Math.min(more,LIST_PAGE)+' more &middot; '+more+' left</button></div>':'';
+  if(listMode==='grid'){ltbl_.innerHTML=cnt+'<div class=grid>'+V.map(function(o){return gridTile(view,o.id,false,o.li);}).join('')+'</div>'+moreBtn;return;}
+  var rows=V.map(function(o){return listRow(view,o.id,false,o.li);}).join('');
   ltbl_.innerHTML=cnt
     +'<div class=tscroll><table><tr><th>Card</th><th>Qty</th>'+(view==='wishlist'?'<th>Priority</th>':'')
-    +'<th>Rarity</th><th>Cond.</th><th class=r>Unit (yours)</th><th class=r>Value</th><th></th></tr>'+rows+'</table></div>';
+    +'<th>Rarity</th><th>Cond.</th><th class=r>Unit (yours)</th><th class=r>Value</th><th></th></tr>'+rows+'</table></div>'
+    +moreBtn;
 }
+var LIST_PAGE=60, listShown=LIST_PAGE;
+function listMore(){listShown+=LIST_PAGE;rTable();}
+function listReset(){listShown=LIST_PAGE;}
 function med(a){if(!a.length)return null;a=a.slice().sort(function(x,y){return x-y;});return a[Math.floor(a.length/2)];}
 function grpMed(kf){var g={};PRICED.forEach(function(c){var k=kf(c);if(k==null||k==='')return;(g[k]=g[k]||[]).push(c.m);});
   return Object.keys(g).map(function(k){return {k:k,med:med(g[k]),n:g[k].length};});}
@@ -1992,7 +2046,7 @@ function openM(id){var c=BY[id]; if(!c)return;
     var sets=(c.st&&c.st[rn])?'<div class=rsets title="'+eatt(c.st[rn])+'">'+esc(c.st[rn])+'</div>':'';
     return '<tr><td><span class="'+rarClass(rn)+'">'+rn+'</span>'+tag+sets+'</td><td class="r" style="vertical-align:top">'+cell+'</td></tr>';}).join('')||'<tr><td class=mut colspan=2>no printings recorded for this card</td></tr>';
   var rnote='<div class=mut style="font-size:10.5px;margin-top:4px;line-height:1.45">Per-printing prices from the free feed (~30% coverage); “—” = no listed price for that printing, and the cheapest priced one is tagged <b style="color:var(--gold)">lowest listed</b>. <b>Market low</b> above is the cheapest copy across <i>all</i> printings and isn’t tied to a specific rarity in the free data. The line under each rarity is where it was printed.</div>';
-  mBody.innerHTML='<span class=close onclick="closeM()">✕</span>'
+  mBody.innerHTML=''
     +'<img class=cimg src="'+imgSrc(c.i)+'" onerror="this.style.display=\'none\'">'
     +'<h2>'+esc(c.n)+'</h2><div class=sub>'+[c.cl,c.rc,stats].filter(Boolean).join(' · ')
     +(c.bn!=='Unlimited'?' · <b>'+c.bn+'</b>':'')+(c.ar?' · '+esc(c.ar):'')+(c.rd?' · released '+fdate(c.rd):'')+'</div>'
@@ -2164,7 +2218,7 @@ function conflict(remote){
   try{ dl('ygo_backup_before_sync.json',JSON.stringify(St,null,1),'application/json'); }catch(e){}
   set('conflict');
   var b=document.getElementById('mBody'); if(!b)return;
-  b.innerHTML='<span class=close onclick="closeM()">&times;</span>'
+  b.innerHTML=''
    +'<h2>Two versions to choose from</h2>'
    +'<div class=sub>This device has changes that were never synced, and the synced copy is newer. '
    +'Picking one replaces the other, so nothing is decided automatically.</div>'
@@ -2215,7 +2269,7 @@ window.syncNow=function(){ if(user)pullNow(); };
 /* --- UI ---------------------------------------------------------------- */
 window.syncOpen=function(){
   var b=document.getElementById('mBody'); if(!b)return;
-  var h='<span class=close onclick="closeM()">&times;</span><h2>Sync</h2>';
+  var h='<h2>Sync</h2>';
   if(status==='unconfigured')
     h+='<div class=sub>This build has no Supabase project configured yet. Add the URL and anon key to <b>build_app.py</b> and rebuild.</div>';
   else if(!ready&&location.protocol==='file:')

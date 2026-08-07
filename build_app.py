@@ -450,10 +450,11 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bzrow>.bslot:first-child{grid-column:2}
 .bside{min-width:0;display:flex;align-items:flex-start;justify-content:center}
 /* explicit columns: phase | EMZ | life points | EMZ | turn — the row was mostly empty */
+.bemzoban{grid-column:1}
 .bemzphase{grid-column:2}
-.bemzrow .bslot:nth-child(2){grid-column:3}
+.bemzrow .bslot:nth-child(3){grid-column:3}
 .bemzrow .lpchip{grid-column:4}
-.bemzrow .bslot:nth-child(4){grid-column:5}
+.bemzrow .bslot:nth-child(5){grid-column:5}
 .bemzturn{grid-column:6}
 .bemzban{grid-column:7}
 .bemzside{display:flex;align-items:center;justify-content:center;min-width:0}
@@ -558,6 +559,9 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .btokn{font-size:8.5px;line-height:1.15;color:#e7dcff;font-weight:700;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .btoka{font-size:8px;color:var(--gold2);font-variant-numeric:tabular-nums}
+.brng{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:9px;
+  border:1px solid var(--gold);background:rgba(232,198,106,.14);color:var(--gold2);
+  font-weight:700;font-size:12px}
 .btokform{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 2px;
   background:linear-gradient(180deg,rgba(24,38,78,.5),rgba(12,20,46,.55));
   border:1px solid var(--line2);border-radius:12px;padding:11px 13px}
@@ -565,6 +569,27 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bfx{position:absolute;right:2px;top:2px;z-index:4;width:14px;height:14px;display:flex;
   align-items:center;justify-content:center;border-radius:50%;background:rgba(232,198,106,.95);
   color:#1a1300;font-size:8px;box-shadow:0 1px 4px rgba(2,6,20,.6)}
+/* --- desktop side panels --- */
+.bsidepanel{display:none}
+@media(min-width:1200px){
+  .bsidepanel{display:block;position:fixed;top:calc(var(--hh) + 14px);width:270px;z-index:8;
+    max-height:calc(100vh - var(--hh) - 28px);overflow:auto;padding:12px 14px;border-radius:13px;
+    background:linear-gradient(180deg,rgba(20,32,66,.72),rgba(11,18,42,.78));
+    border:1px solid var(--line2);box-shadow:0 8px 26px rgba(2,6,20,.45)}
+  .bsideleft{left:16px}
+  .bsideright{right:16px}
+}
+@media(min-width:1560px){.bsidepanel{width:320px}}
+.bsphead{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:8px}
+.bspimg{width:100%;border-radius:9px;margin-bottom:8px;border:1px solid var(--line2)}
+.bspname{font-family:"Cinzel",Georgia,serif;font-size:15px;font-weight:700;color:var(--ink);line-height:1.25}
+.bspmeta{font-size:11px;color:var(--mut);margin-top:4px}
+.bspban{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:20px;font-size:10px;
+  font-weight:700;background:rgba(255,107,129,.16);border:1px solid rgba(255,107,129,.4);color:#ff9aa8}
+.bsptext{font-size:11.5px;line-height:1.55;color:#c3ccdb;white-space:pre-wrap;margin-top:8px;
+  border-top:1px solid var(--line);padding-top:8px}
+.bspfx{margin-top:8px;font-size:11.5px;color:var(--gold2)}
+.bspgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
 .bfxlog{margin-top:10px;border:1px solid var(--line2);border-radius:11px;padding:9px 12px;
   background:linear-gradient(180deg,rgba(24,38,78,.42),rgba(12,20,46,.48))}
 .bfxrow{font-size:11.5px;color:#c3ccdb;padding:3px 0;border-bottom:1px solid rgba(67,89,143,.25);line-height:1.4}
@@ -1279,6 +1304,24 @@ function renderSim(){
 
 /* ===== Solo playtest board (DuelingBook-like: interactable piles + proper field) ===== */
 var board=null, sel=null, placeMode='atk', viewer=null, dragJustEnded=false;
+/* Where the last tap landed, so a panel can open next to your finger instead of making you
+   travel to a fixed spot at the top of the screen. */
+var lastPt=null;
+addEventListener('pointerdown',function(e){lastPt={x:e.clientX,y:e.clientY};},{passive:true,capture:true});
+function placePanels(){
+  if(!lastPt)return;
+  ['.btoolbar','.bpmenu'].forEach(function(q){
+    var el=document.querySelector(q); if(!el)return;
+    el.style.left='0px'; el.style.top='0px'; el.style.right='auto'; el.style.transform='none';
+    var w=el.offsetWidth, h=el.offsetHeight, pad=8;
+    var hh=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hh'))||60;
+    var x=Math.min(Math.max(pad,lastPt.x-w/2), innerWidth-w-pad);
+    var y=lastPt.y+18;                                  /* just below the finger */
+    if(y+h>innerHeight-pad)y=Math.max(hh+pad,lastPt.y-h-18);   /* flip above if it would overflow */
+    y=Math.min(Math.max(hh+pad,y), Math.max(hh+pad,innerHeight-h-pad));
+    el.style.left=x+'px'; el.style.top=y+'px';
+  });
+}
 /* phones use a 5-column board with piles in top/bottom strips; wider screens keep the
    traditional side columns, so the row markup differs rather than just its CSS */
 function narrowBoard(){return window.matchMedia&&window.matchMedia('(max-width:640px)').matches;}
@@ -1436,6 +1479,17 @@ function fxLogPanel(){if(!board.log.length)return '';
       return '<div class=bfxrow><b>'+esc(e.n)+'</b>'+(e.t?' &middot; '+esc(e.t):'')+'</div>';}).join('')
     +'</div>';}
 
+/* ----- dice & coin -----
+   Both write into the same Declared list as effects, so a line you review afterwards shows
+   the rolls in sequence alongside what was activated. */
+function bRoll(){if(!board)return;var v=1+Math.floor(Math.random()*6);
+  board.rng={t:'die',v:v}; board.log.push({n:'\u{1F3B2} Die',t:'rolled '+v}); renderSim();}
+function bCoin(){if(!board)return;var v=Math.random()<0.5?'Heads':'Tails';
+  board.rng={t:'coin',v:v}; board.log.push({n:'\u{1FA99} Coin',t:v}); renderSim();}
+function rngChip(){if(!board||!board.rng)return '';
+  var r=board.rng;
+  return '<span class=brng title="latest roll">'+(r.t==='die'?'\u{1F3B2} '+r.v:'\u{1FA99} '+r.v)+'</span>';}
+
 /* ----- tokens ----- */
 var tokDraft=false;
 function tokOpen(){tokDraft=!tokDraft;renderSim();}
@@ -1560,6 +1614,14 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
 /* Tapping the hand area returns the held card, the same way tapping a zone or pile does —
    it was a drop target for drags but had no click path. */
 function bHandZoneTap(){ if(dragJustEnded)return; if(sel)place('hand'); }
+function oppHandHTML(){
+  var h='<div class="bhandwrap bophand" data-pile="ohand" onclick="bOppHandTap()">'
+    +'<div class=bhlab>Opponent hand &middot; '+board.ohand.length+'</div><div class=bhcards>';
+  h+=board.ohand.map(function(it,i){return '<div data-z="ohand" data-i="'+i+'" onclick="event.stopPropagation();bOppHandCardTap('+i+')">'
+    +bCardHTML(it,sel&&sel.k==='ohand'&&sel.i===i,false)+'</div>';}).join('');
+  return h+'</div></div>';}
+function bOppHandTap(){ if(dragJustEnded)return; if(sel)place('ohand'); }
+function bOppHandCardTap(i){ if(dragJustEnded)return; bSelect('ohand',null,i); }
 function handHTML(){var h='<div class=bhandwrap data-pile="hand" onclick="bHandZoneTap()"><div class=bhlab>Hand &middot; '+board.hand.length+'<span class=bhhint>'+(sel?' &mdash; tap to return the card':'')+'</span></div><div class=bhcards>';
   h+=board.hand.map(function(it,i){return '<div data-z="hand" data-i="'+i+'" onclick="event.stopPropagation();bHandTap('+i+')">'+bCardHTML(it,sel&&sel.k==='hand'&&sel.i===i,false)+'</div>';}).join('');
   return h+'</div></div>';}
@@ -1613,12 +1675,51 @@ function lpPanel(){if(!lpOpen||!board)return '';
   return '<div class="bpmenu lppanel">'+lpSide('you','You')+lpSide('opp','Opponent')
     +'<div class=lpmeta><button onclick="lpUndo()"'+(board.lpHist.length?'':' disabled')+'>Undo</button>'
     +'<button onclick="lpReset()">Reset</button><button onclick="lpToggle()">Close</button></div></div>';}
+/* Wide screens have a lot of dead space either side of the field, so the two things you
+   otherwise open one-at-a-time live there permanently: what the selected card actually does,
+   and the contents of whichever pile you're working with. Hidden below 1200px, where the
+   modal/overlay versions remain the only sensible option. */
+function sideInfoHTML(){
+  var it=selInst(); if(!it)return '<div class="bsidepanel bsideleft"></div>';
+  var c=cardOf(it);
+  var h='<div class="bsidepanel bsideleft"><div class=bsphead>Selected</div>';
+  if(it.tok){h+='<div class=bspname>'+esc(it.tok.n)+'</div><div class=bspmeta>Token'
+    +(it.tok.atk!=null?' &middot; ATK '+it.tok.atk:'')+(it.tok.df!=null?' / DEF '+it.tok.df:'')+'</div>';}
+  else if(c){
+    h+='<img class=bspimg draggable="false" src="'+imgSrc(c.i)+'" onerror="this.style.display=\'none\'">'
+      +'<div class=bspname>'+esc(c.n)+'</div>'
+      +'<div class=bspmeta>'+esc(c.cl)+(c.rc?' &middot; '+esc(c.rc):'')+(c.at?' &middot; '+esc(c.at):'')
+      +(c.lv!=null?' &middot; Lv'+c.lv:'')+(c.atk!=null?' &middot; '+c.atk+'/'+(c.df==null?'?':c.df):'')+'</div>'
+      +(c.bn&&c.bn!=='Unlimited'?'<div class=bspban>'+esc(c.bn)+'</div>':'')
+      +'<div class=bsptext>'+esc(c.tx||'')+'</div>'
+      +'<div class=bspmeta>Market '+f(c.m)+(c.hr?' &middot; '+esc(c.hr):'')+'</div>';
+  }
+  if(it.fx)h+='<div class=bspfx>&#9733; '+esc(it.fx)+'</div>';
+  if(it.mat&&it.mat.length)h+='<div class=bspmeta>'+it.mat.length+' Xyz material'+(it.mat.length===1?'':'s')+'</div>';
+  return h+'</div>';}
+var SIDE_CAP=60;   /* a full deck is thousands of cards; the panel is a peek, not the viewer */
+function sidePileHTML(){
+  var k=pmenu||viewer; 
+  if(!k||k==='mat')return '<div class="bsidepanel bsideright"></div>';
+  var a=board[k]||[];
+  var h='<div class="bsidepanel bsideright"><div class=bsphead>'+esc(PILE_LABEL[k]||k)+' &middot; '+a.length+'</div>';
+  if(!a.length)h+='<div class=mut style="font-size:11px">Empty.</div>';
+  else h+=(a.length>SIDE_CAP?'<div class=bspmeta style="margin:0 0 6px">newest '+SIDE_CAP+' of '+a.length+' &mdash; open View for all</div>':'')
+    +'<div class=bspgrid>'+a.slice().reverse().slice(0,SIDE_CAP).map(function(it,ri){
+    var i=a.length-1-ri, id=isIdPile(k)?it:it.id, fd=!isIdPile(k)&&it.fd;
+    return '<div class="bvcard'+(fd?' bvfdc':'')+'" title="'+eatt(isIdPile(k)?((BY[id]||{}).n||''):nameOf(it))+'" onclick="bSelect(\''+k+'\',null,'+i+')">'
+      +'<img draggable="false" src="'+imgSrc(id)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'bnoart\')">'
+      +'<span class=bnm>'+esc(isIdPile(k)?((BY[id]||{}).n||''):nameOf(it))+'</span>'
+      +(fd?'<span class=bvfd>face-down</span>':'')+'</div>';}).join('')+'</div>';
+  return h+'</div>';}
 function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+='<div class=bctrl><label class=mut>Deck <select onchange="simDeck=this.value;boardNew()">'+decks.map(function(nm){return '<option'+(nm===simName()?' selected':'')+'>'+esc(nm)+'</option>';}).join('')+'</select></label>'
     +'<button onclick="boardNew()">&#8635; New game</button>';
   /* Draw / mill / banish / shuffle moved onto the deck's own menu — they were stranded up
      here, far above the field you're actually looking at. */
-  if(board)h+='<button class="'+(tokDraft?'bon':'')+'" onclick="tokOpen()">&#10011; Token</button>';
+  if(board)h+='<button class="'+(tokDraft?'bon':'')+'" onclick="tokOpen()">&#10011; Token</button>'
+    +'<button onclick="bRoll()" title="roll a six-sided die">&#127922; Die</button>'
+    +'<button onclick="bCoin()" title="flip a coin">&#129689; Coin</button>'+rngChip();
   h+='</div>';
   if(board&&tokDraft)h+='<div class=btokform>'
     +'<input type=text id=tkN placeholder="token name" style="min-width:150px">'
@@ -1633,17 +1734,20 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
      height and shifts everything below it */
   h+='<div class=bhint>'+(sel?'&nbsp;':'Drag a card to a zone, or tap it then tap the zone.')+'</div>';
   h+='<div class=bfield>';
-  /* Opponent side, mirrored: their piles collapse into one compact strip, then S/T behind
-     monsters, so their monster row sits directly across the shared EMZ from yours. */
-  h+='<div class=boppbar><span class=boplab>Opponent</span>'
-    +pileHTML('odeck','Deck',1)+pileHTML('oex','Extra',1)+pileHTML('ogy','GY',1)
-    +pileHTML('oban','Ban',1)+pileHTML('ohand','Hand',1)
-    +'<div class=bopfs>'+slotHTML('ofs',0,'Field')+'</div></div>';
-  h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('ost',s,'S'+(5-s));}).join('')+'</div>';
-  h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('omon',s,'M'+(5-s));}).join('')+'</div>';
+  /* Opponent side is a true 180-degree mirror of yours: hand at the far edge, then S/T with
+     deck and extra flanking it, then monsters with graveyard and field spell flanking, and
+     their banished sits opposite yours across the shared EMZ row. */
+  h+=oppHandHTML();
+  h+='<div class="bmainrow bopp"><div class=bside>'+pileHTML('odeck','Deck')+'</div>'
+    +'<div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('ost',s,'S'+(5-s));}).join('')+'</div>'
+    +'<div class=bside>'+pileHTML('oex','Extra')+'</div></div>';
+  h+='<div class="bmainrow bopp"><div class=bside>'+pileHTML('ogy','GY')+'</div>'
+    +'<div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('omon',s,'M'+(5-s));}).join('')+'</div>'
+    +'<div class=bside>'+slotHTML('ofs',0,'Field')+'</div></div>';
   /* The EMZ row's three spare columns carry the phase control, life points and the turn —
      they were empty, and each of those used to cost a full row above the field. */
-  h+='<div class=bemzrow><div class="bemzside bemzphase">'+phaseMini()+'</div>'
+  h+='<div class=bemzrow><div class=bemzoban>'+pileHTML('oban','Ban')+'</div>'
+    +'<div class="bemzside bemzphase">'+phaseMini()+'</div>'
     +slotHTML('emz',0,'EMZ')+lpChip()+slotHTML('emz',1,'EMZ')
     +'<div class="bemzside bemzturn">'+turnMini()+'</div>'
     +'<div class=bemzban>'+pileHTML('ban','Ban')+'</div></div>';
@@ -1651,6 +1755,7 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';
   h+='</div>';
   h+=handHTML();
+  h+=sideInfoHTML()+sidePileHTML();
   h+=fxLogPanel();
   h+=viewerHTML();
   /* Rebuilding the board replaces the whole subtree, and any height change — the hint line
@@ -1659,6 +1764,7 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   var y=window.scrollY;
   document.getElementById('simBody').innerHTML=h;
   if(window.scrollY!==y)window.scrollTo(0,y);
+  placePanels();
   if(fxDraft){var fi=document.getElementById('fxIn');if(fi){fi.focus({preventScroll:true});fi.select();}}}
 
 /* ===== tap-and-drag =======================================================

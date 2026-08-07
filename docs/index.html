@@ -257,7 +257,14 @@ tr:hover td{background:rgba(40,58,110,.3)}
   border:1px solid var(--gold);border-radius:11px;padding:9px 11px;margin:0;
   box-shadow:0 10px 34px rgba(2,6,20,.7);backdrop-filter:blur(8px)}
 @media(min-width:901px){.btoolbar{left:50%;right:auto;transform:translateX(-50%);width:min(1000px,calc(100% - 44px))}}
-.btoolbar .btsel{width:100%;font-size:13px}
+.btoolbar{position:relative}
+.btoolbar .btsel{width:100%;font-size:13px;padding-right:44px}
+/* close sits top-right of whichever floating panel is open, as a real 38px target */
+.btx{position:absolute;top:6px;right:8px;z-index:2;width:38px;height:38px;display:flex;
+  align-items:center;justify-content:center;border-radius:50%;cursor:pointer;font-size:23px;
+  line-height:1;color:var(--ink);background:rgba(9,16,40,.9);border:1px solid var(--line2);
+  transition:.12s}
+.btx:hover{color:var(--gold2);border-color:var(--gold);background:rgba(232,198,106,.14)}
 .btoolbar button{font-size:11px;padding:5px 9px}
 .btsel{font-weight:700;color:var(--gold2);font-size:12px}
 .btsep{width:1px;height:16px;background:var(--line2);margin:0 3px}
@@ -1100,7 +1107,11 @@ function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();retu
   else if(destK==='hand'||destK==='ohand'){it.fd=false;it.def=false;board[destK].push(it);}
   else{it.fd=false;board[destK].push(it);} /* gy, ban, ogy, oban */
   sel=null;renderSim();}
-function bSelect(k,s,i){if(sel&&sel.k===k&&sel.s===s&&sel.i===i)sel=null;else sel={k:k,s:s,i:i};viewer=null;renderSim();}
+/* fxDraft must reset here: it's global, so leaving it set meant the next card you selected
+   (typically straight out of the deck or extra viewer) opened the note field and popped the
+   keyboard before you'd asked for anything. */
+function bSelect(k,s,i){if(sel&&sel.k===k&&sel.s===s&&sel.i===i)sel=null;else sel={k:k,s:s,i:i};
+  viewer=null;fxDraft=false;attachMode=false;renderSim();}
 function bSlotTap(k,s){
   if(dragJustEnded)return;                       /* a drag already handled this */
   if(sel&&attachMode){                           /* attach the held card under the monster here */
@@ -1155,15 +1166,18 @@ function lpReset(){if(!board)return;board.lp={you:8000,opp:8000};board.lpHist=[]
    The board is a manual sim, so it can't know what a card does. Declaring it in your own
    words is what makes a line reviewable afterwards — the note sticks to the card AND lands
    in a running list, which is the seed of the action log in SIM_BOARD_PLAN.md. */
-/* Opt-in only: reached from the "Declare" button while a card is selected. It used to
-   prompt automatically after every placement, which got in the way far more than it helped. */
-function bDeclareOpen(){fxDraft=!fxDraft;renderSim();}
-function bDeclare(){var it=selInst();if(!it){fxDraft=false;renderSim();return;}
-  var el=document.getElementById('fxIn'),t=(el&&el.value||'').trim();
-  if(!t){fxDraft=false;renderSim();return;}
-  it.fx=t; board.log.push({n:nameOf(it),t:t});
+/* Declaring is one tap and records immediately — typing is optional, for when you want to
+   clarify what the card is doing. `dec` marks it declared; `fx` holds the optional note. */
+function bDeclare(){var it=selInst();if(!it)return;
+  it.dec=true; board.log.push({n:nameOf(it),t:it.fx||''});
   fxDraft=false; sel=null; renderSim();}
-function bClearFx(){var it=selInst();if(!it)return;delete it.fx;renderSim();}
+function bNoteOpen(){fxDraft=!fxDraft;renderSim();}
+function bNoteSave(){var it=selInst();if(!it){fxDraft=false;renderSim();return;}
+  var el=document.getElementById('fxIn'),t=(el&&el.value||'').trim();
+  it.fx=t; it.dec=true; board.log.push({n:nameOf(it),t:t});
+  fxDraft=false; sel=null; renderSim();}
+function bClearFx(){var it=selInst();if(!it)return;delete it.fx;delete it.dec;renderSim();}
+function bDeselect(){sel=null;fxDraft=false;attachMode=false;renderSim();}
 /* the full card detail popup, from the board — tokens have no card to show */
 function bInfo(){var it=selInst();if(!it||it.tok||!it.id)return;openM(it.id);}
 function fxLogClear(){if(!board)return;board.log=[];renderSim();}
@@ -1171,7 +1185,7 @@ function fxLogPanel(){if(!board.log.length)return '';
   return '<div class=bfxlog><div class=bhlab>Declared &middot; '+board.log.length
     +' <span class=qlink style="font-size:10px;margin-left:6px" onclick="fxLogClear()">clear</span></div>'
     +board.log.slice(-8).reverse().map(function(e){
-      return '<div class=bfxrow><b>'+esc(e.n)+'</b> &middot; '+esc(e.t)+'</div>';}).join('')
+      return '<div class=bfxrow><b>'+esc(e.n)+'</b>'+(e.t?' &middot; '+esc(e.t):'')+'</div>';}).join('')
     +'</div>';}
 
 /* ----- tokens ----- */
@@ -1204,7 +1218,7 @@ function bCardHTML(it,seld,mini){var c=cardOf(it),nm=nameOf(it);
   /* materials sit UNDER this card in it.mat; the badge is the only visible sign, so it
      renders even face-down (an Xyz keeps its materials while face-down) */
   var badge=(it.mat&&it.mat.length)?'<span class=bmat title="Xyz materials">'+it.mat.length+'</span>':'';
-  var fx=it.fx?'<span class=bfx>&#9733;</span>':'';
+  var fx=(it.dec||it.fx)?'<span class=bfx>&#9733;</span>':'';
   return '<div class="bcard'+(seld?' bsel':'')+(it.def?' bdef':'')+(mini?' bmini':'')+(it.tok?' btokc':'')+'" title="'+eatt(nm+(it.fd?' (face-down)':'')+(it.def?' (DEF)':'')+(it.mat&&it.mat.length?' · '+it.mat.length+' material'+(it.mat.length===1?'':'s'):'')+(it.fx?' — '+it.fx:''))+'">'+inner+badge+fx+'</div>';}
 function slotHTML(k,s,label){var a=board[k][s],has=a&&a.length,seld=sel&&sel.k===k&&sel.s===s;
   var body=has?a.map(function(it,i){return bCardHTML(it,seld&&sel.i===i,false);}).join(''):'<span class=bslab>'+label+'</span>';
@@ -1250,7 +1264,7 @@ function pmenuHTML(){ if(!pmenu||!board)return '';
   }
   return '<div class=bpmenu><span class=btsel>'+esc(PILE_LABEL[k]||k)+' &middot; '+n+'</span>'
     +'<span class=btsep></span>'+b
-    +'<span class=btsep></span><button onclick="pmClose()">Close</button></div>';}
+    +'<span class=btx onclick="pmClose()" title="close">&times;</span></div>';}
 function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel.k);
   var h='<div class=btoolbar><span class=btsel>'+esc(nameOf(it))+(it.fd?' &middot; face-down':'')+(it.def?' &middot; DEF':'')+'</span><span class=btsep></span>'
     +'<span class=mut style="font-size:11px">place as</span>'
@@ -1267,15 +1281,16 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
   if(it.mat&&it.mat.length)h+='<button onclick="bViewMat()">Materials ('+it.mat.length+')</button><button onclick="bDetach()">Detach &rarr; GY</button>';
   h+='<span class=btsep></span>';
   if(!it.tok)h+='<button onclick="bInfo()" title="card text, printings and prices">&#8505; Info</button>';
-  if(fxDraft)h+='<input type=text id=fxIn placeholder="what is it doing?" value="'+eatt(it.fx||'')+'" style="min-width:180px" onkeydown="if(event.key===\'Enter\')bDeclare()"><button onclick="bDeclare()">Save</button>';
-  else h+='<button onclick="bDeclareOpen()" title="note what this card is doing">'+(it.fx?'Effect &#9733;':'Declare')+'</button>';
-  if(it.fx&&!fxDraft)h+='<button onclick="bClearFx()" title="remove the declared effect">&times;</button>';
+  h+='<button onclick="bDeclare()" title="record that this card activated">'+(it.dec?'Declared &#9733;':'Declare')+'</button>';
+  if(fxDraft)h+='<input type=text id=fxIn placeholder="optional: what is it doing?" value="'+eatt(it.fx||'')+'" style="min-width:170px" onkeydown="if(event.key===\'Enter\')bNoteSave()"><button onclick="bNoteSave()">Save note</button>';
+  else h+='<button onclick="bNoteOpen()" title="optional note to clarify">&#9998; note</button>';
+  if((it.fx||it.dec)&&!fxDraft)h+='<button onclick="bClearFx()" title="clear the declaration">clear</button>';
   h+='<span class=btsep></span>';
   h+='<button onclick="place(\'hand\')">Hand</button><button onclick="place(\'gy\')">GY</button><button onclick="place(\'ban\')">Banish</button>'
     +'<button onclick="place(\'deckTop\')">Deck top</button><button onclick="place(\'deckBtm\')">Deck btm</button>'
     +'<button onclick="place(\'ex\')">Extra</button>'
     +'<span class=btsep></span><button onclick="place(\'off\')" title="remove from play">&times; off</button>'
-    +'<button onclick="sel=null;renderSim()">Cancel</button></div>';
+    +'<span class=btx onclick="bDeselect()" title="close">&times;</span></div>';
   return h;}
 function handHTML(){var h='<div class=bhandwrap data-pile="hand"><div class=bhlab>Hand &middot; '+board.hand.length+'</div><div class=bhcards>';
   h+=board.hand.map(function(it,i){return '<div data-z="hand" data-i="'+i+'" onclick="bHandTap('+i+')">'+bCardHTML(it,sel&&sel.k==='hand'&&sel.i===i,false)+'</div>';}).join('');

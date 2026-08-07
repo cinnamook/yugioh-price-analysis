@@ -17,6 +17,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DB   = os.path.join(HERE, "data", "ygo.db")
 TODAY = datetime.date(2026, 8, 6)
 
+# --- Cross-device sync (SYNC_DESIGN.md, sync_schema.sql) ---------------------
+# Paste these from your Supabase project: Dashboard -> Project Settings -> API.
+# The ANON key is public by design and safe to commit — row-level security is what
+# protects the data. NEVER put the service_role key here; it bypasses RLS.
+# Leaving either empty builds the app with sync switched off.
+SUPABASE_URL      = ""
+SUPABASE_ANON_KEY = ""
+
+
+def supabase_lib():
+    """The pinned supabase-js UMD bundle, inlined so the app has no external runtime
+    dependency and sign-in still works offline. See vendor/README.md."""
+    p = os.path.join(HERE, "vendor", "supabase.umd.js")
+    if not os.path.exists(p):
+        return "/* vendor/supabase.umd.js missing — sync disabled */"
+    js = open(p, encoding="utf-8").read()
+    return js.replace("</script", "<\\/script")   # defensive; the pinned build has none
+
 def age_years(s):
     try: return round((TODAY - datetime.date.fromisoformat(s)).days/365.25, 1)
     except (TypeError, ValueError): return None
@@ -80,7 +98,9 @@ def main():
 
     payload = json.dumps(cards).replace("</", "<\\/")
     html = (HTML.replace("__DATE__", date).replace("__N__", str(len(cards))).replace("__FLAG__", str(flagged))
-            .replace("__RAR__", json.dumps(RARITY_ORDER)).replace("__SETS__", json.dumps(sets_list).replace("</", "<\\/")).replace("__DATA__", payload))
+            .replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
+            .replace("__RAR__", json.dumps(RARITY_ORDER)).replace("__SETS__", json.dumps(sets_list).replace("</", "<\\/")).replace("__DATA__", payload)
+            .replace("__SUPABASE_LIB__", supabase_lib()))   # last: biggest blob, and must not be rescanned
     out = os.path.join(HERE, "app.html"); open(out, "w").write(html)
     mb = os.path.getsize(out)/1e6
     build = write_pwa(html)
@@ -663,7 +683,10 @@ function load(){var s;try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
   if(!s.log)s.log=[];
   if(!s.meta)s.meta=[];
   return s;}
-function sv(){localStorage.setItem(KEY,JSON.stringify(St));}
+/* Every mutation funnels through here (33 call sites), so it's also the one place
+   sync needs to hook. syncTouch is defined in the sync block below; guarded so the
+   app is unaffected when sync is off (file://, or no Supabase config). */
+function sv(){localStorage.setItem(KEY,JSON.stringify(St)); if(window.syncTouch)window.syncTouch();}
 function curDeck(){return St.decks[St.active];}
 function bucket(k){return (k==='main'||k==='extra'||k==='side')?curDeck()[k]:St[k];}
 function items(list){return bucket(list);}
@@ -784,7 +807,8 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
   var html=intro+groups.map(function(g){return '<div class=mgh>'+g[0]+' <span class=mgs>'+g[1]+'</span></div>'
     +g[2].map(function(k){var i=IT[k];return '<div class=mitem onclick="go(\''+k+'\')"><div class=mic>'+i[0]+'</div><div><div class=mt>'+i[1]+'</div><div class=md>'+i[2]+'</div></div><div class=marrow>▸</div></div>';}).join('');}).join('');
   document.getElementById('menugrid').innerHTML=html;
-  document.getElementById('savebar').innerHTML='<span>Snapshot <b>__DATE__</b></span><span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span><span class=qlink onclick="showIntro()">▸ quick start</span>';}
+  document.getElementById('savebar').innerHTML='<span>Snapshot <b>__DATE__</b></span><span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span>'
+    +(window.syncChip?window.syncChip():'')+'<span class=qlink onclick="showIntro()">▸ quick start</span>';}
 
 /* ===== Bank ===== */
 var CATS_OUT=['Singles','Sealed Product','Locals / Entry','Accessories','Grading','Shipping','Gift / Giveaway','Other'];
@@ -1568,6 +1592,210 @@ function tick(t){cx.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){var p=ps[i];
   var g=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);g.addColorStop(0,'rgba('+p.c+','+tw+')');g.addColorStop(1,'rgba('+p.c+',0)');
   cx.fillStyle=g;cx.beginPath();cx.arc(p.x,p.y,R,0,6.283);cx.fill();}
   requestAnimationFrame(tick);}requestAnimationFrame(tick);})();
+</script>
+<script>__SUPABASE_LIB__</script>
+<script>
+/* ============================ cross-device sync ============================
+   Supabase, Phase 1 per SYNC_DESIGN.md: one app_state row per user, pull on
+   load, debounced push on save, last-write-wins by a SERVER-owned updated_at.
+
+   Sign-in is a 6-digit emailed CODE, not a clickable magic link: on iOS a link
+   opens Safari, whose storage is separate from the installed PWA, so the app on
+   your home screen would still be signed out. Typing the code authenticates the
+   context you're actually in.
+
+   Switched off entirely on file:// (OAuth/CORS don't work there) and when the
+   build has no Supabase config — in both cases the app behaves exactly as before.
+   ========================================================================== */
+(function(){
+var SB_URL="__SUPABASE_URL__", SB_KEY="__SUPABASE_KEY__";
+var MARK_K='ygo_sync_mark', DIRTY_K='ygo_sync_dirty', EMAIL_K='ygo_sync_email';
+var ready = !!(SB_URL && SB_KEY && location.protocol!=='file:' && window.supabase);
+var sb = ready ? window.supabase.createClient(SB_URL,SB_KEY,
+          {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}) : null;
+var user=null, status=(SB_URL&&SB_KEY)?(ready?'signedout':'off'):'unconfigured';
+var msg='', pushT=null, lastSync=0, step='email', pendEmail='', busy=false;
+
+/* --- the two markers conflict handling rests on ------------------------- */
+/* mark  = the server updated_at we last adopted or wrote. Server-owned, so a
+           device with a wrong clock can't corrupt sync ordering.
+   dirty = local edits exist that the server has not accepted yet.          */
+function markGet(){return localStorage.getItem(MARK_K)||'';}
+function markSet(t){if(t)localStorage.setItem(MARK_K,t);}
+function isDirty(){return localStorage.getItem(DIRTY_K)==='1';}
+function setDirty(v){if(v)localStorage.setItem(DIRTY_K,'1');else localStorage.removeItem(DIRTY_K);}
+function set(s,m){status=s;msg=m||'';paint();}
+function paint(){if(typeof view!=='undefined'&&view==='menu'&&window.rMenu)rMenu();}
+
+function stateEmpty(s){ if(!s)return true;
+  var any=false,d=s.decks||{};
+  for(var n in d){var x=d[n]||{};['main','extra','side'].forEach(function(k){
+    if(x[k]&&Object.keys(x[k]).length)any=true;});}
+  return !any && !Object.keys(s.collection||{}).length && !Object.keys(s.wishlist||{}).length
+    && !(((s.bank||{}).tx)||[]).length && !(s.log||[]).length && !(s.meta||[]).length;
+}
+function summary(s){ s=s||{}; var d=s.decks||{},cards=0;
+  for(var n in d){var x=d[n]||{};['main','extra','side'].forEach(function(k){
+    var m=x[k]||{};for(var id in m)cards+=(m[id]&&m[id].q)||0;});}
+  return Object.keys(d).length+' deck'+(Object.keys(d).length===1?'':'s')+' ('+cards+' cards) · '
+    +Object.keys(s.collection||{}).length+' collection · '+Object.keys(s.wishlist||{}).length+' wishlist · '
+    +(((s.bank||{}).tx)||[]).length+' bank · '+(s.log||[]).length+' matches';
+}
+
+/* --- push -------------------------------------------------------------- */
+/* updated_at is deliberately NOT sent: the column default covers the insert and
+   the trigger covers the update, then .select() returns the server's value which
+   becomes our new marker. */
+function pushNow(){
+  if(!user||busy)return Promise.resolve();
+  if(!navigator.onLine){set('offline');return Promise.resolve();}
+  busy=true; set('syncing');
+  return sb.from('app_state').upsert({user_id:user.id,data:St},{onConflict:'user_id'})
+    .select('updated_at').single()
+    .then(function(r){ busy=false;
+      if(r.error){set('error',r.error.message);return;}
+      markSet(r.data.updated_at); setDirty(false); lastSync=Date.now(); set('idle');
+    },function(e){busy=false;set('error',String(e&&e.message||e));});
+}
+
+/* --- pull -------------------------------------------------------------- */
+function pullNow(){
+  if(!user||busy)return Promise.resolve();
+  if(!navigator.onLine){set('offline');return Promise.resolve();}
+  busy=true; set('syncing');
+  return sb.from('app_state').select('data,updated_at').eq('user_id',user.id).maybeSingle()
+    .then(function(r){ busy=false;
+      if(r.error){set('error',r.error.message);return;}
+      var remote=r.data;
+      if(!remote){ return pushNow(); }              /* nothing up there yet — seed it */
+      var mark=markGet();
+      var remoteNewer = !mark || (new Date(remote.updated_at) > new Date(mark));
+      if(!remoteNewer){ lastSync=Date.now(); set('idle'); if(isDirty())pushNow(); return; }
+      /* Remote is newer. Adopting silently is only safe when this device has
+         nothing unsent. Otherwise those local edits would vanish — so stop and
+         ask, after writing a backup to disk first. This covers both the first
+         sign-in (no marker + real local data) and the steady-state case of an
+         offline edit here while another device pushed. */
+      if(isDirty() || (!mark && !stateEmpty(St))){ conflict(remote); return; }
+      adopt(remote);
+    },function(e){busy=false;set('error',String(e&&e.message||e));});
+}
+
+function adopt(remote){
+  localStorage.setItem(KEY,JSON.stringify(remote.data));
+  markSet(remote.updated_at); setDirty(false);
+  location.reload();                                /* same path imJson() already uses */
+}
+
+/* --- conflict: never resolve this one silently -------------------------- */
+var pendingRemote=null;
+function conflict(remote){
+  pendingRemote=remote;
+  try{ dl('ygo_backup_before_sync.json',JSON.stringify(St,null,1),'application/json'); }catch(e){}
+  set('conflict');
+  var b=document.getElementById('mBody'); if(!b)return;
+  b.innerHTML='<span class=close onclick="closeM()">&times;</span>'
+   +'<h2>Two versions to choose from</h2>'
+   +'<div class=sub>This device has changes that were never synced, and the synced copy is newer. '
+   +'Picking one replaces the other, so nothing is decided automatically.</div>'
+   +'<div class=tx style="white-space:normal"><b>On this device</b><br>'+esc(summary(St))+'</div>'
+   +'<div class=tx style="white-space:normal"><b>Synced copy</b> &middot; '+esc(fdate(String(remote.updated_at).slice(0,10)))+'<br>'+esc(summary(remote.data))+'</div>'
+   +'<div class=mut style="font-size:11.5px;margin:10px 0">A backup of this device’s version has been downloaded as '
+   +'<b>ygo_backup_before_sync.json</b> either way — you can re-import it from any list view.</div>'
+   +'<div class=bar><button onclick="window.syncKeepMine()">Keep this device’s version</button>'
+   +'<button onclick="window.syncUseRemote()">Use the synced version</button></div>';
+  document.getElementById('ov').style.display='flex';
+}
+window.syncKeepMine=function(){ closeM(); setDirty(true); markSet(pendingRemote?pendingRemote.updated_at:'');
+  pendingRemote=null; pushNow(); };                 /* our push becomes the newest write */
+window.syncUseRemote=function(){ var r=pendingRemote; pendingRemote=null; closeM(); if(r)adopt(r); };
+
+/* --- auth: emailed 6-digit code ---------------------------------------- */
+/* Every exit path below must clear `busy` and re-render the open modal: a stuck
+   busy flag would silently disable syncing for the rest of the session, and a
+   message written only to the savebar is invisible while the modal covers it. */
+function authFail(m){ busy=false; set('signedout',m||'Something went wrong'); syncOpen(); }
+window.syncSendCode=function(){
+  var el=document.getElementById('syEmail'); if(!el)return;
+  var email=(el.value||'').trim(); if(!email){authFail('Enter your email first');return;}
+  busy=true; set('syncing');
+  sb.auth.signInWithOtp({email:email,options:{shouldCreateUser:true}}).then(function(r){
+    if(r.error){authFail(r.error.message);return;}
+    busy=false;
+    pendEmail=email; try{localStorage.setItem(EMAIL_K,email);}catch(e){}
+    step='code'; set('signedout','Code sent to '+email); syncOpen();
+  },function(e){authFail(String(e&&e.message||e));});
+};
+window.syncVerify=function(){
+  var el=document.getElementById('syCode'); if(!el)return;
+  var token=(el.value||'').replace(/\D/g,''); if(token.length<6){authFail('Enter the 6-digit code');return;}
+  busy=true; set('syncing');
+  sb.auth.verifyOtp({email:pendEmail,token:token,type:'email'}).then(function(r){
+    if(r.error){authFail(r.error.message);return;}
+    busy=false;
+    user=r.data.user; step='email'; msg=''; closeM(); set('idle'); pullNow();
+  },function(e){authFail(String(e&&e.message||e));});
+};
+window.syncSignOut=function(){ if(!sb)return; sb.auth.signOut().then(function(){
+  user=null; set('signedout'); closeM(); }); };
+window.syncNow=function(){ if(user)pullNow(); };
+
+/* --- UI ---------------------------------------------------------------- */
+window.syncOpen=function(){
+  var b=document.getElementById('mBody'); if(!b)return;
+  var h='<span class=close onclick="closeM()">&times;</span><h2>Sync</h2>';
+  if(status==='unconfigured')
+    h+='<div class=sub>This build has no Supabase project configured yet. Add the URL and anon key to <b>build_app.py</b> and rebuild.</div>';
+  else if(!ready&&location.protocol==='file:')
+    h+='<div class=sub>Sync is off in the local <b>file://</b> app by design — sign-in needs a real origin. Open the hosted app to sync; this copy stays offline with local card art.</div>';
+  else if(user)
+    h+='<div class=sub>Signed in as <b>'+esc(user.email||'')+'</b>. Your collection, decks, budget and match log sync automatically.</div>'
+      +'<div class=bar><button onclick="window.syncNow()">Sync now</button><button onclick="window.syncSignOut()">Sign out</button></div>';
+  else if(step==='code')
+    h+='<div class=sub>Enter the 6-digit code emailed to <b>'+esc(pendEmail)+'</b>.</div>'
+      +'<div class=bar><input type=text id=syCode inputmode=numeric autocomplete=one-time-code maxlength=6 placeholder="000000" style="width:120px;letter-spacing:.2em;text-align:center">'
+      +'<button onclick="window.syncVerify()">Verify</button>'
+      +'<button onclick="window.syncBackToEmail()">Use a different email</button></div>';
+  else
+    h+='<div class=sub>Sign in to sync this device. We email you a 6-digit code — no password, nothing to remember.</div>'
+      +'<div class=bar><input type=email id=syEmail inputmode=email autocomplete=email placeholder="you@example.com" value="'+eatt(localStorage.getItem(EMAIL_K)||'')+'" style="min-width:210px">'
+      +'<button onclick="window.syncSendCode()">Email me a code</button></div>';
+  if(msg)h+='<div class=mut style="font-size:11.5px;margin-top:8px">'+esc(msg)+'</div>';
+  b.innerHTML=h; document.getElementById('ov').style.display='flex';
+};
+window.syncBackToEmail=function(){step='email';msg='';syncOpen();};
+
+/* the chip rendered into the menu savebar */
+window.syncChip=function(){
+  var t={off:'Sync off',unconfigured:'Sync not set up',signedout:'Sign in to sync',
+         idle:'Synced ✓',syncing:'Syncing…',pending:'Saving…',
+         offline:'Offline — will sync',error:'Sync error',conflict:'Needs your choice'}[status]||'Sync';
+  if(status==='idle'&&lastSync){var m=Math.round((Date.now()-lastSync)/60000);
+    t='Synced ✓'+(m>0?' '+m+'m ago':' just now');}
+  var col=status==='error'||status==='conflict'?'var(--dang)':status==='idle'?'var(--pos)':'var(--mut)';
+  return '<span class=qlink style="color:'+col+'" onclick="syncOpen()">▸ '+t+'</span>';
+};
+
+/* --- lifecycle --------------------------------------------------------- */
+window.syncTouch=function(){ if(!user)return; setDirty(true); set('pending');
+  clearTimeout(pushT); pushT=setTimeout(pushNow,2500); };
+
+if(ready){
+  sb.auth.getSession().then(function(r){
+    var s=r&&r.data&&r.data.session;
+    if(s&&s.user){ user=s.user; set('idle'); pullNow(); } else set('signedout');
+  });
+  /* iOS kills backgrounded PWAs, which would otherwise eat whatever is still
+     sitting inside the 2.5s debounce window. */
+  addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&isDirty())pushNow();});
+  addEventListener('pagehide',function(){if(isDirty())pushNow();});
+  addEventListener('online',function(){if(isDirty())pushNow();else if(user)pullNow();});
+  addEventListener('offline',function(){if(user)set('offline');});
+}
+/* This block loads after the app has already rendered the menu, so syncChip()
+   didn't exist when the savebar was first built — repaint once now. */
+paint();
+})();
 </script>
 <script>/* Sticky offsets (Browse table head, solo-board toolbar) key off --hh. The header's height
    changes with viewport width — one row on desktop, two on a phone — so measure it instead of

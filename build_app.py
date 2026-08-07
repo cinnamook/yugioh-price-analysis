@@ -441,21 +441,21 @@ tr:hover td{background:rgba(40,58,110,.3)}
    were a fixed --bside while the zones were fluid, so on a short viewport the sides became
    the tallest thing and dictated row height. Equal fr columns scale together and the rows
    align by construction rather than by a matching calc(). */
-/* The side columns hold piles, not play zones, so they get a narrower track — the five
-   real zones keep their width and the traditional layout still fits a phone. */
-.bfield{--sidefr:0.60fr}
+/* Seven equal columns. The outer two hold real zones (field spell / graveyard, extra /
+   main deck) at the same size as the five in the middle, so no row is taller than another
+   and the whole board is centred by construction. */
 .bmainrow,.bzrow,.bemzrow,.boppbar{display:grid;
-  grid-template-columns:var(--sidefr) repeat(5,minmax(0,1fr)) var(--sidefr);
-  gap:var(--bgap);align-items:start}
+  grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--bgap);align-items:start}
 .bzones{display:contents}
 .bzrow>.bslot:first-child{grid-column:2}
 .bside{min-width:0;display:flex;align-items:flex-start;justify-content:center}
 /* explicit columns: phase | EMZ | life points | EMZ | turn — the row was mostly empty */
-.bemzside:nth-child(1){grid-column:1}
+.bemzphase{grid-column:2}
 .bemzrow .bslot:nth-child(2){grid-column:3}
 .bemzrow .lpchip{grid-column:4}
 .bemzrow .bslot:nth-child(4){grid-column:5}
-.bemzside:nth-child(5){grid-column:7}
+.bemzturn{grid-column:6}
+.bemzban{grid-column:7}
 .bemzside{display:flex;align-items:center;justify-content:center;min-width:0}
 .bmini2{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   cursor:pointer;border:1px solid var(--line2);border-radius:9px;padding:4px 2px;
@@ -465,12 +465,6 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bmval{font-family:"Cinzel",Georgia,serif;font-size:14px;font-weight:700;color:var(--gold2);line-height:1.1}
 .bmnext{font-size:11px;color:var(--acc);line-height:1}
 .phpanel{border-color:var(--acc)}
-/* banished stacks above the graveyard instead of taking its own row */
-.bsidestack{flex-direction:column;gap:2px;justify-content:flex-start}
-/* both piles share one zone's worth of height, so the stack costs no extra rows */
-.bsidestack .bpile{width:100%}
-.bsidestack .bptop{aspect-ratio:auto;height:34px}
-.bsidestack .bpcount{font-size:8px;margin-bottom:1px}
 /* the opponent's 5-wide rows use the same inset as the EMZ so all four rows line up */
 
 .bopp .bslot{border-color:rgba(255,107,129,.34);background:rgba(46,16,28,.28)}
@@ -490,7 +484,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 /* Applies at every width, not just desktop: on a tablet the field was width-constrained to
    something far taller than the viewport. On phones the width is still the binding limit, so
    this is a no-op there. */
-.bfield{max-width:min(720px,calc((100vh - 288px) * 0.64))}
+.bfield{max-width:min(720px,calc((100vh - 288px) * 0.76))}
 .bopfs{min-width:0}
 .bopfs .bslot{width:100%;border-color:rgba(255,107,129,.34)}
 /* The opponent's strip is a status row, not a play area — full card-height piles made it
@@ -498,7 +492,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bpile.bpc{width:100%}   /* fills its grid cell; a fixed width overflowed the column */
 .bpile.bpc .bpcount{font-size:8px}
 .boppbar .bptop{aspect-ratio:auto;height:30px}
-.boppbar .bpcount{font-size:8px;margin-bottom:1px}
+.boppbar .bpcount{font-size:8px}
 .bopfs .bslot{aspect-ratio:auto;height:30px}
 .boppbar .bslab{font-size:7.5px}
 /* flex-start, not stretch: the side columns must not dictate the row's height. With
@@ -519,12 +513,16 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bcard.bsel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 4px 12px rgba(232,198,106,.4);z-index:3}
 .bcard.bdef{transform:rotate(90deg) scale(.68)}
 .bback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--gold);background:linear-gradient(135deg,#2a2350,#3a2d63);text-shadow:0 0 10px rgba(232,198,106,.5);border-radius:7px}
-.bpile{width:100%;cursor:pointer;text-align:center}
+.bpile{width:100%;cursor:pointer;text-align:center;position:relative}
 .bpile .bptop{aspect-ratio:59/86;border:1px solid var(--line2);border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(12,20,46,.5)}
 .bpile.bempty .bptop{border-style:dashed;background:rgba(12,20,46,.3)}
 .bpile:hover .bptop{border-color:var(--acc)}
 .bpile .bptop .bcard,.bpile .bptop .bback{width:100%;height:100%}
-.bpcount{font-size:9px;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+/* absolute, so a pile is exactly as tall as a zone — as a block above the card it added
+   ~20px per row and opened a gap between the monster and spell/trap rows */
+.bpcount{position:absolute;top:2px;right:2px;z-index:3;min-width:14px;padding:0 3px;
+  border-radius:7px;background:rgba(6,10,26,.86);border:1px solid var(--line2);
+  font-size:8.5px;color:#c3ccdb;letter-spacing:.02em;line-height:14px;text-transform:uppercase}
 .bhandwrap{margin-top:10px;border:1px solid var(--line2);border-radius:11px;padding:8px 10px;background:linear-gradient(180deg,rgba(24,38,78,.5),rgba(12,20,46,.55))}
 .bhlab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:6px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -739,7 +737,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
      height cap needs a smaller ratio here. The board ends up narrower than the screen and
      centred, which is fine — it's still bigger cards than the 7-column version gave. */
   .bfield{padding:6px 0;border-radius:11px;margin-left:auto;margin-right:auto;
-    max-width:min(100%,calc((100vh - 300px) * 0.58))}
+    max-width:min(100%,calc((100vh - 300px) * 0.72))}
   .boppbar .boplab{font-size:7px}
   .bemzrow .bslot:nth-child(2){grid-column:2}
   .bemzrow .lpchip{grid-column:3}
@@ -1326,11 +1324,14 @@ function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();retu
     else if(placeMode==='def'){it.fd=false;it.def=true;}
     else{it.fd=false;it.def=false;}
     board[destK][destS].push(it);
+    sel={k:destK,s:destS,i:board[destK][destS].length-1};   /* stay on the card */
+    renderSim(); return;
   } else if(destK==='deckTop'){board.deck.unshift(it.id);}
   else if(destK==='deckBtm'){board.deck.push(it.id);}
   else if(destK==='off'){/*removed from play*/}
   else if(isIdPile(destK)){board[destK].push(it.id);}        /* deck / extra, either side */
-  else if(destK==='hand'||destK==='ohand'){it.fd=false;it.def=false;board[destK].push(it);}
+  else if(destK==='hand'||destK==='ohand'){it.fd=false;it.def=false;board[destK].push(it);
+    sel={k:destK,s:null,i:board[destK].length-1}; renderSim(); return;}
   else{it.fd=false;board[destK].push(it);} /* gy, ban, ogy, oban */
   sel=null;renderSim();}
 /* fxDraft must reset here: it's global, so leaving it set meant the next card you selected
@@ -1615,10 +1616,11 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('omon',s,'M'+(5-s));}).join('')+'</div>';
   /* The EMZ row's three spare columns carry the phase control, life points and the turn —
      they were empty, and each of those used to cost a full row above the field. */
-  h+='<div class=bemzrow><div class=bemzside>'+phaseMini()+'</div>'
+  h+='<div class=bemzrow><div class="bemzside bemzphase">'+phaseMini()+'</div>'
     +slotHTML('emz',0,'EMZ')+lpChip()+slotHTML('emz',1,'EMZ')
-    +'<div class=bemzside>'+turnMini()+'</div></div>';
-  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class="bside bsidestack">'+pileHTML('ban','Ban',1)+pileHTML('gy','GY')+'</div></div>';
+    +'<div class="bemzside bemzturn">'+turnMini()+'</div>'
+    +'<div class=bemzban>'+pileHTML('ban','Ban')+'</div></div>';
+  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('gy','GY')+'</div></div>';
   h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';
   h+='</div>';
   h+=handHTML();
@@ -1711,6 +1713,16 @@ addEventListener('pointercancel',function(){ if(dragS){ghostEnd();cancelDrag();}
 /* belt and braces for the callout: some iOS builds still raise it despite the CSS */
 addEventListener('contextmenu',function(e){
   if(e.target&&e.target.closest&&e.target.closest('.bfield,.bhandwrap,.bviewer'))e.preventDefault();
+});
+/* The card menu now persists after an action so you can keep working on the same card, which
+   means it needs a way out: anywhere off the board, the menus, or the hand dismisses it. */
+addEventListener('click',function(e){
+  if(typeof view==='undefined'||view!=='sim'||!board||dragJustEnded)return;
+  if(!e.target||!e.target.closest)return;
+  if(e.target.closest('.bfield,.bhandwrap,.btoolbar,.bpmenu,.bviewer,#ov,.bctrl,.btokform'))return;
+  if(sel||pmenu||lpOpen||phOpen){
+    sel=null;pmenu=null;lpOpen=false;phOpen=false;fxDraft=false;attachMode=false;renderSim();
+  }
 });
 })();
 

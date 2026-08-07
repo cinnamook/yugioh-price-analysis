@@ -19,8 +19,10 @@ PY="$(command -v python3 || echo /usr/bin/python3)"
 echo "[1/3] rebuilding app + docs bundle ..."
 "$PY" build_app.py || { echo "  build failed"; exit 1; }
 
-echo "[2/3] committing docs/ ..."
-git add docs
+echo "[2/3] committing generator + docs/ ..."
+# Stage build_app.py alongside its output: docs/ is generated FROM it, so committing the page
+# without the generator would leave the repo unable to rebuild its own live site.
+git add build_app.py docs
 git commit -m "Publish: refresh hosted app ($(date +%Y-%m-%d))" || echo "  (nothing new to commit)"
 
 echo "[3/3] pushing to GitHub ..."

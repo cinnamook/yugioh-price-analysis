@@ -239,6 +239,7 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .addres{margin:4px 0 12px;display:flex;flex-wrap:wrap;gap:7px}
 .ares{display:inline-flex;align-items:center;gap:7px;background:var(--surf);border:1px solid var(--line2);border-radius:20px;padding:5px 13px;cursor:pointer;font-size:12px;transition:.12s}
 .ares:hover{border-color:var(--acc);background:rgba(139,147,255,.09)}.ares .nm{font-weight:600}
+.ares.addmore{border-color:var(--acc);color:var(--acc);font-weight:600}
 .own{color:var(--pos);font-weight:700}
 .deckstats{background:linear-gradient(180deg,var(--surf),var(--bg2));border:1px solid var(--line);border-radius:12px;padding:11px 16px;margin:10px 0 6px;font-size:12px}
 .sec{font-size:14px;margin:22px 0 8px;color:var(--ink);font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
@@ -438,7 +439,8 @@ tr:hover td{background:rgba(40,58,110,.3)}
    were a fixed --bside while the zones were fluid, so on a short viewport the sides became
    the tallest thing and dictated row height. Equal fr columns scale together and the rows
    align by construction rather than by a matching calc(). */
-.bmainrow,.bzrow,.bemzrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+.bfield{--cols:7}
+.bmainrow,.bzrow,.bemzrow,.boppbar{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));
   gap:var(--bgap);align-items:start}
 .bzones{display:contents}
 .bzrow>.bslot:first-child{grid-column:2}
@@ -468,9 +470,11 @@ tr:hover td{background:rgba(40,58,110,.3)}
 
 .bopp .bslot{border-color:rgba(255,107,129,.34);background:rgba(46,16,28,.28)}
 .bopp .bslot.bempty:hover{border-color:var(--dang)}
-/* same 7-column grid as the rows, so it can never wrap regardless of the field's width */
-.boppbar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--bgap);
-  align-items:end;margin-bottom:2px;padding-bottom:5px;border-bottom:1px dashed rgba(255,107,129,.3)}
+/* same grid as the rows, so it can never wrap regardless of the field's width */
+.boppbar{align-items:end;margin-bottom:2px;padding-bottom:5px;border-bottom:1px dashed rgba(255,107,129,.3)}
+.bmybar{margin:3px 0 0;padding:5px 0 0;border-bottom:0;border-top:1px dashed rgba(143,220,255,.3)}
+.bmybar .boplab{color:var(--acc)}
+.bmybar .bslot{border-color:var(--line2)}
 .boppbar .boplab{grid-column:1}
 .boppbar .bopfs{grid-column:7;width:auto;margin:0}
 .boplab{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#ff9aa8;
@@ -517,7 +521,9 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bpile .bptop .bcard,.bpile .bptop .bback{width:100%;height:100%}
 .bpcount{font-size:9px;color:var(--mut);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
 .bhandwrap{margin-top:10px;border:1px solid var(--line2);border-radius:11px;padding:8px 10px;background:linear-gradient(180deg,rgba(24,38,78,.5),rgba(12,20,46,.55))}
-.bhlab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:6px}
+.bhlab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bhhint{color:var(--gold)}
 .bhcards{display:flex;flex-wrap:wrap;gap:var(--bgap)}
 .bhcards>div{width:var(--bhand,58px);aspect-ratio:59/86;cursor:pointer}
 /* --- tap-and-drag --- */
@@ -695,7 +701,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 @media(max-width:640px){
   /* header becomes two rows: title + KPIs, then the tab strip. Its real height is measured
      into --hh at runtime by syncHH(), so nothing here has to be kept in sync by hand. */
-  :root{--bside:46px;--bgap:3px;--bhand:44px;
+  :root{--bside:46px;--bgap:3px;--bhand:38px;
         --hpv:8px;--hph:10px;--cpv:10px;--cph:12px;--wpt:12px;--wph:12px}
   header{gap:8px}
   h1{font-size:15px}
@@ -724,7 +730,22 @@ tr:hover td{background:rgba(40,58,110,.3)}
      zones inward: the side padding narrows all five columns proportionally. */
   /* tighten via --bgap, never by overriding `gap` directly: .bzrow/.bemzrow derive their
      inset from calc(--bside + --bgap), so a raw gap override desynchronises the rows. */
-  .bfield{padding:6px 5%;border-radius:11px}
+  /* 5 columns make each zone wider (and so taller) than the 7-column layout, so the
+     height cap needs a smaller ratio here. The board ends up narrower than the screen and
+     centred, which is fine — it's still bigger cards than the 7-column version gave. */
+  .bfield{padding:6px 0;border-radius:11px;--cols:5;margin-left:auto;margin-right:auto;
+    max-width:min(100%,calc((100vh - 262px) * 0.44))}
+  .bzrow>.bslot:first-child{grid-column:1}
+  /* the strips hold 5-6 chips and don't need to align with the zone columns; at --cols:5
+     they were wrapping to a second line and costing ~100px each */
+  .boppbar .boplab{display:none}
+  .boppbar{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .bmybar{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .boppbar .bopfs{grid-column:auto}
+  .bemzrow .bslot:nth-child(2){grid-column:2}
+  .bemzrow .lpchip{grid-column:3}
+  .bemzrow .bslot:nth-child(4){grid-column:4}
+  .bemzside:nth-child(5){grid-column:5}
   .boppbar{padding-bottom:4px}
   .boplab{font-size:8px}
   .bviewer{padding:10px}
@@ -945,12 +966,21 @@ function setR(list,id,r,li){var e=lref(list,id,li); if(e){e.rar=r; sv(); kpis();
 function setCond(list,id,cv,li){var e=lref(list,id,li); if(e){if(cv)e.cond=cv; else delete e.cond; sv(); rTable();}}
 function setP(id,pr,li){var e=lref('wishlist',id,li); if(e){e.pr=pr; sv(); rTable();}}
 function del(list,id,li){delLine(list,id,li); sv(); kpis(); rTable();}
+var ADD_PAGE=24, addShown=ADD_PAGE, addQ='';
 function addSearch(){var el=document.getElementById('addq'),box=document.getElementById('addres'); if(!el||!box)return;
-  var vq=el.value.toLowerCase(); if(vq.length<2){box.innerHTML='';return;}
-  var hits=[],i=0; for(;i<CARDS.length&&hits.length<8;i++){if(CARDS[i].n.toLowerCase().indexOf(vq)>=0)hits.push(CARDS[i]);}
-  box.innerHTML=hits.map(function(c){var own=ownQ(c.i)?' · own '+ownQ(c.i):'';
+  var vq=el.value.toLowerCase();
+  if(vq!==addQ){addQ=vq;addShown=ADD_PAGE;}          /* a new query starts from the first page */
+  if(vq.length<2){box.innerHTML='';return;}
+  /* match everything, then page through it — the old cap of 8 silently hid the rest with
+     no way to reach it */
+  var hits=[];for(var i=0;i<CARDS.length;i++){if(CARDS[i].n.toLowerCase().indexOf(vq)>=0)hits.push(CARDS[i]);}
+  var shown=Math.min(hits.length,addShown), more=hits.length-shown;
+  box.innerHTML=hits.slice(0,shown).map(function(c){var own=ownQ(c.i)?' · own '+ownQ(c.i):'';
     var fn=view==='deck'?'addToDeck('+c.i+')':'add(\''+view+'\','+c.i+')';
-    return '<span class=ares onclick="'+fn+'"><span class=nm>'+esc(c.n)+'</span><span class=mut> '+(c.m==null?'':'$'+c.m.toFixed(2))+own+'</span> <span class=addb>+'+view+'</span></span>';}).join('');}
+    return '<span class=ares onclick="'+fn+'"><span class=nm>'+esc(c.n)+'</span><span class=mut> '+(c.m==null?'':'$'+c.m.toFixed(2))+own+'</span> <span class=addb>+'+view+'</span></span>';}).join('')
+    +(more?'<span class="ares addmore" onclick="addMore()">▾ '+Math.min(more,ADD_PAGE)+' more <span class=mut>('+hits.length+' matches)</span></span>'
+           :(hits.length>ADD_PAGE?'<span class=mut style="font-size:11px;align-self:center">all '+hits.length+' shown</span>':''));}
+function addMore(){addShown+=ADD_PAGE;addSearch();}
 
 function lt(list){var s=0,m=bucket(list),mu=isMulti(list); for(var id in m){var c=BY[id]; if(!c)continue;
   if(mu){m[id].forEach(function(ln){var p=entPrice(ln,c); if(p!=null)s+=p*ln.q;});}
@@ -1247,6 +1277,9 @@ function renderSim(){
 
 /* ===== Solo playtest board (DuelingBook-like: interactable piles + proper field) ===== */
 var board=null, sel=null, placeMode='atk', viewer=null, dragJustEnded=false;
+/* phones use a 5-column board with piles in top/bottom strips; wider screens keep the
+   traditional side columns, so the row markup differs rather than just its CSS */
+function narrowBoard(){return window.matchMedia&&window.matchMedia('(max-width:640px)').matches;}
 var fxDraft=false;
 function boardNew(){var d=St.decks[simName()];if(!d){board=null;renderSim();return;}
   var deck=[];for(var id in d.main)for(var k=0;k<d.main[id].q;k++)deck.push(+id);
@@ -1434,7 +1467,14 @@ function pileHTML(k,label,compact){var a=board[k]||[],n=a.length,top;
    viewer — drawing, milling and banishing are what you actually want most of the time,
    and they used to live in a control bar far above the field. */
 var pmenu=null;
-function bPileTap(k){ if(dragJustEnded)return; pmenu=(pmenu===k)?null:k; sel=null; viewer=null; renderSim(); }
+/* Destination for each pile when a card is already in hand — deck means the top. */
+var PILE_DEST={deck:'deckTop',ex:'ex',gy:'gy',ban:'ban',hand:'hand',
+  odeck:'odeck',oex:'oex',ogy:'ogy',oban:'oban',ohand:'ohand'};
+function bPileTap(k){ if(dragJustEnded)return;
+  /* Holding a card? Then the pile is a destination, not a menu — otherwise picking a card
+     out of the deck viewer left no way to send it to the graveyard by tapping. */
+  if(sel){ pmenu=null; place(PILE_DEST[k]||k); return; }
+  pmenu=(pmenu===k)?null:k; viewer=null; renderSim(); }
 function pmClose(){ pmenu=null; renderSim(); }
 function pmAct(a){
   var k=pmenu; if(!k){return;}
@@ -1496,7 +1536,7 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
 /* Tapping the hand area returns the held card, the same way tapping a zone or pile does —
    it was a drop target for drags but had no click path. */
 function bHandZoneTap(){ if(dragJustEnded)return; if(sel)place('hand'); }
-function handHTML(){var h='<div class=bhandwrap data-pile="hand" onclick="bHandZoneTap()"><div class=bhlab>Hand &middot; '+board.hand.length+(sel?' &mdash; tap here to return the card':'')+'</div><div class=bhcards>';
+function handHTML(){var h='<div class=bhandwrap data-pile="hand" onclick="bHandZoneTap()"><div class=bhlab>Hand &middot; '+board.hand.length+'<span class=bhhint>'+(sel?' &mdash; tap to return the card':'')+'</span></div><div class=bhcards>';
   h+=board.hand.map(function(it,i){return '<div data-z="hand" data-i="'+i+'" onclick="event.stopPropagation();bHandTap('+i+')">'+bCardHTML(it,sel&&sel.k==='hand'&&sel.i===i,false)+'</div>';}).join('');
   return h+'</div></div>';}
 function bHandTap(i){ if(dragJustEnded)return; bSelect('hand',null,i); }
@@ -1562,7 +1602,9 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   if(board)h+=lpPanel()+phPanel()+pmenuHTML();
   if(!board){h+='<div class=ins style="margin-top:12px">Pick a deck and press <b>New game</b>. Then <b>tap the Deck</b> to draw or search it, <b>tap a hand card</b> then a field zone to summon or set, and <b>tap any pile</b> (GY, Banished, Extra) to open it and act on the cards inside &mdash; the way DuelingBook works.</div>';document.getElementById('simBody').innerHTML=h;return;}
   h+=boardToolbar();
-  if(!sel)h+='<div class=bhint>Hold a card to drag it, or tap it and then tap the zone. Tap a pile to view and act on its cards.</div>';
+  /* always present, just emptied — a hint that appears and disappears changes the document
+     height and shifts everything below it */
+  h+='<div class=bhint>'+(sel?'&nbsp;':'Drag a card to a zone, or tap it then tap the zone.')+'</div>';
   h+='<div class=bfield>';
   /* Opponent side, mirrored: their piles collapse into one compact strip, then S/T behind
      monsters, so their monster row sits directly across the shared EMZ from yours. */
@@ -1577,14 +1619,30 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+='<div class=bemzrow><div class=bemzside>'+phaseMini()+'</div>'
     +slotHTML('emz',0,'EMZ')+lpChip()+slotHTML('emz',1,'EMZ')
     +'<div class=bemzside>'+turnMini()+'</div></div>';
-  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class="bside bsidestack">'+pileHTML('ban','Ban',1)+pileHTML('gy','GY')+'</div></div>';
+  if(narrowBoard()){
+    /* Phone: your piles move into a strip beneath the field, mirroring the opponent's at the
+       top. The zone rows then span all five columns, so the cards are bigger and the last
+       row no longer sits marooned below tall side columns. */
+    h+='<div class="bzrow">'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div>';
+    h+='<div class="bzrow">'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div>';
+    h+='<div class="boppbar bmybar"><span class=boplab>You</span>'
+      +pileHTML('deck','Deck',1)+pileHTML('ex','Extra',1)+pileHTML('gy','GY',1)
+      +pileHTML('ban','Ban',1)+'<div class=bopfs>'+slotHTML('fs',0,'Field')+'</div></div>';
+  } else {
+    h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class="bside bsidestack">'+pileHTML('ban','Ban',1)+pileHTML('gy','GY')+'</div></div>';
   h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';
+  }
   h+='</div>';
   h+=handHTML();
   h+=fxLogPanel();
   h+=viewerHTML();
+  /* Rebuilding the board replaces the whole subtree, and any height change — the hint line
+     appearing, the hand caption growing — moved the page under you when a panel opened.
+     Hold the scroll position across the swap. */
+  var y=window.scrollY;
   document.getElementById('simBody').innerHTML=h;
-  if(fxDraft){var fi=document.getElementById('fxIn');if(fi){fi.focus();fi.select();}}}
+  if(window.scrollY!==y)window.scrollTo(0,y);
+  if(fxDraft){var fi=document.getElementById('fxIn');if(fi){fi.focus({preventScroll:true});fi.select();}}}
 
 /* ===== tap-and-drag =======================================================
    Pointer events rather than HTML5 drag-and-drop, which doesn't work on touch.

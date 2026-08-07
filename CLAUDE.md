@@ -97,8 +97,11 @@ Backlog items most likely to come next (full list in ROADMAP.md):
 - Test the hosted/PWA path over **http** (e.g. `python3 -m http.server`), not
   `file://` — service workers don't run from `file://`, and `IMGBASE` switches on
   protocol.
-- Two commits already exist locally that need `git push`: the solo board and the
-  PWA bundle.
+- When testing over http, **unregister the service worker first**. Its fetch
+  handler answers navigations from cache and ignores the query string, so a
+  `?cachebust=` on the URL will *not* get you the fresh page — you'll silently
+  test the previous build. `publish.command` stages `build_app.py` alongside
+  `docs/`, so the generator and its output can't drift apart.
 - Data sources: YGOPRODeck free API prices only ~30% of printings. No free API
   for competitive META — meta is a manual watchlist. JustTCG (free, per-printing)
   is a possible future price upgrade.
@@ -107,7 +110,5 @@ Backlog items most likely to come next (full list in ROADMAP.md):
 
 Pair-programming; **Ryan makes the calls**. He values understanding *how* things
 are built and honesty about limitations. Explain trade-offs, propose, let him
-decide. Backlog after the mobile pass: cross-device **sync** (the real pocket-app
-unlock), then pocket niceties (shareable deck/collection links, trade log,
-deck-journal notes — **no camera scan**), and a far-horizon community layer
-(Looking to Sell / Trade / For listings).
+decide. The backlog and the long-term trajectory live in **ROADMAP.md** — keep
+them there rather than duplicating them here, so the two can't drift.

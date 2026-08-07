@@ -596,7 +596,11 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bfxrow{font-size:11.5px;color:#c3ccdb;padding:3px 0;border-bottom:1px solid rgba(67,89,143,.25);line-height:1.4}
 .bfxrow:last-child{border:0}
 .bfxrow b{color:var(--gold2)}
-.blogundo{font-size:10px;padding:3px 8px;min-height:24px;margin-left:6px}
+.blogundo{font-size:10px;padding:3px 8px;min-height:24px;margin-left:auto}
+.bfxlog .grpchev{transition:transform .18s}
+.bfxlog.fold .grpchev{transform:rotate(-90deg)}
+.blogpeek{font-size:10.5px;color:#c3ccdb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:46%;text-transform:none;letter-spacing:0}
 .bctr{position:absolute;left:2px;top:2px;z-index:4;min-width:15px;height:15px;padding:0 3px;
   display:flex;align-items:center;justify-content:center;border-radius:8px;
   background:rgba(110,224,160,.95);color:#052015;font-size:9.5px;font-weight:800}
@@ -1320,6 +1324,19 @@ addEventListener('pointerdown',function(e){lastPt={x:e.clientX,y:e.clientY};},{p
 /* The anchor is captured when a panel first appears and reused until every panel closes —
    otherwise pressing a button inside it re-anchored to that button and the panel walked
    across the screen as you worked. */
+/* The side panels are fixed, but the hand is not — cap their height at the hand's top edge
+   so a long card text scrolls inside the panel rather than bleeding over your cards. */
+function fitSidePanels(){
+  var panels=document.querySelectorAll('.bsidepanel'); if(!panels.length)return;
+  var hand=document.querySelector('.bhandwrap:not(.bophand)');
+  var limit=hand?hand.getBoundingClientRect().top-12:innerHeight-16;
+  Array.prototype.forEach.call(panels,function(el){
+    if(getComputedStyle(el).display==='none')return;
+    el.style.maxHeight=Math.max(140, limit-el.getBoundingClientRect().top)+'px';
+  });
+}
+addEventListener('scroll',function(){fitSidePanels();},{passive:true});
+addEventListener('resize',function(){fitSidePanels();});
 var panelAnchor=null;
 function placePanels(){
   var els=['.btoolbar','.bpmenu'].map(function(q){return document.querySelector(q);}).filter(Boolean);
@@ -1406,7 +1423,7 @@ function place(destK,destS){var __n=nameOf(selInst());snap('Move '+__n+' \u2192 
    (typically straight out of the deck or extra viewer) opened the note field and popped the
    keyboard before you'd asked for anything. */
 function bSelect(k,s,i){if(sel&&sel.k===k&&sel.s===s&&sel.i===i)sel=null;else sel={k:k,s:s,i:i};
-  viewer=null;fxDraft=false;attachMode=false;renderSim();}
+  viewer=null;fxDraft=false;attachMode=false;pmenu=null;lpOpen=false;phOpen=false;renderSim();}
 /* Tapping only ever MOVES a card into an empty zone. Tapping an occupied one selects the
    card sitting there instead — otherwise every tap while something was held flung it across
    the board, which made simply looking around the field impossible. Stacking deliberately
@@ -1442,7 +1459,7 @@ function nextPhase(){if(!board)return;
 function newTurn(){if(!board)return;snap('New turn');board.turn=(board.turn||1)+1;board.phase='dp';renderSim();}
 /* compact stand-ins that live in the EMZ row's spare columns */
 function phaseMini(){var cur='M1';PHASES.forEach(function(p){if(p[0]===board.phase)cur=p[1];});
-  return '<div class=bmini2 onclick="lpOpen=false;phOpen=!phOpen;renderSim()" title="phase — tap to change">'
+  return '<div class=bmini2 onclick="lpOpen=false;pmenu=null;phOpen=!phOpen;renderSim()" title="phase — tap to change">'
     +'<span class=bmlab>PHASE</span><span class=bmval>'+cur+'</span></div>';}
 function turnMini(){return '<div class=bmini2 onclick="nextPhase()" title="advance a phase; from EP starts the next turn">'
   +'<span class=bmlab>TURN</span><span class=bmval>'+(board.turn||1)+'</span><span class=bmnext>&rsaquo;</span></div>';}
@@ -1501,18 +1518,23 @@ function bDeselect(){sel=null;fxDraft=false;attachMode=false;renderSim();}
 /* the full card detail popup, from the board — tokens have no card to show */
 function bInfo(){var it=selInst();if(!it||it.tok||!it.id)return;openM(it.id);}
 function fxLogClear(){if(!board)return;board.log=[];renderSim();}
+/* Collapsed by default — the log is for reviewing a line afterwards, not something you need
+   filling the screen while playing. The last entry stays visible in the header either way. */
+var logShown=8, logOpen=false;
 function fxLogPanel(){
-  var n=board.log.length;
-  return '<div class=bfxlog><div class=bhlab>Action log &middot; '+n
-    +' <button class=blogundo onclick="bUndo()"'+(undoStack.length?'':' disabled')+' title="undo the last action">&#8630; Undo</button>'
-    +(n?' <span class=qlink style="font-size:10px;margin-left:6px" onclick="fxLogClear()">clear</span>':'')
-    +'</div>'
-    +(n?board.log.slice(-logShown).reverse().map(function(e){
+  var n=board.log.length, last=n?board.log[n-1].t:'';
+  var h='<div class="bfxlog'+(logOpen?'':' fold')+'">'
+    +'<div class=bhlab onclick="logOpen=!logOpen;renderSim()" style="cursor:pointer;display:flex;align-items:center;gap:6px">'
+    +'<span class=grpchev>&#9662;</span><span>Action log &middot; '+n+'</span>'
+    +(!logOpen&&last?'<span class=blogpeek>'+esc(last)+'</span>':'')
+    +'<button class=blogundo onclick="event.stopPropagation();bUndo()"'+(undoStack.length?'':' disabled')+' title="undo the last action">&#8630; Undo</button>'
+    +(n&&logOpen?'<span class=qlink style="font-size:10px" onclick="event.stopPropagation();fxLogClear()">clear</span>':'')
+    +'</div>';
+  if(logOpen)h+=(n?board.log.slice(-logShown).reverse().map(function(e){
       return '<div class=bfxrow>'+esc(e.t||'')+'</div>';}).join('')
       +(n>logShown?'<div class=bfxrow style="border:0"><span class=qlink onclick="logShown+=12;renderSim()">show more</span></div>':'')
-     :'<div class=mut style="font-size:11px">Nothing yet.</div>')
-    +'</div>';}
-var logShown=8;
+     :'<div class=mut style="font-size:11px">Nothing yet.</div>');
+  return h+'</div>';}
 
 /* ----- action log & undo -----
    Undo restores a snapshot of the whole board rather than inverting each operation. The
@@ -1596,7 +1618,7 @@ var PILE_DEST={deck:'deckTop',ex:'ex',gy:'gy',ban:'ban',hand:'hand',
 /* A pile always opens its menu — never grabs the top card, never swallows what you're
    holding. If a card IS held the menu offers to send it there, so both intents are explicit. */
 function bPileTap(k){ if(dragJustEnded)return;
-  pmenu=(pmenu===k)?null:k; viewer=null; renderSim(); }
+  pmenu=(pmenu===k)?null:k; viewer=null; lpOpen=false; phOpen=false; renderSim(); }
 function pmClose(){ pmenu=null; renderSim(); }
 function pmAct(a){
   var k=pmenu; if(!k){return;}
@@ -1635,7 +1657,11 @@ function pmenuHTML(){ if(!pmenu||!board)return '';
   return '<div class=bpmenu><span class=btsel>'+esc(PILE_LABEL[k]||k)+' &middot; '+n+'</span>'
     +'<span class=btsep></span>'+b
     +'<span class=btx onclick="pmClose()" title="close">&times;</span></div>';}
-function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel.k);
+function boardToolbar(){
+  /* Suppressed while another panel is up: only one menu is ever on screen. `sel` is kept,
+     not cleared, so the pile menu can still offer to send the held card. */
+  if(pmenu||lpOpen||phOpen)return '';
+  var it=selInst();if(!it)return '';var onField=isSlot(sel.k);
   var h='<div class=btoolbar><span class=btsel>'+esc(nameOf(it))+(it.fd?' &middot; face-down':'')+(it.def?' &middot; DEF':'')+'</span><span class=btsep></span>'
     +'<span class=mut style="font-size:11px">place as</span>'
     +'<button class="'+(placeMode==='atk'?'bon':'')+'" onclick="setPlace(\'atk\')">ATK</button>'
@@ -1727,7 +1753,7 @@ function lpSide(who,label){var v=board.lp[who];
    empty by definition, so the running totals live there as a chip that opens the full
    calculator on demand. The wide bar is kept for desktop, where the room exists. */
 var lpOpen=false;
-function lpToggle(){lpOpen=!lpOpen;renderSim();}
+function lpToggle(){lpOpen=!lpOpen; if(lpOpen){pmenu=null;phOpen=false;} renderSim();}
 function lpChip(){return '<div class=lpchip onclick="lpToggle()" title="life points — tap for the calculator">'
   +'<span class=lpcv>'+board.lp.you.toLocaleString()+'</span>'
   +'<span class=lpcs>LP</span>'
@@ -1764,7 +1790,7 @@ function sideInfoBody(it,isHover){
    selected card when the pointer leaves, so the panel is never blank while something is held. */
 var hoverIt=null;
 function paintSideInfo(){var el=document.querySelector('.bsideleft');
-  if(el)el.innerHTML=sideInfoBody(hoverIt||selInst(),!!hoverIt);}
+  if(el){el.innerHTML=sideInfoBody(hoverIt||selInst(),!!hoverIt); fitSidePanels();}}
 function instAt(cardEl){
   var host=cardEl.closest('[data-z],[data-pile]'); if(!host||!board)return null;
   var z=host.getAttribute('data-z');
@@ -1852,7 +1878,7 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   var y=window.scrollY;
   document.getElementById('simBody').innerHTML=h;
   if(window.scrollY!==y)window.scrollTo(0,y);
-  placePanels();
+  placePanels(); fitSidePanels();
   if(fxDraft){var fi=document.getElementById('fxIn');if(fi){fi.focus({preventScroll:true});fi.select();}}}
 
 /* ===== tap-and-drag =======================================================

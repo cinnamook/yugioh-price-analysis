@@ -62,7 +62,26 @@ create policy "update own row"
 -- Deliberately NO delete policy — a browser bug can't wipe the synced copy.
 
 -- ---------------------------------------------------------------------------
--- Verify (optional): should list rls enabled + the three policies.
+-- Table privileges. These are a SEPARATE layer from RLS and both are required:
+--   GRANT = may this role touch the table at all
+--   RLS   = which rows it may touch
+-- This project has "auto-expose new tables" OFF, so nothing is granted
+-- automatically and PostgREST decides visibility from these privileges — without
+-- them the client can't see app_state at all ("Could not find the table ... in
+-- the schema cache"), no matter how the policies are written.
+--
+-- Granted to `authenticated` only, never `anon`: the app reads and writes solely
+-- when signed in. The verb list matches the policies exactly — no DELETE.
+-- ---------------------------------------------------------------------------
+grant usage on schema public to authenticated;   -- normally already true; harmless to repeat
+grant select, insert, update on public.app_state to authenticated;
+
+-- No sequence grants needed: the primary key is a uuid from auth.users, not a serial.
+
+-- ---------------------------------------------------------------------------
+-- Verify (optional): rls enabled, three policies, and the three privileges.
 -- ---------------------------------------------------------------------------
 -- select relrowsecurity from pg_class where relname = 'app_state';
 -- select policyname, cmd from pg_policies where tablename = 'app_state';
+-- select grantee, privilege_type from information_schema.role_table_grants
+--   where table_name = 'app_state' order by grantee, privilege_type;

@@ -54,6 +54,28 @@ banish-top, shuffle, and view-and-act.
   panel so the toolbar is never scrolled away, an x to close it, LP as a chip in
   the EMZ row's empty middle column, and no image save-callout on long press.
 
+**Second pass, same day** — after live testing:
+
+- **Symmetric opponent side** — a true 180-degree mirror. Their hand at the far
+  edge, deck/extra flanking their spell-traps, graveyard/field spell flanking
+  their monsters, banished opposite yours across the shared EMZ.
+- **Dice and coin**, logged into the Declared list alongside effects.
+- **Panels open where you tap**, clamped to the viewport, instead of anchoring to
+  the top of the screen.
+- **Desktop side panels** (>1200px): selected card's text and price on the left,
+  the working pile's contents on the right, so board-and-graveyard is no longer a
+  one-at-a-time affair.
+- **Banish face-down**, with a clear marker in the pile viewer.
+- **Taps stopped moving cards around.** A tap only places into an *empty* zone;
+  tapping an occupied zone or a pile selects/opens instead. Stacking is deliberate
+  (Attach or drag). This was the single biggest usability fix.
+- The card menu persists through actions and closes only on the x or a click away.
+- **Build stamp** in the menu savebar matching the service-worker id, so "did the
+  phone actually update?" is answerable rather than guesswork.
+
+The whole board — both sides, hand included — fits without scrolling from 360px
+phones to 1920px desktops.
+
 **Status: parked.** The board is in a good place for goldfishing. The next
 meaningful step is the networked opponent, which belongs to the online-duel
 milestone below — so the remaining Tier 1/2 items wait unless something specific

@@ -49,8 +49,11 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   partly there), offline write-queue hardening, and conflict safety beyond
   last-write-wins if it ever actually bites.
 - **Mobile numeric keypads** — small, high daily value.
-- **Duel-field work** — tap-and-drag first, then the Tier 1 list in
-  SIM_BOARD_PLAN.md (life points, counters, Xyz materials).
+- ~~**Duel-field work**~~ — a large pass shipped 2026-08-07 (drag, life points,
+  Xyz materials, tokens, declared effects, an opponent's side, pile menus, turn
+  phases, card info, mobile ergonomics). **Now parked** until the multiplayer
+  work, per SIM_BOARD_PLAN.md; remaining Tier 1/2 items wait unless something
+  specific gets in the way while playing.
 
 ## Backlog
 

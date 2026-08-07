@@ -39,9 +39,25 @@ banish-top, shuffle, and view-and-act.
   GY when it leaves the field.
 - **Tokens** — custom name / ATK / DEF, placed into the first free monster zone,
   draggable like any card. Tokens carry their own values instead of a card id.
-- **Declared effects** — after placing a card you're offered "Declare effect";
-  the note sticks to the card (★ badge) and lands in a running **Declared** list.
-  This is the seed of the Tier 2 action log.
+- **Declared effects** — one tap records that a card activated (★ badge) and adds
+  it to a running **Declared** list; a note is optional, for clarifying what it's
+  doing. This is the seed of the Tier 2 action log.
+- **Opponent's side** — mirrored monster and S/T rows across a shared EMZ, their
+  own field spell, and a compact strip of their deck / extra / GY / banished /
+  hand. Change-of-control is a drag across the middle.
+- **Pile action menus** — tapping a pile opens View / Draw / Open 5 / Open 6 /
+  Mill top / Banish top / Shuffle rather than jumping straight into the viewer.
+- **Turn phases** — DP SP M1 BP M2 EP with a turn counter; advancing past EP
+  rolls the turn.
+- **Card info** — the full card popup (text, printings, prices) from the board.
+- **Mobile ergonomics** — hold-to-drag (a flick scrolls instead), a fixed action
+  panel so the toolbar is never scrolled away, an x to close it, LP as a chip in
+  the EMZ row's empty middle column, and no image save-callout on long press.
+
+**Status: parked.** The board is in a good place for goldfishing. The next
+meaningful step is the networked opponent, which belongs to the online-duel
+milestone below — so the remaining Tier 1/2 items wait unless something specific
+gets in the way while playing.
 
 ## Tier 1 — remaining
 

@@ -16,7 +16,7 @@ from collect_snapshot import RARITY_ORDER
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB   = os.path.join(HERE, "data", "ygo.db")
-TODAY = datetime.date(2026, 8, 6)
+TODAY = datetime.date.today()   # card "age" is relative to the build, not a frozen date
 IDX = {name: i for i, name in enumerate(RARITY_ORDER)}
 
 def age_years(s):

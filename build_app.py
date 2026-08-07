@@ -15,7 +15,7 @@ from collect_snapshot import RARITY_ORDER
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB   = os.path.join(HERE, "data", "ygo.db")
-TODAY = datetime.date(2026, 8, 6)
+TODAY = datetime.date.today()   # card "age" is relative to the build, not a frozen date
 
 # --- Cross-device sync (SYNC_DESIGN.md, sync_schema.sql) ---------------------
 # Paste these from your Supabase project: Dashboard -> Project Settings -> API.
@@ -620,8 +620,8 @@ tr:hover td{background:rgba(40,58,110,.3)}
   <select id="rar" onchange="rB()"></select>
   <select id="cl" onchange="rB()"><option value="">class: all</option><option>Monster</option><option>Spell</option><option>Trap</option></select>
   <select id="bn" onchange="rB()"><option value="">ban: all</option><option>Unlimited</option><option>Semi-Limited</option><option>Limited</option><option>Forbidden</option></select>
-  <label>$ min <input class="num" id="pmin" oninput="rB()"></label>
-  <label>$ max <input class="num" id="pmax" oninput="rB()"></label>
+  <label>$ min <input class="num" inputmode=decimal id="pmin" oninput="rB()"></label>
+  <label>$ max <input class="num" inputmode=decimal id="pmax" oninput="rB()"></label>
   <label><input type="checkbox" id="deal" onchange="rB()"> gap deals</label>
 </div>
 <div class="wrap"><div class="count" id="cnt"></div>
@@ -884,12 +884,12 @@ function renderBank(){var tx=St.bank.tx,bud=St.bank.budget||0,now=new Date().toI
     +'<div><div class=mut style="font-size:11px">THIS MONTH · '+mName(now)+'</div><div style="font-size:21px;font-weight:700">$'+mOut.toFixed(2)+' <span class=mut style="font-size:12px">spent</span></div></div>'
     +'<div style="flex:1;min-width:180px"><div class=cbarwrap style="height:12px"><div class=cbar style="width:'+pct.toFixed(0)+'%;'+(over?'background:'+RED:'')+'"></div></div><div class=mut style="font-size:11px;margin-top:4px">'+(bud>0?'$'+mOut.toFixed(0)+' of $'+bud.toFixed(0)+' budget'+(over?' — over budget!':''):'set a monthly budget →')+'</div></div>'
     +'<div><div class=mut style="font-size:11px">NET THIS MONTH</div><div style="font-size:21px;font-weight:700;color:'+(mNet>=0?'var(--pos)':RED)+'">'+(mNet>=0?'+':'−')+'$'+Math.abs(mNet).toFixed(2)+'</div></div>'
-    +'<label class=mut style="font-size:12px">Budget $ <input class=num id=bkBud value="'+(bud||'')+'" onchange="setBudget(this.value)"></label></div>';
+    +'<label class=mut style="font-size:12px">Budget $ <input class=num inputmode=decimal id=bkBud value="'+(bud||'')+'" onchange="setBudget(this.value)"></label></div>';
   // ---- 1. Log a transaction ----
   var logBody='<div class=bform>'
     +'<input type=date id=bkDate value="'+new Date().toISOString().slice(0,10)+'">'
     +'<select id=bkDir onchange="renderBankCats()"><option value=out>Spend</option><option value=in>Income</option></select>'
-    +'<select id=bkCat></select><input class=num id=bkAmt placeholder="amount">'
+    +'<select id=bkCat></select><input class=num inputmode=decimal id=bkAmt placeholder="amount">'
     +'<input type=text id=bkNote placeholder="note (optional)" style="flex:1;min-width:140px">'
     +'<button onclick="bankAdd()">+ Log</button></div>';
   h+=grp('log','Log a transaction',null,logBody);
@@ -902,7 +902,7 @@ function renderBank(){var tx=St.bank.tx,bud=St.bank.budget||0,now=new Date().toI
     if(t.id===bkEditId)return '<tr class=edrow><td><input type=date id=edDate value="'+t.date+'"></td>'
       +'<td><select id=edDir onchange="renderBankEditCats()"><option value=out'+(t.dir==='out'?' selected':'')+'>Spend</option><option value=in'+(t.dir==='in'?' selected':'')+'>Income</option></select></td>'
       +'<td><select id=edCat>'+bankCats(t.dir).map(function(c){return '<option'+(c===t.cat?' selected':'')+'>'+esc(c)+'</option>';}).join('')+'</select></td>'
-      +'<td class=r><input class=num id=edAmt value="'+t.amt+'"></td>'
+      +'<td class=r><input class=num inputmode=decimal id=edAmt value="'+t.amt+'"></td>'
       +'<td><input type=text id=edNote value="'+eatt(t.note)+'"></td>'
       +'<td style="white-space:nowrap"><span class=addb onclick="bankSave('+t.id+')">Save</span><span class=x onclick="bankCancel()">✕</span></td></tr>';
     return '<tr><td>'+t.date+'</td><td style="color:'+col+'">'+(t.dir==='out'?'Spend':'Income')+'</td><td>'+esc(t.cat)+'</td><td class="r" style="color:'+col+'">'+(t.dir==='out'?'−':'+')+'$'+t.amt.toFixed(2)+'</td><td class=mut>'+esc(t.note||'')+'</td><td style="white-space:nowrap"><span class=addb onclick="bankEdit('+t.id+')" title="edit">✎</span><span class=x onclick="bankDel('+t.id+')" title="delete">✕</span></td></tr>';}).join('')+'</table></div>';
@@ -913,7 +913,7 @@ function renderBank(){var tx=St.bank.tx,bud=St.bank.budget||0,now=new Date().toI
   var capTot=CATS_OUT.reduce(function(s,c){return s+(cb[c]||0);},0);
   var budBody='<div class=catbud>'
     +CATS_OUT.map(function(c){var sp=mByCat[c]||0,bg=cb[c]||0,p=bg>0?Math.min(100,100*sp/bg):0,ov=bg>0&&sp>bg;
-      return '<div class=cbrow><div class=cblab>'+esc(c)+'</div><div class=cbbarwrap><div class=cbbar style="width:'+p.toFixed(0)+'%;'+(ov?'background:'+RED:'')+'"></div></div><div class=cbspent'+(ov?' style="color:'+RED+'"':'')+'>$'+sp.toFixed(0)+(bg>0?' / $'+bg.toFixed(0):'')+'</div><input class="num cbinp" value="'+(bg||'')+'" placeholder="cap" onchange="setCatBudget(\''+c+'\',this.value)"></div>';}).join('')+'</div>'
+      return '<div class=cbrow><div class=cblab>'+esc(c)+'</div><div class=cbbarwrap><div class=cbbar style="width:'+p.toFixed(0)+'%;'+(ov?'background:'+RED:'')+'"></div></div><div class=cbspent'+(ov?' style="color:'+RED+'"':'')+'>$'+sp.toFixed(0)+(bg>0?' / $'+bg.toFixed(0):'')+'</div><input class="num cbinp" inputmode=decimal value="'+(bg||'')+'" placeholder="cap" onchange="setCatBudget(\''+c+'\',this.value)"></div>';}).join('')+'</div>'
     +'<div class=mut style="font-size:11px;margin-top:6px">'+(capTot>0?'Category caps total <b style="color:#c3ccdb">$'+capTot.toFixed(0)+'</b>'+(bud>0?' vs overall budget $'+bud.toFixed(0):'')+' this month.':'Set a cap on any category to track it against this month’s spend.')+'</div>';
   h+=grp('budgets','Category budgets',capTot>0?'$'+capTot.toFixed(0)+' capped':'optional',budBody);
   // ---- 4. Trends & insights ----
@@ -1049,7 +1049,7 @@ function renderSim(){
   if(N>=1&&pcs.length){pp=simPlayable(15000);
     cbBody+='<div class=playstat><div class=playpct>'+(pp*100).toFixed(1)+'%</div><div><div class=playlab>You open a playable hand</div><div class=mut style="font-size:11px">at least one of your '+pcs.length+' checked combo'+(pcs.length>1?'s comes':' comes')+' together in your opening '+n+(hasDraws()?', draw/dig resolved':'')+'</div></div></div>';}
   cbBody+='<div class=combobuild><input type=text id=comboNm placeholder="combo name (e.g. Starter + any card)" style="min-width:210px">'
-    +comboDraft.reqs.map(function(r,i){return '<div class=comboreq><span class=mut style="font-size:11px">need</span><input class=cnum type=number min=1 value="'+(r.count||1)+'" onchange="comboReqCount('+i+',this.value)"><select onchange="comboReqSel('+i+',this.value)">'+selOptions(r.sel)+'</select><span class=x onclick="comboDelReq('+i+')">✕</span></div>';}).join('')
+    +comboDraft.reqs.map(function(r,i){return '<div class=comboreq><span class=mut style="font-size:11px">need</span><input class=cnum type=number inputmode=numeric min=1 value="'+(r.count||1)+'" onchange="comboReqCount('+i+',this.value)"><select onchange="comboReqSel('+i+',this.value)">'+selOptions(r.sel)+'</select><span class=x onclick="comboDelReq('+i+')">✕</span></div>';}).join('')
     +'<div style="display:flex;gap:8px;margin-top:8px"><button onclick="comboAddReq()">+ Requirement</button><button onclick="comboSave()">Save combo</button></div></div>'
     +'<div class=mut style="font-size:11px;margin:8px 0 10px;max-width:648px">A combo counts as opened when your hand (draw/dig resolved) holds <b>distinct</b> cards meeting every requirement — e.g. “1 Starter + 1 any card”, or a conditional starter as “1 [that card] + 1 [its enabler spell]”. Tick the ✓ on a combo to fold it into the <b>playable-hand</b> % above (the union of your checked lines). Probabilities come from a 15,000-hand simulation.</div>';
   if(!St.combos.length)cbBody+='<div class=empty style="padding:4px 2px">No combos yet — build one above.</div>';
@@ -1061,7 +1061,7 @@ function renderSim(){
   var uniq=simUniq().sort(function(a,b){var na=BY[a.id]?BY[a.id].n:'',nb=BY[b.id]?BY[b.id].n:'';return na<nb?-1:na>nb?1:0;});
   var rolesBody=!uniq.length?'<div class=empty>No Main Deck cards yet.</div>'
     :'<div class=mut style="font-size:11px;margin-bottom:8px">Tap tags to toggle (a card can have several). “Draws” = how many extra cards you see when you activate it (draw/dig spells) — used by the odds simulation. Tags are remembered per card across decks.</div><div class=tscroll><table><tr><th>Card</th><th>Qty</th><th>Tags</th><th>Draws</th></tr>'+uniq.map(function(u){var c=BY[u.id];
-      return '<tr><td class=nm onclick="openM('+u.id+')">'+esc(c?c.n:''+u.id)+'</td><td>'+u.q+'</td><td style="white-space:normal"><div class=tchips>'+TAGS.map(function(T){var on=cardTags(u.id).indexOf(T[0])>=0;return '<span class="tchip'+(on?' on':'')+'"'+(on?' style="background:'+T[2]+';border-color:'+T[2]+';color:#0b1330"':'')+' onclick="toggleTag('+u.id+',\''+T[0]+'\')">'+T[1]+'</span>';}).join('')+'</div></td><td><input class=cnum type=number min=0 value="'+(St.draws[u.id]||'')+'" placeholder="0" onchange="setDraws('+u.id+',this.value)"></td></tr>';}).join('')+'</table></div>';
+      return '<tr><td class=nm onclick="openM('+u.id+')">'+esc(c?c.n:''+u.id)+'</td><td>'+u.q+'</td><td style="white-space:normal"><div class=tchips>'+TAGS.map(function(T){var on=cardTags(u.id).indexOf(T[0])>=0;return '<span class="tchip'+(on?' on':'')+'"'+(on?' style="background:'+T[2]+';border-color:'+T[2]+';color:#0b1330"':'')+' onclick="toggleTag('+u.id+',\''+T[0]+'\')">'+T[1]+'</span>';}).join('')+'</div></td><td><input class=cnum type=number inputmode=numeric min=0 value="'+(St.draws[u.id]||'')+'" placeholder="0" onchange="setDraws('+u.id+',this.value)"></td></tr>';}).join('')+'</table></div>';
   h+=grp('sroles','Card roles &amp; tags',uniq.length+' cards',rolesBody);
   document.getElementById('simBody').innerHTML=h;}
 
@@ -1401,7 +1401,7 @@ function gridTile(key,id,inDeck,li){var m=bucket(key),c=BY[id],e=inDeck?m[id]:(i
     +'<div class=gimgwrap onclick="openM('+id+')"><img class=gimg src="'+imgSrc(id)+'" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'noart\')"><div class=gph>'+esc(c.n)+'</div>'
       +'<div class=gqty>×'+e.q+'</div>'+(unowned?'<div class=gneed title="you still need '+buy+'">◆'+buy+'</div>':'')+'</div>'
     +'<div class=gname onclick="openM('+id+')" title="'+eatt(c.n)+'">'+esc(c.n)+'</div>'
-    +'<div class=gmeta>'+(inDeck?'<span>'+f(p)+'</span><span class=mut>own '+own+'</span>':'<input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed" onclick="event.stopPropagation()"><span class=mut>'+((e.cond||'')||(e.ov!=null?'yours':''))+'</span>')+'</div>'
+    +'<div class=gmeta>'+(inDeck?'<span>'+f(p)+'</span><span class=mut>own '+own+'</span>':'<input inputmode=decimal class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed" onclick="event.stopPropagation()"><span class=mut>'+((e.cond||'')||(e.ov!=null?'yours':''))+'</span>')+'</div>'
     +'<div class=gact><span class=qbtn onclick="setQ(\''+key+'\','+id+',-1'+L+')">–</span><span class=gqn>'+e.q+'</span><span class=qbtn onclick="setQ(\''+key+'\','+id+',1'+L+')">+</span><span class=gsp></span>'+addb+'<span class=x onclick="del(\''+key+'\','+id+''+L+')">✕</span></div>'
     +'<div class=gact><select class=grar onchange="setR(\''+key+'\','+id+',this.value'+L+')">'+raropts+'</select>'+condsel+prsel+mv+'</div>'
     +'</div>';}
@@ -1424,7 +1424,7 @@ function listRow(key,id,inDeck,li){var m=bucket(key),c=BY[id],e=inDeck?m[id]:(is
     +prcell+(inDeck?'<td class="r mut">'+own+'</td><td class="r"'+(buy>0?' style="color:var(--warn);font-weight:700"':'')+'>'+buy+'</td>':'')
     +'<td><select onchange="setR(\''+key+'\','+id+',this.value'+L+')" style="font-size:11px">'+opts+'</select></td>'
     +condcell
-    +(inDeck?'<td class="r">'+f(p)+'</td>':'<td class="r"><input class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed price"></td>')
+    +(inDeck?'<td class="r">'+f(p)+'</td>':'<td class="r"><input inputmode=decimal class="ovin'+(e.ov!=null?' ovset':'')+'" value="'+(e.ov!=null?e.ov:'')+'" placeholder="'+(feed!=null?feed.toFixed(2):'—')+'" onchange="setOv(\''+key+'\','+id+',this.value'+L+')" title="your price — blank uses the feed price"></td>')
     +'<td class="r">'+f(p==null?null:p*(inDeck?buy:e.q))+'</td>'
     +'<td>'+extra+mv+' <span class=x onclick="del(\''+key+'\','+id+''+L+')">✕</span></td></tr>';}
 function secTable(sec,label,lim,lq){var m=curDeck()[sec];var cnt=0;Object.keys(m).forEach(function(id){cnt+=m[id].q;});

@@ -424,6 +424,20 @@ tr:hover td{background:rgba(40,58,110,.3)}
    the tracks wider than the container — which silently knocks the two rows out of alignment. */
 .bemzrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);padding:0 calc(var(--bside) + var(--bgap))}
 .bemzrow .bslot:nth-child(1){grid-column:2}.bemzrow .bslot:nth-child(2){grid-column:4}
+/* the opponent's 5-wide rows use the same inset as the EMZ so all four rows line up */
+.bzrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);
+  padding:0 calc(var(--bside) + var(--bgap))}
+.bopp .bslot{border-color:rgba(255,107,129,.34);background:rgba(46,16,28,.28)}
+.bopp .bslot.bempty:hover{border-color:var(--dang)}
+.boppbar{display:flex;align-items:flex-end;gap:var(--bgap);flex-wrap:wrap;margin-bottom:2px;
+  padding-bottom:6px;border-bottom:1px dashed rgba(255,107,129,.3)}
+.boplab{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#ff9aa8;
+  align-self:center;margin-right:2px}
+.bopfs{width:var(--bside);flex:none;min-width:0;margin-left:auto}
+.bopfs .bslot{width:var(--bside);border-color:rgba(255,107,129,.34)}
+/* compact piles for the opponent strip */
+.bpile.bpc{width:calc(var(--bside) * .82)}
+.bpile.bpc .bpcount{font-size:8px}
 .bmainrow{display:flex;gap:var(--bgap);align-items:stretch}
 .bzones{flex:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--bgap);min-width:0}
 .bside{width:var(--bside);flex:none;min-width:0;display:flex;align-items:center;justify-content:center}
@@ -598,7 +612,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 @media(max-width:640px){
   /* header becomes two rows: title + KPIs, then the tab strip. Its real height is measured
      into --hh at runtime by syncHH(), so nothing here has to be kept in sync by hand. */
-  :root{--bside:46px;--bgap:4px;--bhand:44px;
+  :root{--bside:46px;--bgap:3px;--bhand:44px;
         --hpv:8px;--hph:10px;--cpv:10px;--cph:12px;--wpt:12px;--wph:12px}
   header{gap:8px}
   h1{font-size:15px}
@@ -622,8 +636,14 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .modal h2{font-size:18px}
   .cimg{width:104px;margin:0 0 10px 12px}
   .rsets{max-width:none}
-  /* ---- solo board: scale the field, never stack it (the spatial layout IS the feature) ---- */
-  .bfield{padding:7px;border-radius:11px}
+  /* ---- solo board: scale the field, never stack it (the spatial layout IS the feature) ----
+     With the opponent's side in play the board is twice as tall, so the phone squeezes the
+     zones inward: the side padding narrows all five columns proportionally. */
+  /* tighten via --bgap, never by overriding `gap` directly: .bzrow/.bemzrow derive their
+     inset from calc(--bside + --bgap), so a raw gap override desynchronises the rows. */
+  .bfield{padding:6px 5%;border-radius:11px}
+  .boppbar{padding-bottom:4px}
+  .boplab{font-size:8px}
   .bviewer{padding:10px}
   .bvbox{max-height:90vh;border-radius:12px}
   .bvcards{grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;padding:10px}
@@ -1150,6 +1170,11 @@ function boardNew(){var d=St.decks[simName()];if(!d){board=null;renderSim();retu
   var ex=[];for(var id in d.extra)for(var k=0;k<d.extra[id].q;k++)ex.push(+id);
   board={deck:shuffle(deck),ex:ex,hand:[],gy:[],ban:[],
     mon:[[],[],[],[],[]],st:[[],[],[],[],[]],emz:[[],[]],fs:[[]],
+    /* Opponent side. Mirrored zones plus their own piles; the EMZ above is SHARED, which is
+       why it isn't duplicated here. Their deck/extra start empty — this side exists to park
+       and attack into their cards, not to goldfish a second deck. */
+    omon:[[],[],[],[],[]],ost:[[],[],[],[],[]],ofs:[[]],
+    odeck:[],oex:[],ohand:[],ogy:[],oban:[],
     lp:{you:8000,opp:8000},lpHist:[],log:[]};
   sel=null;viewer=null;placeMode='atk';attachMode=false;tokDraft=false;
   fxDraft=false;renderSim();}
@@ -1159,15 +1184,18 @@ function inst(id){return {id:+id,fd:false,def:false};}
 function tokInst(n,atk,df){return {id:null,tok:{n:n||'Token',atk:atk,df:df},fd:false,def:false};}
 function cardOf(it){return it&&it.tok?null:BY[it&&it.id];}
 function nameOf(it){return it?(it.tok?it.tok.n:((BY[it.id]||{}).n||'')):'';}
-function isSlot(k){return k==='mon'||k==='st'||k==='emz'||k==='fs';}
+var SLOTS={mon:1,st:1,emz:1,fs:1,omon:1,ost:1,ofs:1};
+function isSlot(k){return !!SLOTS[k];}
+var OPPZ={omon:1,ost:1,ofs:1,odeck:1,oex:1,ohand:1,ogy:1,oban:1};
+function isOpp(k){return !!OPPZ[k];}
+/* deck and extra hold bare card ids; every other pile holds instances */
+function isIdPile(k){return k==='deck'||k==='ex'||k==='odeck'||k==='oex';}
 function zArr(k,s){return isSlot(k)?board[k][s]:board[k];}
 function selInst(){if(!sel||!board)return null;
-  if(sel.k==='deck')return board.deck.length?inst(board.deck[sel.i]):null;
-  if(sel.k==='ex')return board.ex.length?inst(board.ex[sel.i]):null;
+  if(isIdPile(sel.k))return board[sel.k].length?inst(board[sel.k][sel.i]):null;
   var a=zArr(sel.k,sel.s);return a?a[sel.i]:null;}
 function selRemove(){if(!sel)return null;var it,id;
-  if(sel.k==='deck'){id=board.deck.splice(sel.i,1)[0];it=inst(id);}
-  else if(sel.k==='ex'){id=board.ex.splice(sel.i,1)[0];it=inst(id);}
+  if(isIdPile(sel.k)){id=board[sel.k].splice(sel.i,1)[0];it=inst(id);}
   else{var a=zArr(sel.k,sel.s);it=a.splice(sel.i,1)[0];}
   return it;}
 function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();return;}
@@ -1185,10 +1213,10 @@ function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();retu
     board[destK][destS].push(it);
   } else if(destK==='deckTop'){board.deck.unshift(it.id);}
   else if(destK==='deckBtm'){board.deck.push(it.id);}
-  else if(destK==='ex'){board.ex.push(it.id);}
   else if(destK==='off'){/*removed from play*/}
-  else if(destK==='hand'){it.fd=false;it.def=false;board.hand.push(it);}
-  else{it.fd=false;board[destK].push(it);} /* gy, ban */
+  else if(isIdPile(destK)){board[destK].push(it.id);}        /* deck / extra, either side */
+  else if(destK==='hand'||destK==='ohand'){it.fd=false;it.def=false;board[destK].push(it);}
+  else{it.fd=false;board[destK].push(it);} /* gy, ban, ogy, oban */
   sel=null;renderSim();}
 function bSelect(k,s,i){if(sel&&sel.k===k&&sel.s===s&&sel.i===i)sel=null;else sel={k:k,s:s,i:i};viewer=null;renderSim();}
 function bSlotTap(k,s){
@@ -1282,11 +1310,12 @@ function bCardHTML(it,seld,mini){var c=cardOf(it),nm=nameOf(it);
 function slotHTML(k,s,label){var a=board[k][s],has=a&&a.length,seld=sel&&sel.k===k&&sel.s===s;
   var body=has?a.map(function(it,i){return bCardHTML(it,seld&&sel.i===i,false);}).join(''):'<span class=bslab>'+label+'</span>';
   return '<div class="bslot'+(has?'':' bempty')+((sel&&!has)?' bdrop':'')+'" data-z="'+k+'" data-s="'+s+'" onclick="bSlotTap(\''+k+'\','+s+')">'+body+'</div>';}
-function pileHTML(k,label){var a=k==='deck'?board.deck:(k==='ex'?board.ex:board[k]),n=a.length,top;
-  if((k==='gy'||k==='ban')&&n)top=bCardHTML(board[k][n-1],false,true);
+var FACEUP_PILE={gy:1,ban:1,ogy:1,oban:1};   /* these show their top card; the rest show a back */
+function pileHTML(k,label,compact){var a=board[k]||[],n=a.length,top;
+  if(FACEUP_PILE[k]&&n)top=bCardHTML(a[n-1],false,true);
   else if(n)top='<div class=bback>&#9672;</div>';
   else top='<span class=bslab>'+label+'</span>';
-  return '<div class="bpile'+(n?'':' bempty')+'" data-pile="'+k+'" onclick="bPileTap(\''+k+'\')"><div class=bpcount>'+label+' &middot; '+n+'</div><div class=bptop>'+top+'</div></div>';}
+  return '<div class="bpile'+(n?'':' bempty')+(compact?' bpc':'')+'" data-pile="'+k+'" onclick="bPileTap(\''+k+'\')"><div class=bpcount>'+label+' &middot; '+n+'</div><div class=bptop>'+top+'</div></div>';}
 function bPileTap(k){ if(dragJustEnded)return; bView(k); }
 function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel.k);
   var h='<div class=btoolbar><span class=btsel>'+esc(nameOf(it))+(it.fd?' &middot; face-down':'')+(it.def?' &middot; DEF':'')+'</span><span class=btsep></span>'
@@ -1320,15 +1349,16 @@ function bHandTap(i){ if(dragJustEnded)return; bSelect('hand',null,i); }
 function bMatDetach(i){var host=selInst();if(!host||!host.mat||!host.mat[i])return;
   var m=host.mat.splice(i,1)[0];m.fd=false;m.def=false;board.gy.push(m);
   if(!host.mat.length)viewer=null;renderSim();}
+var PILE_LABEL={deck:'Deck',ex:'Extra Deck',gy:'Graveyard',ban:'Banished',hand:'Hand',
+  odeck:'Opponent deck',oex:'Opponent extra',ogy:'Opponent graveyard',oban:'Opponent banished',ohand:'Opponent hand'};
 function viewerHTML(){if(!viewer)return '';var k=viewer,title,arr,act;
-  if(k==='deck'){title='Deck ('+board.deck.length+')';arr=board.deck.map(function(id,i){return {it:{id:id},i:i};});}
-  else if(k==='ex'){title='Extra Deck ('+board.ex.length+')';arr=board.ex.map(function(id,i){return {it:{id:id},i:i};});}
+  if(isIdPile(k)){title=PILE_LABEL[k]+' ('+board[k].length+')';arr=board[k].map(function(id,i){return {it:{id:id},i:i};});}
   else if(k==='mat'){var host=selInst();
     if(!host||!host.mat||!host.mat.length){viewer=null;return '';}
     title='Xyz materials ('+host.mat.length+') &mdash; tap one to detach to the GY';
     arr=host.mat.map(function(it,i){return {it:it,i:i};});
     act=function(i){return 'bMatDetach('+i+')';};}
-  else{title=(k==='gy'?'Graveyard':'Banished')+' ('+board[k].length+')';arr=board[k].map(function(it,i){return {it:it,i:i};});}
+  else{title=(PILE_LABEL[k]||k)+' ('+board[k].length+')';arr=board[k].map(function(it,i){return {it:it,i:i};});}
   if(!act)act=function(i){return 'bSelect(\''+k+'\',null,'+i+')';};
   var cards=arr.map(function(o){var it=o.it;
     var body=it.tok
@@ -1373,6 +1403,14 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+=boardToolbar();
   if(!sel)h+='<div class=bhint>Hold a card to drag it, or tap it and then tap the zone. Tap a pile to view and act on its cards.</div>';
   h+='<div class=bfield>';
+  /* Opponent side, mirrored: their piles collapse into one compact strip, then S/T behind
+     monsters, so their monster row sits directly across the shared EMZ from yours. */
+  h+='<div class=boppbar><span class=boplab>Opponent</span>'
+    +pileHTML('odeck','Deck',1)+pileHTML('oex','Extra',1)+pileHTML('ogy','GY',1)
+    +pileHTML('oban','Ban',1)+pileHTML('ohand','Hand',1)
+    +'<div class=bopfs>'+slotHTML('ofs',0,'Field')+'</div></div>';
+  h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('ost',s,'S'+(5-s));}).join('')+'</div>';
+  h+='<div class="bzrow bopp">'+[0,1,2,3,4].map(function(s){return slotHTML('omon',s,'M'+(5-s));}).join('')+'</div>';
   h+='<div class=bemzrow>'+slotHTML('emz',0,'EMZ')+slotHTML('emz',1,'EMZ')+'</div>';
   h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('gy','GY')+'</div></div>';
   h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';

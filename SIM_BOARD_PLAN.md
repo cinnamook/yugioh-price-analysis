@@ -86,10 +86,17 @@ banish-top, shuffle, and view-and-act.
 
 ## Belongs to the online-duel layer (far horizon — not the solo board)
 
-A second player's field, change-of-control (moving a card to the opponent's side),
-targeting graphics, in-duel chat, spectating, replays-as-shared-links, matchmaking.
-These are the north-star **online duels** feature and sit on the auth + sync +
-backend base, so they come after sync — not part of the solo-board work.
+Targeting graphics, in-duel chat, spectating, replays-as-shared-links,
+matchmaking, and a *networked* second player. These are the north-star **online
+duels** feature and sit on the auth + sync + backend base, so they come after
+sync — not part of the solo-board work.
+
+**Note (2026-08-07):** a *manual* opponent side now exists on the solo board —
+mirrored monster and S/T rows with a shared EMZ, their own field spell, and a
+compact strip of their deck / extra / GY / banished / hand. Change-of-control is
+therefore just a drag across the middle. None of this is networked; it's somewhere
+to park and attack into their cards while goldfishing. Their deck and extra start
+empty by design — this is not a second goldfish deck.
 
 ## Suggested build order
 

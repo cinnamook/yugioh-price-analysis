@@ -35,9 +35,11 @@ So your collection follows you instead of starting empty per device. Full spec i
 pull-on-load + debounced push, last-write-wins. Free tier. This is also the
 **auth foundation** the marketplace / profiles / online duels will reuse.
 
-Open decision before building: whether the hosted app becomes the everyday app on
-all devices (desktop included), with the local `file://` version kept only as the
-offline / local-art extra.
+**Decided 2026-08-07:** the **hosted** app is the everyday app on *every* device,
+desktop included. It's the only viable sync target anyway — magic-link and OAuth
+redirects don't work from `file://`. The local `file://` build stays as the
+offline / local-art extra, deliberately **out of sync**. Auth method: **magic-link
+email**.
 
 ## Backlog
 

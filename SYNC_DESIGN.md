@@ -80,7 +80,11 @@ saves.
   ship LWW, add a "last synced ✓ / syncing…" indicator so you can *see* state,
   revisit merge only if it actually bites.
 
-- **Which app is canonical across devices.** OAuth redirects and CORS don't play
+- ~~**Which app is canonical across devices.**~~ **DECIDED 2026-08-07: hosted
+  everywhere.** The github.io app is the everyday app on desktop and phone, both
+  synced; the local `file://` build stays as the offline / local-art extra and is
+  deliberately out of sync. Original reasoning below.
+  OAuth redirects and CORS don't play
   nicely with `file://`, so sync realistically targets the **hosted** app on all
   devices — including desktop, opened as the github.io URL in a browser tab. The
   local `file://ap­p.html` stays as the fully-offline, local-2.3 GB-art power
@@ -89,8 +93,9 @@ saves.
   desktop also the hosted URL and drop the local file) is simpler mentally but
   gives up instant local art. Your call.
 
-- **Auth method.** Magic-link email (recommended, nothing to remember) vs Google
-  sign-in (one tap if you're logged into Google). Either is one Supabase setting.
+- ~~**Auth method.**~~ **DECIDED 2026-08-07: magic-link email** — nothing to
+  remember, and no password ever handled by the app. (Google sign-in remains one
+  Supabase setting away if it's ever wanted.)
 
 ## Security notes (so it's done right)
 

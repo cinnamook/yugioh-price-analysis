@@ -248,11 +248,22 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .distn{font-size:11px;color:#c3ccdb;margin-top:4px;font-variant-numeric:tabular-nums}
 .distlab{font-size:10px;color:var(--mut);margin-top:1px}
 /* solo board */
-.btoolbar{position:sticky;top:var(--hh);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:5px;background:linear-gradient(180deg,rgba(24,38,78,.96),rgba(14,22,50,.96));border:1px solid var(--gold);border-radius:11px;padding:8px 11px;margin:10px 0;box-shadow:0 6px 20px rgba(2,6,20,.5)}
+/* Fixed, not sticky: it only exists while a card is selected, and it must be reachable
+   without scrolling back up to wherever the card happened to be. Out of flow, so nothing
+   below it shifts when it appears. */
+.btoolbar{position:fixed;top:calc(var(--hh) + 8px);left:12px;right:12px;z-index:30;
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px;max-height:44vh;overflow-y:auto;
+  background:linear-gradient(180deg,rgba(24,38,78,.985),rgba(14,22,50,.985));
+  border:1px solid var(--gold);border-radius:11px;padding:9px 11px;margin:0;
+  box-shadow:0 10px 34px rgba(2,6,20,.7);backdrop-filter:blur(8px)}
+@media(min-width:901px){.btoolbar{left:50%;right:auto;transform:translateX(-50%);width:min(1000px,calc(100% - 44px))}}
+.btoolbar .btsel{width:100%;font-size:13px}
 .btoolbar button{font-size:11px;padding:5px 9px}
 .btsel{font-weight:700;color:var(--gold2);font-size:12px}
 .btsep{width:1px;height:16px;background:var(--line2);margin:0 3px}
 .btoolbar button.bon{background:var(--gold);color:#1a1300;border-color:var(--gold);font-weight:700}
+.btoolbar button.bprim{background:linear-gradient(180deg,#2c3a6e,#1d2850);border-color:var(--acc);color:var(--ink);font-weight:600}
+.btoolbar button.bprim:hover{border-color:var(--gold);color:var(--gold2)}
 .bctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .bhint{font-size:11.5px;color:var(--mut);margin:8px 0 2px}
 .bfield{display:flex;flex-direction:column;gap:var(--bgap);margin:6px auto 0;max-width:720px;background:radial-gradient(ellipse at 50% 38%,rgba(30,46,96,.35),rgba(8,13,32,.42));border:1px solid var(--line2);border-radius:14px;padding:12px}
@@ -292,10 +303,13 @@ tr:hover td{background:rgba(40,58,110,.3)}
 /* touch-action:none only on the cards themselves, so a touch that starts on a card
    drags it instead of scrolling the page; gaps and labels still scroll normally. */
 .bslot .bcard,.bhcards .bcard{touch-action:none}
-.bghost{position:fixed;z-index:60;width:64px;pointer-events:none;transform:translate(-50%,-50%) rotate(3deg);
+/* height:auto is load-bearing — .bcard sets height:100%, and on a position:fixed clone that
+   resolves against the VIEWPORT, which rendered the drag ghost as a full-height strip. */
+.bghost{position:fixed;z-index:60;width:64px;height:auto;pointer-events:none;transform:translate(-50%,-50%) rotate(3deg);
   aspect-ratio:59/86;box-shadow:0 12px 30px rgba(2,6,20,.65);opacity:.92;border-radius:7px;overflow:hidden}
 .bghost img{width:100%;height:100%;object-fit:cover;display:block}
 .bdim{opacity:.32}
+.bheld{transform:scale(1.08);box-shadow:0 0 0 2px var(--gold),0 8px 20px rgba(2,6,20,.6);z-index:5}
 .bhot{outline:2px solid var(--gold);outline-offset:1px;background:rgba(232,198,106,.12)!important}
 .bpile.bhot .bptop{border-color:var(--gold)}
 /* --- Xyz materials --- */
@@ -317,10 +331,6 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bfx{position:absolute;right:2px;top:2px;z-index:4;width:14px;height:14px;display:flex;
   align-items:center;justify-content:center;border-radius:50%;background:rgba(232,198,106,.95);
   color:#1a1300;font-size:8px;box-shadow:0 1px 4px rgba(2,6,20,.6)}
-.bfxprompt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:12px;
-  color:#c9d4ea;background:linear-gradient(90deg,rgba(232,198,106,.12),transparent);
-  border-left:3px solid var(--gold);border-radius:9px;padding:9px 13px}
-.bfxprompt button{font-size:11px;padding:5px 9px;min-height:30px}
 .bfxlog{margin-top:10px;border:1px solid var(--line2);border-radius:11px;padding:9px 12px;
   background:linear-gradient(180deg,rgba(24,38,78,.42),rgba(12,20,46,.48))}
 .bfxrow{font-size:11.5px;color:#c3ccdb;padding:3px 0;border-bottom:1px solid rgba(67,89,143,.25);line-height:1.4}
@@ -983,7 +993,7 @@ function renderSim(){
 
 /* ===== Solo playtest board (DuelingBook-like: interactable piles + proper field) ===== */
 var board=null, sel=null, placeMode='atk', viewer=null, dragJustEnded=false;
-var fxDraft=false, lastPlaced=null;
+var fxDraft=false;
 function boardNew(){var d=St.decks[simName()];if(!d){board=null;renderSim();return;}
   var deck=[];for(var id in d.main)for(var k=0;k<d.main[id].q;k++)deck.push(+id);
   var ex=[];for(var id in d.extra)for(var k=0;k<d.extra[id].q;k++)ex.push(+id);
@@ -991,7 +1001,7 @@ function boardNew(){var d=St.decks[simName()];if(!d){board=null;renderSim();retu
     mon:[[],[],[],[],[]],st:[[],[],[],[],[]],emz:[[],[]],fs:[[]],
     lp:{you:8000,opp:8000},lpHist:[],log:[]};
   sel=null;viewer=null;placeMode='atk';attachMode=false;tokDraft=false;
-  fxDraft=false;lastPlaced=null;renderSim();}
+  fxDraft=false;renderSim();}
 function inst(id){return {id:+id,fd:false,def:false};}
 /* A token has no card id — `tok` carries its printed values instead, and every
    reader below checks `it.tok` before reaching for BY[it.id]. */
@@ -1022,8 +1032,7 @@ function place(destK,destS){var it=selRemove();if(!it){sel=null;renderSim();retu
     else if(placeMode==='def'){it.fd=false;it.def=true;}
     else{it.fd=false;it.def=false;}
     board[destK][destS].push(it);
-    lastPlaced={k:destK,s:destS,i:board[destK][destS].length-1};   /* offers "declare effect" */
-  } else if(destK==='deckTop'){board.deck.unshift(it.id);lastPlaced=null;}
+  } else if(destK==='deckTop'){board.deck.unshift(it.id);}
   else if(destK==='deckBtm'){board.deck.push(it.id);}
   else if(destK==='ex'){board.ex.push(it.id);}
   else if(destK==='off'){/*removed from play*/}
@@ -1070,14 +1079,14 @@ function lpReset(){if(!board)return;board.lp={you:8000,opp:8000};board.lpHist=[]
    The board is a manual sim, so it can't know what a card does. Declaring it in your own
    words is what makes a line reviewable afterwards — the note sticks to the card AND lands
    in a running list, which is the seed of the action log in SIM_BOARD_PLAN.md. */
+/* Opt-in only: reached from the "Declare" button while a card is selected. It used to
+   prompt automatically after every placement, which got in the way far more than it helped. */
 function bDeclareOpen(){fxDraft=!fxDraft;renderSim();}
-function bDeclareFor(){ if(!lastPlaced)return;
-  sel={k:lastPlaced.k,s:lastPlaced.s,i:lastPlaced.i}; fxDraft=true; renderSim(); }
 function bDeclare(){var it=selInst();if(!it){fxDraft=false;renderSim();return;}
   var el=document.getElementById('fxIn'),t=(el&&el.value||'').trim();
   if(!t){fxDraft=false;renderSim();return;}
   it.fx=t; board.log.push({n:nameOf(it),t:t});
-  fxDraft=false; lastPlaced=null; sel=null; renderSim();}
+  fxDraft=false; sel=null; renderSim();}
 function bClearFx(){var it=selInst();if(!it)return;delete it.fx;renderSim();}
 function fxLogClear(){if(!board)return;board.log=[];renderSim();}
 function fxLogPanel(){if(!board.log.length)return '';
@@ -1135,7 +1144,10 @@ function boardToolbar(){var it=selInst();if(!it)return '';var onField=isSlot(sel
     +'<button class="'+(placeMode==='def'?'bon':'')+'" onclick="setPlace(\'def\')">DEF</button>'
     +'<button class="'+(placeMode==='set'?'bon':'')+'" onclick="setPlace(\'set\')">Set</button>'
     +'<span class=mut style="font-size:11px">&rarr; then tap a zone</span><span class=btsep></span>';
-  if(onField)h+='<button onclick="bFlip()">Flip</button><button onclick="bRot()">ATK/DEF</button><span class=btsep></span>';
+  /* On the field these two are the actions reached for constantly, so they lead and say
+     what the card will BECOME rather than naming the operation. */
+  if(onField)h+='<button class=bprim onclick="bFlip()">'+(it.fd?'&#128065; Flip face-up':'&#9632; Set face-down')+'</button>'
+    +'<button class=bprim onclick="bRot()">'+(it.def?'&#8593; To ATK':'&#8635; To DEF')+'</button><span class=btsep></span>';
   /* Xyz materials: "Attach" arms the next zone tap; detach peels one off to the GY */
   h+='<button class="'+(attachMode?'bon':'')+'" onclick="bAttach()" title="attach this card under a monster as an Xyz material">'+(attachMode?'Attach &rarr; tap a monster':'Attach')+'</button>';
   if(it.mat&&it.mat.length)h+='<button onclick="bViewMat()">Materials ('+it.mat.length+')</button><button onclick="bDetach()">Detach &rarr; GY</button>';
@@ -1208,13 +1220,7 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   if(board)h+=lpBar();
   if(!board){h+='<div class=ins style="margin-top:12px">Pick a deck and press <b>New game</b>. Then <b>tap the Deck</b> to draw or search it, <b>tap a hand card</b> then a field zone to summon or set, and <b>tap any pile</b> (GY, Banished, Extra) to open it and act on the cards inside &mdash; the way DuelingBook works.</div>';document.getElementById('simBody').innerHTML=h;return;}
   h+=boardToolbar();
-  /* right after a placement, offer to record what the card is doing — no re-selecting */
-  if(!sel&&lastPlaced){var lpc=(board[lastPlaced.k]&&board[lastPlaced.k][lastPlaced.s])?board[lastPlaced.k][lastPlaced.s][lastPlaced.i]:null;
-    if(lpc)h+='<div class=bfxprompt>Placed <b>'+esc(nameOf(lpc))+'</b>'
-      +'<button onclick="bDeclareFor()">Declare effect</button>'
-      +'<button onclick="lastPlaced=null;renderSim()">Dismiss</button></div>';
-    else lastPlaced=null;}
-  if(!sel&&!lastPlaced)h+='<div class=bhint>Drag a card to a zone, or tap it and then tap the zone. Tap a pile to view and act on its cards.</div>';
+  if(!sel)h+='<div class=bhint>Hold a card to drag it, or tap it and then tap the zone. Tap a pile to view and act on its cards.</div>';
   h+='<div class=bfield>';
   h+='<div class=bemzrow>'+slotHTML('emz',0,'EMZ')+slotHTML('emz',1,'EMZ')+'</div>';
   h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('gy','GY')+'</div></div>';
@@ -1262,20 +1268,31 @@ function dropAt(x,y){
   var k=z.getAttribute('data-z');
   return k==='hand'?{pile:'hand'}:{k:k,s:+z.getAttribute('data-s')};
 }
+/* Hold-to-drag. A bare movement threshold made every scroll swipe that began on a card
+   turn into a drag. Now the card must be held for HOLD ms before dragging arms; moving
+   more than SLOP before that cancels the intent, so a flick scrolls and a tap taps. */
+var HOLD=200, SLOP=10;
+function armDrag(){ if(!dragS)return; dragS.armed=true;
+  if(dragS.el)dragS.el.classList.add('bheld');       /* visible "picked up" cue */
+  if(navigator.vibrate)try{navigator.vibrate(12);}catch(e){} }
+function cancelDrag(){ if(dragS&&dragS.timer)clearTimeout(dragS.timer);
+  if(dragS&&dragS.el)dragS.el.classList.remove('bheld');
+  dragS=null; }
 addEventListener('pointerdown',function(e){
   if(typeof view==='undefined'||view!=='sim'||!board||viewer)return;
   if(!e.target||!e.target.closest)return;
   var cardEl=e.target.closest('.bcard');
   if(!cardEl||cardEl.classList.contains('bghost'))return;
   var src=srcOf(cardEl); if(!src)return;            /* pile tops aren't draggable */
-  dragS={src:src,x0:e.clientX,y0:e.clientY,el:cardEl,on:false};
+  dragS={src:src,x0:e.clientX,y0:e.clientY,el:cardEl,on:false,armed:false,last:e};
+  dragS.timer=setTimeout(armDrag,HOLD);
 },{passive:true});
 addEventListener('pointermove',function(e){
   if(!dragS)return;
-  if(!dragS.on){
-    if(Math.abs(e.clientX-dragS.x0)+Math.abs(e.clientY-dragS.y0)<8)return;
-    dragS.on=true; ghostStart(dragS.el,e); dragS.el.classList.add('bdim');
-  }
+  dragS.last=e;
+  var moved=Math.abs(e.clientX-dragS.x0)+Math.abs(e.clientY-dragS.y0);
+  if(!dragS.armed){ if(moved>SLOP)cancelDrag(); return; }   /* a flick: let the page scroll */
+  if(!dragS.on){ dragS.on=true; ghostStart(dragS.el,e); dragS.el.classList.add('bdim'); }
   ghostMove(e);
   clearHot();
   var t=dropAt(e.clientX,e.clientY); if(!t)return;
@@ -1283,8 +1300,11 @@ addEventListener('pointermove',function(e){
   var el=document.querySelector(q); if(el)el.classList.add('bhot');
 });
 addEventListener('pointerup',function(e){
-  if(!dragS)return; var d=dragS; dragS=null;
-  if(!d.on)return;                                  /* under threshold: it was a tap */
+  if(!dragS)return; var d=dragS;
+  if(d.timer)clearTimeout(d.timer);
+  if(d.el)d.el.classList.remove('bheld');
+  dragS=null;
+  if(!d.on)return;                                  /* never armed or never moved: it was a tap */
   ghostEnd();
   /* the click event fires right after this; the tap handlers check this flag */
   dragJustEnded=true; setTimeout(function(){dragJustEnded=false;},0);
@@ -1295,7 +1315,7 @@ addEventListener('pointerup',function(e){
   if(t.pile)place(toPile[t.pile]||'hand');
   else place(t.k,t.s);
 });
-addEventListener('pointercancel',function(){ if(dragS){ghostEnd();dragS=null;} });
+addEventListener('pointercancel',function(){ if(dragS){ghostEnd();cancelDrag();} });
 })();
 
 /* ===== Match log & win-rate analytics ===== */

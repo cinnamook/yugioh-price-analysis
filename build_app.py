@@ -147,13 +147,30 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>&lt
   /* --hh = header height. Sticky table heads and the board toolbar offset from it, so it MUST
      be re-declared in every breakpoint that changes the header's height. */
   --hh:57px;
+  /* iOS safe areas. The head asks for viewport-fit=cover + a translucent status bar, so the
+     page really does extend under the notch and the home indicator — these insets are what
+     keep content out from under them. Wrapped in custom properties (rather than calling env()
+     at each use site) so breakpoints stay readable and the values can be simulated in a
+     desktop browser for testing; env() itself always resolves to 0px there.
+     Everything below is calc(base + inset), so on any non-notched screen it equals the base
+     and the desktop layout is byte-identical to before. */
+  --sat:env(safe-area-inset-top,0px);
+  --sar:env(safe-area-inset-right,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);
+  /* page gutters, re-declared per breakpoint; the insets are added on top of them */
+  --hpv:12px;--hph:22px;   /* header  padding vertical / horizontal */
+  --cpv:12px;--cph:22px;   /* controls bar */
+  --wpt:16px;--wph:22px;   /* .wrap content */
   /* solo-board geometry: side column (field/GY/extra/deck piles) and the gap between zones.
      .bemzrow's padding is derived from these, so shrinking the board is a two-value change. */
   --bside:72px;--bgap:7px}
 *{box-sizing:border-box}
 body{font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;color:var(--ink);-webkit-font-smoothing:antialiased;
   background:radial-gradient(1100px 560px at 78% -12%,#161e30 0%,var(--bg) 55%) fixed,var(--bg)}
-header{padding:12px 22px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;background:rgba(11,15,23,.82);backdrop-filter:blur(12px);z-index:20}
+/* padding-top carries the status-bar/notch inset; the background still bleeds full-width
+   under it. --hh is measured from offsetHeight, so the sticky offsets follow automatically. */
+header{padding:calc(var(--hpv) + var(--sat)) calc(var(--hph) + var(--sar)) var(--hpv) calc(var(--hph) + var(--sal));border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;background:rgba(11,15,23,.82);backdrop-filter:blur(12px);z-index:20}
 h1{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
 h1::before{content:"◆";color:var(--acc);font-size:14px}
 /* 11 tabs never fit a phone: the strip scrolls sideways instead of overflowing the page.
@@ -168,13 +185,14 @@ h1::before{content:"◆";color:var(--acc);font-size:14px}
 .kpi .v{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
 .kpi.hl{border-color:rgba(87,208,138,.4)}.kpi.hl .v{color:var(--pos)}
 .kpi .l{color:var(--mut);font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
-.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:var(--cpv) calc(var(--cph) + var(--sar)) var(--cpv) calc(var(--cph) + var(--sal));border-bottom:1px solid var(--line);background:var(--bg2)}
 input,select,button{background:var(--surf);color:var(--ink);border:1px solid var(--line2);border-radius:9px;padding:7px 11px;font:inherit;font-size:12px;transition:.15s}
 input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,147,255,.16)}
 input[type=text]{width:162px}.num{width:66px}
 button{cursor:pointer}button:hover{border-color:var(--acc);color:var(--ink);background:var(--surf2)}
 label{color:var(--mut);font-size:12px;display:flex;gap:5px;align-items:center}
-.wrap{padding:16px 22px 64px;max-width:1520px}.count{color:var(--mut);margin:4px 0 12px;font-size:12px}
+/* bottom gutter clears the home indicator; 64px base keeps the existing breathing room */
+.wrap{padding:var(--wpt) calc(var(--wph) + var(--sar)) calc(64px + var(--sab)) calc(var(--wph) + var(--sal));max-width:1520px}.count{color:var(--mut);margin:4px 0 12px;font-size:12px}
 table{border-collapse:separate;border-spacing:0;width:100%}
 th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{color:var(--mut);font-weight:600;cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:var(--bg2)}
@@ -200,7 +218,7 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .deckstats{background:linear-gradient(180deg,var(--surf),var(--bg2));border:1px solid var(--line);border-radius:12px;padding:11px 16px;margin:10px 0 6px;font-size:12px}
 .sec{font-size:14px;margin:22px 0 8px;color:var(--ink);font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
 .sec::before{content:"";width:3px;height:15px;background:var(--acc);border-radius:2px}
-#ov{position:fixed;inset:0;background:rgba(4,6,12,.72);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
+#ov{position:fixed;inset:0;background:rgba(4,6,12,.72);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:40;padding:calc(20px + var(--sat)) calc(20px + var(--sar)) calc(20px + var(--sab)) calc(20px + var(--sal))}
 .modal{background:var(--surf);border:1px solid var(--line2);border-radius:18px;max-width:600px;width:100%;max-height:88vh;overflow:auto;padding:24px 26px;box-shadow:var(--sh)}
 .modal h2{margin:0 0 3px;font-size:21px;letter-spacing:-.01em}.modal .sub{color:var(--mut);font-size:12px;margin-bottom:12px}
 .modal .tx{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:12px 15px;font-size:13px;line-height:1.65;white-space:pre-wrap;margin:12px 0}
@@ -223,8 +241,12 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .hbar{width:100%;background:linear-gradient(180deg,var(--acc),var(--acc2));border-radius:5px 5px 0 0;min-height:1px}
 .hlab{font-size:9px;color:var(--mut);margin-top:5px;text-align:center;line-height:1.1}.hn{font-size:10px;color:#c3ccdb;font-variant-numeric:tabular-nums}
 /* ===== Final Fantasy theme layer ===== */
-html{background:linear-gradient(165deg,#0b1636 0%,#070c1c 55%,#05091a 100%) fixed}
-body{background:transparent}
+/* background-color UNDER the gradient: the gradient is background-attachment:fixed, so it only
+   paints a viewport-sized box. iOS rubber-band overscroll and the home-indicator strip fall
+   outside that box and showed white. The solid colour propagates to the viewport canvas and
+   covers both. min-height keeps it filling short pages too. */
+html{background:linear-gradient(165deg,#0b1636 0%,#070c1c 55%,#05091a 100%) fixed;background-color:#05091a;min-height:100%}
+body{background:transparent;min-height:100vh}
 #bg{position:fixed;inset:0;z-index:-1;pointer-events:none}
 #aura{position:fixed;inset:-25%;z-index:-2;pointer-events:none;opacity:.6;
   background:radial-gradient(620px 460px at 22% 28%,rgba(90,120,255,.14),transparent 60%),radial-gradient(720px 520px at 80% 72%,rgba(143,220,255,.12),transparent 62%),radial-gradient(520px 420px at 62% 18%,rgba(232,198,106,.08),transparent 60%),radial-gradient(560px 460px at 40% 85%,rgba(90,220,180,.08),transparent 60%);
@@ -383,7 +405,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bhlab{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:6px}
 .bhcards{display:flex;flex-wrap:wrap;gap:var(--bgap)}
 .bhcards>div{width:var(--bhand,58px);aspect-ratio:59/86;cursor:pointer}
-.bviewer{position:fixed;inset:0;background:rgba(4,8,20,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.bviewer{position:fixed;inset:0;background:rgba(4,8,20,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--sat)) calc(20px + var(--sar)) calc(20px + var(--sab)) calc(20px + var(--sal))}
 .bvbox{background:linear-gradient(180deg,#141f42,#0c1430);border:1px solid var(--gold);border-radius:14px;max-width:840px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(2,6,20,.7)}
 .bvhead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line2)}
 .bvcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:9px;padding:14px;overflow:auto}
@@ -467,11 +489,12 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .tscroll table{min-width:660px}
   #browse th{position:static}          /* can't stay sticky inside a scroll container */
-  .wrap{padding:14px 14px 64px}
-  .controls{padding:10px 14px}
+  /* set the gutter variables rather than the padding shorthand — a shorthand here would
+     overwrite the safe-area insets baked into the base rules */
+  :root{--hpv:10px;--hph:14px;--cpv:10px;--cph:14px;--wpt:14px;--wph:14px}
   /* two deterministic rows (title + KPIs, then the tab strip) instead of the desktop header
      wrapping into three — the nav scrolls, so it always occupies exactly one row */
-  header{padding:10px 14px;gap:10px;flex-wrap:wrap;row-gap:8px}
+  header{gap:10px;flex-wrap:wrap;row-gap:8px}
   h1{order:1;flex:none}
   .kpis{order:2;margin-left:auto}
   .nav{order:3;width:100%}
@@ -479,8 +502,9 @@ tr:hover td{background:rgba(40,58,110,.3)}
 @media(max-width:640px){
   /* header becomes two rows: title + KPIs, then the tab strip. Its real height is measured
      into --hh at runtime by syncHH(), so nothing here has to be kept in sync by hand. */
-  :root{--bside:46px;--bgap:4px;--bhand:44px}
-  header{padding:8px 10px;gap:8px}
+  :root{--bside:46px;--bgap:4px;--bhand:44px;
+        --hpv:8px;--hph:10px;--cpv:10px;--cph:12px;--wpt:12px;--wph:12px}
+  header{gap:8px}
   h1{font-size:15px}
   /* grid tracks shrink instead of wrapping, so the KPI row can never overflow the header
      or push it onto a third line */
@@ -490,14 +514,13 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .kpi .l{font-size:8px;letter-spacing:.04em}
   .nav{order:3;width:100%;border-radius:10px}
   .nav .t{padding:7px 13px;font-size:13px}
-  .wrap{padding:12px 12px 64px}
-  .controls{padding:10px 12px;gap:6px}
+  .controls{gap:6px}
   .controls input[type=text]{width:100%;min-width:0;flex:1 1 100%}
   .controls .num{width:70px}
   .tscroll table{min-width:600px}
   th,td{padding:7px 9px}
   /* modals: the desktop padding wastes a third of a phone screen */
-  #ov{padding:10px}
+  #ov{padding:calc(10px + var(--sat)) calc(10px + var(--sar)) calc(10px + var(--sab)) calc(10px + var(--sal))}
   .modal{padding:16px 15px;max-height:92vh;border-radius:14px}
   .modal h2{font-size:18px}
   .cimg{width:104px;margin:0 0 10px 12px}
@@ -1552,8 +1575,19 @@ function tick(t){cx.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){var p=ps[i];
 (function(){var hd=document.querySelector('header');if(!hd)return;
   function syncHH(){document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');}
   syncHH();
+  /* Every case where the safe-area insets actually change also fires one of these: rotating
+     the device, entering/leaving standalone, the in-call status bar growing. These are the
+     load-bearing listeners — the observer below is only a bonus. */
   addEventListener('resize',syncHH);addEventListener('orientationchange',syncHH);
-  if(window.ResizeObserver)new ResizeObserver(syncHH).observe(hd);   /* fonts/KPI text reflow */
+  addEventListener('load',syncHH);
+  if(window.visualViewport)visualViewport.addEventListener('resize',syncHH);
+  /* Cinzel loads async and changes the header's height when it swaps in. */
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(syncHH);
+  /* box:'border-box' matters: the safe-area inset is PADDING, and a padding-only change
+     leaves the content box identical, so a default (content-box) observer would not fire
+     for the one case this is here to catch. */
+  if(window.ResizeObserver)try{new ResizeObserver(syncHH).observe(hd,{box:'border-box'});}
+  catch(e){new ResizeObserver(syncHH).observe(hd);}
 })();</script>
 <script>/* PWA: register the service worker only when hosted (not on file://) */
 if('serviceWorker' in navigator && location.protocol!=='file:'){

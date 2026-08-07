@@ -263,7 +263,9 @@ tr:hover td{background:rgba(40,58,110,.3)}
   border:1px solid var(--gold);border-radius:11px;padding:9px 11px;margin:0;
   box-shadow:0 10px 34px rgba(2,6,20,.7);backdrop-filter:blur(8px)}
 @media(min-width:901px){.btoolbar{left:50%;right:auto;transform:translateX(-50%);width:min(1000px,calc(100% - 44px))}}
-.btoolbar{position:relative}
+/* NO position:relative here — it would override the position:fixed above at equal
+   specificity and drop the toolbar back into the flow, pushing the whole field down.
+   position:fixed already establishes the containing block .btx needs. */
 .btoolbar .btsel{width:100%;font-size:13px;padding-right:44px}
 /* close sits top-right of whichever floating panel is open, as a real 38px target */
 .btx{position:absolute;top:6px;right:8px;z-index:2;width:38px;height:38px;display:flex;
@@ -288,8 +290,11 @@ tr:hover td{background:rgba(40,58,110,.3)}
    were a fixed --bside while the zones were fluid, so on a short viewport the sides became
    the tallest thing and dictated row height. Equal fr columns scale together and the rows
    align by construction rather than by a matching calc(). */
-.bfield{--cols:7}
-.bmainrow,.bzrow,.bemzrow,.boppbar{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));
+/* The side columns hold piles, not play zones, so they get a narrower track — the five
+   real zones keep their width and the traditional layout still fits a phone. */
+.bfield{--sidefr:0.60fr}
+.bmainrow,.bzrow,.bemzrow,.boppbar{display:grid;
+  grid-template-columns:var(--sidefr) repeat(5,minmax(0,1fr)) var(--sidefr);
   gap:var(--bgap);align-items:start}
 .bzones{display:contents}
 .bzrow>.bslot:first-child{grid-column:2}
@@ -334,7 +339,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 /* Applies at every width, not just desktop: on a tablet the field was width-constrained to
    something far taller than the viewport. On phones the width is still the binding limit, so
    this is a no-op there. */
-.bfield{max-width:min(720px,calc((100vh - 290px) * 0.66))}
+.bfield{max-width:min(720px,calc((100vh - 288px) * 0.64))}
 .bopfs{min-width:0}
 .bopfs .bslot{width:100%;border-color:rgba(255,107,129,.34)}
 /* The opponent's strip is a status row, not a play area — full card-height piles made it
@@ -582,15 +587,9 @@ tr:hover td{background:rgba(40,58,110,.3)}
   /* 5 columns make each zone wider (and so taller) than the 7-column layout, so the
      height cap needs a smaller ratio here. The board ends up narrower than the screen and
      centred, which is fine — it's still bigger cards than the 7-column version gave. */
-  .bfield{padding:6px 0;border-radius:11px;--cols:5;margin-left:auto;margin-right:auto;
-    max-width:min(100%,calc((100vh - 262px) * 0.44))}
-  .bzrow>.bslot:first-child{grid-column:1}
-  /* the strips hold 5-6 chips and don't need to align with the zone columns; at --cols:5
-     they were wrapping to a second line and costing ~100px each */
-  .boppbar .boplab{display:none}
-  .boppbar{grid-template-columns:repeat(6,minmax(0,1fr))}
-  .bmybar{grid-template-columns:repeat(5,minmax(0,1fr))}
-  .boppbar .bopfs{grid-column:auto}
+  .bfield{padding:6px 0;border-radius:11px;margin-left:auto;margin-right:auto;
+    max-width:min(100%,calc((100vh - 300px) * 0.58))}
+  .boppbar .boplab{font-size:7px}
   .bemzrow .bslot:nth-child(2){grid-column:2}
   .bemzrow .lpchip{grid-column:3}
   .bemzrow .bslot:nth-child(4){grid-column:4}
@@ -1468,19 +1467,8 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   h+='<div class=bemzrow><div class=bemzside>'+phaseMini()+'</div>'
     +slotHTML('emz',0,'EMZ')+lpChip()+slotHTML('emz',1,'EMZ')
     +'<div class=bemzside>'+turnMini()+'</div></div>';
-  if(narrowBoard()){
-    /* Phone: your piles move into a strip beneath the field, mirroring the opponent's at the
-       top. The zone rows then span all five columns, so the cards are bigger and the last
-       row no longer sits marooned below tall side columns. */
-    h+='<div class="bzrow">'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div>';
-    h+='<div class="bzrow">'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div>';
-    h+='<div class="boppbar bmybar"><span class=boplab>You</span>'
-      +pileHTML('deck','Deck',1)+pileHTML('ex','Extra',1)+pileHTML('gy','GY',1)
-      +pileHTML('ban','Ban',1)+'<div class=bopfs>'+slotHTML('fs',0,'Field')+'</div></div>';
-  } else {
-    h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class="bside bsidestack">'+pileHTML('ban','Ban',1)+pileHTML('gy','GY')+'</div></div>';
+  h+='<div class=bmainrow><div class=bside>'+slotHTML('fs',0,'Field')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('mon',s,'M'+(s+1));}).join('')+'</div><div class="bside bsidestack">'+pileHTML('ban','Ban',1)+pileHTML('gy','GY')+'</div></div>';
   h+='<div class=bmainrow><div class=bside>'+pileHTML('ex','Extra')+'</div><div class=bzones>'+[0,1,2,3,4].map(function(s){return slotHTML('st',s,'S'+(s+1));}).join('')+'</div><div class=bside>'+pileHTML('deck','Deck')+'</div></div>';
-  }
   h+='</div>';
   h+=handHTML();
   h+=fxLogPanel();

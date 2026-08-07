@@ -97,19 +97,20 @@ def main():
         sets_list = sorted(setmap.values(), key=lambda s: -len(s["k"]))
 
     payload = json.dumps(cards).replace("</", "<\\/")
-    html = (HTML.replace("__DATE__", date).replace("__N__", str(len(cards))).replace("__FLAG__", str(flagged))
+    build = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    html = (HTML.replace("__BUILD__", build).replace("__DATE__", date).replace("__N__", str(len(cards))).replace("__FLAG__", str(flagged))
             .replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
             .replace("__RAR__", json.dumps(RARITY_ORDER)).replace("__SETS__", json.dumps(sets_list).replace("</", "<\\/")).replace("__DATA__", payload)
             .replace("__SUPABASE_LIB__", supabase_lib()))   # last: biggest blob, and must not be rescanned
     out = os.path.join(HERE, "app.html"); open(out, "w").write(html)
     mb = os.path.getsize(out)/1e6
-    build = write_pwa(html)
+    build = write_pwa(html, build)
     print(f"snapshot {date} | {len(cards):,} cards | {flagged} gap flags | app.html {mb:.1f} MB")
     print(f"wrote {out} — open it (double-click, or: open app.html). Lists save in the browser.")
     print(f"wrote docs/ (GitHub Pages bundle, sw cache cyberse-{build}) — run publish.command to push it to your phone.")
 
 
-def write_pwa(html):
+def write_pwa(html, build):
     """Emit the hosted bundle for GitHub Pages / the phone PWA into docs/.
     Same page as app.html; card art auto-switches to the CDN when hosted.
     Returns the build id stamped into the service-worker cache name."""
@@ -131,7 +132,6 @@ def write_pwa(html):
     # Cache-bust per BUILD, not per day: the browser only reinstalls the worker when sw.js itself
     # changes byte-for-byte, so a date-only version made the second rebuild of a day serve the
     # stale page from cache. A timestamp guarantees every publish reaches the phone.
-    build = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     sw = SW_JS.replace("__BUILD__", build)
     open(os.path.join(docs, "sw.js"), "w").write(sw)
     return build
@@ -588,11 +588,14 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .bphnext{font-size:13px;padding:5px 10px;min-height:30px}
 /* --- life points --- */
 /* the chip sits in the EMZ row's empty middle column */
-.lpchip{display:flex;flex-direction:column;align-items:center;justify-content:center;
+.lpchip{display:flex;overflow:hidden;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;cursor:pointer;border:1px solid var(--line2);border-radius:9px;
   background:linear-gradient(180deg,rgba(24,38,78,.72),rgba(12,20,46,.78));padding:2px}
-.lpcv{font-family:"Cinzel",Georgia,serif;font-size:12px;font-weight:700;color:var(--gold2);
-  font-variant-numeric:tabular-nums;line-height:1.15}
+/* clamped and clipped: at narrow column widths the totals used to overflow the chip and
+   paint across the EMZ slots either side, which read as the EMZ being mispositioned */
+.lpcv{font-family:"Cinzel",Georgia,serif;font-size:clamp(8px,2.6vw,12px);font-weight:700;
+  color:var(--gold2);font-variant-numeric:tabular-nums;line-height:1.15;
+  max-width:100%;overflow:hidden;text-overflow:clip;white-space:nowrap}
 .lpcv.lpco{color:#ff9aa8}
 .lpcs{font-size:7.5px;letter-spacing:.08em;color:var(--mut)}
 .lpside{flex:1 1 200px;min-width:0;background:linear-gradient(180deg,rgba(24,38,78,.55),rgba(12,20,46,.6));
@@ -1016,7 +1019,8 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
     +g[2].map(function(k){var i=IT[k];return '<div class=mitem onclick="go(\''+k+'\')"><div class=mic>'+i[0]+'</div><div><div class=mt>'+i[1]+'</div><div class=md>'+i[2]+'</div></div><div class=marrow>▸</div></div>';}).join('');}).join('');
   document.getElementById('menugrid').innerHTML=html;
   document.getElementById('savebar').innerHTML='<span>Snapshot <b>__DATE__</b></span><span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span>'
-    +(window.syncChip?window.syncChip():'')+'<span class=qlink onclick="showIntro()">▸ quick start</span>';}
+    +(window.syncChip?window.syncChip():'')+'<span class=qlink onclick="showIntro()">▸ quick start</span>'
+    +'<span class=mut style="font-size:10px" title="build __BUILD__ — check this matches after publishing">build __BUILD__</span>';}
 
 /* ===== Bank ===== */
 var CATS_OUT=['Singles','Sealed Product','Locals / Entry','Accessories','Grading','Shipping','Gift / Giveaway','Other'];
@@ -1482,21 +1486,18 @@ var pmenu=null;
 /* Destination for each pile when a card is already in hand — deck means the top. */
 var PILE_DEST={deck:'deckTop',ex:'ex',gy:'gy',ban:'ban',hand:'hand',
   odeck:'odeck',oex:'oex',ogy:'ogy',oban:'oban',ohand:'ohand'};
+/* A pile always opens its menu — never grabs the top card, never swallows what you're
+   holding. If a card IS held the menu offers to send it there, so both intents are explicit. */
 function bPileTap(k){ if(dragJustEnded)return;
-  var a=board[k]||[];
-  if(sel){
-    /* same rule as the zones: a stocked pile hands you its top card rather than swallowing
-       what you're holding. The toolbar's Hand/GY/Banish/Deck buttons are the deliberate
-       way to send a card to a pile that already has cards in it. */
-    if(a.length){ pmenu=null; bSelect(k,null,a.length-1); return; }
-    pmenu=null; place(PILE_DEST[k]||k); return;
-  }
   pmenu=(pmenu===k)?null:k; viewer=null; renderSim(); }
 function pmClose(){ pmenu=null; renderSim(); }
 function pmAct(a){
   var k=pmenu; if(!k){return;}
   var isMine=!isOpp(k);
   if(a==='view'){ pmenu=null; bView(k); return; }
+  if(a==='send'){ var dest=PILE_DEST[k]||k; pmenu=null; place(dest); return; }
+  if(a==='sendfd'){ pmenu=null; place(k==='oban'?'obanFD':'banFD'); return; }
+  if(a==='banishfd'){ if(board.deck.length)board.ban.push((function(){var it=inst(board.deck.shift());it.fd=true;return it;})()); renderSim(); return; }
   if(k==='deck'){
     if(a==='draw')bDraw(1); else if(a==='draw5')bDraw(5); else if(a==='draw6')bDraw(6);
     else if(a==='mill')bMillTop(); else if(a==='banish')bBanishTop();
@@ -1508,16 +1509,20 @@ function pmAct(a){
     else if(a==='banish'&&d.length)board.oban.push(inst(d.shift()));
     else if(a==='shuffle')board.odeck=shuffle(d);
   }
-  pmenu=null; renderSim();
+  renderSim();          /* menu stays open — closing it after every draw was jarring */
 }
 function pmenuHTML(){ if(!pmenu||!board)return '';
   var k=pmenu, n=(board[k]||[]).length;
+  var held=selInst();
   var b='<button class=bprim onclick="pmAct(\'view\')">&#128065; View'+(n?' ('+n+')':'')+'</button>';
+  if(held){ b+='<button class=bprim onclick="pmAct(\'send\')">&#8595; Send '+esc(nameOf(held))+' here</button>';
+    if(k==='ban'||k==='oban')b+='<button onclick="pmAct(\'sendfd\')">&#8595; Send face-down</button>'; }
   if(k==='deck'||k==='odeck'){
     b+='<button class=bprim onclick="pmAct(\'draw\')">Draw</button>';
     if(k==='deck')b+='<button onclick="pmAct(\'draw5\')">Open 5</button><button onclick="pmAct(\'draw6\')">Open 6</button>';
     b+='<span class=btsep></span><button onclick="pmAct(\'mill\')">Mill top</button>'
       +'<button onclick="pmAct(\'banish\')">Banish top</button>'
+      +'<button onclick="pmAct(\'banishfd\')" title="banish the top card face-down">Banish top FD</button>'
       +'<button onclick="pmAct(\'shuffle\')">&#128256; Shuffle</button>';
   }
   return '<div class=bpmenu><span class=btsel>'+esc(PILE_LABEL[k]||k)+' &middot; '+n+'</span>'

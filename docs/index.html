@@ -421,12 +421,15 @@ tr:hover td{background:rgba(40,58,110,.3)}
   color:#1a1300;font-size:8px;box-shadow:0 1px 4px rgba(2,6,20,.6)}
 /* --- desktop side panels --- */
 .bsidepanel{display:none}
+.bsidepanel.bsempty{display:none!important}   /* no border/background box when there's nothing to show */
 @media(min-width:1200px){
   .bsidepanel{display:block;position:fixed;top:calc(var(--hh) + 14px);width:270px;z-index:8;
     max-height:calc(100vh - var(--hh) - 28px);overflow:auto;padding:12px 14px;border-radius:13px;
     background:linear-gradient(180deg,rgba(20,32,66,.72),rgba(11,18,42,.78));
     border:1px solid var(--line2);box-shadow:0 8px 26px rgba(2,6,20,.45)}
-  .bsideleft{left:16px}
+  /* purely informational, so it lets clicks through to the hand underneath rather than
+     blocking cards it happens to overlay */
+  .bsideleft{left:16px;pointer-events:none}
   .bsideright{right:16px}
 }
 @media(min-width:1560px){.bsidepanel{width:320px}}
@@ -907,7 +910,7 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
   document.getElementById('menugrid').innerHTML=html;
   document.getElementById('savebar').innerHTML='<span>Snapshot <b>2026-08-07</b></span><span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span>'
     +(window.syncChip?window.syncChip():'')+'<span class=qlink onclick="showIntro()">▸ quick start</span>'
-    +'<span class=mut style="font-size:10px" title="build 20260807161411 — check this matches after publishing">build 20260807161411</span>';}
+    +'<span class=mut style="font-size:10px" title="build 20260807161544 — check this matches after publishing">build 20260807161544</span>';}
 
 /* ===== Bank ===== */
 var CATS_OUT=['Singles','Sealed Product','Locals / Entry','Accessories','Grading','Shipping','Gift / Giveaway','Other'];
@@ -1173,19 +1176,6 @@ addEventListener('pointerdown',function(e){lastPt={x:e.clientX,y:e.clientY};},{p
 /* The anchor is captured when a panel first appears and reused until every panel closes —
    otherwise pressing a button inside it re-anchored to that button and the panel walked
    across the screen as you worked. */
-/* The side panels are fixed, but the hand is not — cap their height at the hand's top edge
-   so a long card text scrolls inside the panel rather than bleeding over your cards. */
-function fitSidePanels(){
-  var panels=document.querySelectorAll('.bsidepanel'); if(!panels.length)return;
-  var hand=document.querySelector('.bhandwrap:not(.bophand)');
-  var limit=hand?hand.getBoundingClientRect().top-12:innerHeight-16;
-  Array.prototype.forEach.call(panels,function(el){
-    if(getComputedStyle(el).display==='none')return;
-    el.style.maxHeight=Math.max(140, limit-el.getBoundingClientRect().top)+'px';
-  });
-}
-addEventListener('scroll',function(){fitSidePanels();},{passive:true});
-addEventListener('resize',function(){fitSidePanels();});
 var panelAnchor=null;
 function placePanels(){
   var els=['.btoolbar','.bpmenu'].map(function(q){return document.querySelector(q);}).filter(Boolean);
@@ -1615,7 +1605,8 @@ function lpPanel(){if(!lpOpen||!board)return '';
    otherwise open one-at-a-time live there permanently: what the selected card actually does,
    and the contents of whichever pile you're working with. Hidden below 1200px, where the
    modal/overlay versions remain the only sensible option. */
-function sideInfoHTML(){ return '<div class="bsidepanel bsideleft">'+sideInfoBody(hoverIt||selInst(),!!hoverIt)+'</div>'; }
+function sideInfoHTML(){ var b=sideInfoBody(hoverIt||selInst(),!!hoverIt);
+  return '<div class="bsidepanel bsideleft'+(b?'':' bsempty')+'">'+b+'</div>'; }
 function sideInfoBody(it,isHover){
   if(!it)return '';
   var c=cardOf(it);
@@ -1639,7 +1630,9 @@ function sideInfoBody(it,isHover){
    selected card when the pointer leaves, so the panel is never blank while something is held. */
 var hoverIt=null;
 function paintSideInfo(){var el=document.querySelector('.bsideleft');
-  if(el){el.innerHTML=sideInfoBody(hoverIt||selInst(),!!hoverIt); fitSidePanels();}}
+  if(!el)return;
+  var b=sideInfoBody(hoverIt||selInst(),!!hoverIt);
+  el.innerHTML=b; el.classList.toggle('bsempty',!b);}
 function instAt(cardEl){
   var host=cardEl.closest('[data-z],[data-pile]'); if(!host||!board)return null;
   var z=host.getAttribute('data-z');
@@ -1663,7 +1656,7 @@ function sidePileHTML(){
   /* deliberately excludes deck/odeck: the main deck is hidden information, and showing it
      permanently would spoil every draw. It's still inspectable via the pile menu's View. */
   var OPEN_PILES={gy:1,ban:1,ogy:1,oban:1,ex:1,oex:1};
-  if(!k||!OPEN_PILES[k])return '<div class="bsidepanel bsideright"></div>';
+  if(!k||!OPEN_PILES[k])return '<div class="bsidepanel bsideright bsempty"></div>';
   var a=board[k]||[];
   var h='<div class="bsidepanel bsideright"><div class=bsphead>'+esc(PILE_LABEL[k]||k)+' &middot; '+a.length+'</div>';
   if(!a.length)h+='<div class=mut style="font-size:11px">Empty.</div>';
@@ -1727,7 +1720,7 @@ function renderBoard(toggle){var h=toggle,decks=Object.keys(St.decks);
   var y=window.scrollY;
   document.getElementById('simBody').innerHTML=h;
   if(window.scrollY!==y)window.scrollTo(0,y);
-  placePanels(); fitSidePanels();
+  placePanels();
   if(fxDraft){var fi=document.getElementById('fxIn');if(fi){fi.focus({preventScroll:true});fi.select();}}}
 
 /* ===== tap-and-drag =======================================================

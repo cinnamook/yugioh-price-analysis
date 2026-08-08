@@ -192,6 +192,7 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>&lt
   --sab:env(safe-area-inset-bottom,0px);
   --sal:env(safe-area-inset-left,0px);
   /* page gutters, re-declared per breakpoint; the insets are added on top of them */
+  --bn:0px;                /* bottom navigation height; only mobile has one */
   --hpv:12px;--hph:22px;   /* header  padding vertical / horizontal */
   --cpv:12px;--cph:22px;   /* controls bar */
   --wpt:16px;--wph:22px;   /* .wrap content */
@@ -223,6 +224,13 @@ h1::before{content:"◆";color:var(--acc);font-size:14px}
 .kpi .v{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
 .kpi.hl{border-color:rgba(87,208,138,.4)}.kpi.hl .v{color:var(--pos)}
 .kpi .l{color:var(--mut);font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.fltbtn{display:none}
+.fltwrap{display:contents}
+@media(max-width:900px){
+  .fltbtn{display:inline-flex;align-items:center;gap:4px}
+  .fltwrap{display:none;width:100%;flex-wrap:wrap;gap:6px}
+  .fltwrap.on{display:flex}
+}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:var(--cpv) calc(var(--cph) + var(--sar)) var(--cpv) calc(var(--cph) + var(--sal));border-bottom:1px solid var(--line);background:var(--bg2)}
 input,select,button{background:var(--surf);color:var(--ink);border:1px solid var(--line2);border-radius:9px;padding:7px 11px;font:inherit;font-size:12px;transition:.15s}
 input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,147,255,.16)}
@@ -249,6 +257,38 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
 .warn{background:linear-gradient(90deg,rgba(234,184,106,.1),transparent);border-left:3px solid var(--warn);color:#e7d3a8;padding:9px 22px;font-size:12px}
 .warn b{color:var(--warn)}
 .hide{display:none}
+/* --- bottom navigation (mobile) ---
+   Five thumb-reachable destinations instead of an eleven-tab strip that had to scroll
+   sideways. Everything else lives on Home, which is always one tap away — so nothing got
+   further than two taps, and the common destinations got much closer. */
+.bnav{display:none}
+.syncdot{width:9px;height:9px;border-radius:50%;background:var(--mut);cursor:pointer;flex:none;
+  box-shadow:0 0 0 3px rgba(147,160,196,.12);transition:.15s}
+.syncdot.ok{background:var(--pos);box-shadow:0 0 0 3px rgba(110,224,160,.16)}
+.syncdot.busy{background:var(--acc);box-shadow:0 0 0 3px rgba(143,220,255,.18)}
+.syncdot.warn{background:var(--dang);box-shadow:0 0 0 3px rgba(255,107,129,.18)}
+.syncdot.off{background:var(--line2);box-shadow:none}
+.vtitle{font-family:"Cinzel",Georgia,serif;font-size:14px;color:var(--gold2);letter-spacing:.01em}
+@media(min-width:901px){.vtitle{display:none}}
+@media(max-width:900px){
+  .nav{display:none}                     /* the scrolling strip is replaced entirely */
+  :root{--bn:58px}
+  .bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:35;
+    padding-bottom:var(--sab);
+    background:linear-gradient(180deg,rgba(12,22,52,.94),rgba(8,14,34,.97));
+    border-top:1px solid var(--line2);backdrop-filter:blur(14px);
+    box-shadow:0 -4px 22px rgba(3,8,24,.5)}
+  .bn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    padding:7px 2px 6px;cursor:pointer;color:var(--mut);min-height:52px;transition:.12s;
+    border-top:2px solid transparent}
+  .bn.on{color:var(--gold);border-top-color:var(--gold)}
+  .bni{font-size:17px;line-height:1}
+  .bn.on .bni{filter:drop-shadow(0 0 6px rgba(232,198,106,.5))}
+  .bnl{font-size:9.5px;letter-spacing:.02em}
+  /* content must clear the bar */
+  .wrap{padding-bottom:calc(76px + var(--sab))}
+  .menuwrap{padding-bottom:calc(80px + var(--sab))}
+}
 .bootload{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
   flex-direction:column;text-align:center;padding:24px;color:var(--mut);font-size:13px;
   background:var(--bg)}
@@ -763,6 +803,23 @@ tr:hover td{background:rgba(40,58,110,.3)}
    little earlier than the phone breakpoint. Sticky heads go with it — an overflow container
    is also a scroll container — but that band is tablet width, where the fixed header matters
    less than not dragging the whole page sideways. */
+/* On a phone the table kept Card and Ban and pushed the price off-screen behind a
+   sideways scroll. Show what you actually came for — name, how many you own, price — and
+   let it fit outright. Everything else is in the card popup. */
+@media(max-width:640px){
+  #browse th:nth-child(2),#browse td:nth-child(2),
+  #browse th:nth-child(3),#browse td:nth-child(3),
+  #browse th:nth-child(4),#browse td:nth-child(4),
+  #browse th:nth-child(5),#browse td:nth-child(5),
+  #browse th:nth-child(6),#browse td:nth-child(6),
+  #browse th:nth-child(9),#browse td:nth-child(9),
+  #browse th:nth-child(10),#browse td:nth-child(10){display:none}
+  /* the name is the only column that can give: let it wrap so the table compresses to the
+     screen. The scroller stays as a safety net rather than overflowing the page. */
+  #browse td:nth-child(1){white-space:normal;min-width:110px;line-height:1.3}
+  #browse .tscroll table{min-width:0}
+  #browse .addb{padding:2px 6px;margin-left:2px}
+}
 @media(max-width:1000px){
   .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .tscroll table{min-width:660px}
@@ -792,7 +849,16 @@ tr:hover td{background:rgba(40,58,110,.3)}
   :root{--bside:46px;--bgap:3px;--bhand:38px;
         --hpv:8px;--hph:10px;--cpv:10px;--cph:12px;--wpt:12px;--wph:12px}
   header{gap:8px}
-  h1{font-size:15px}
+  h1{font-size:15px;order:1}
+  /* explicit order: the title and sync dot default to 0 and were rendering before the logo */
+  .vtitle{order:2;font-size:12.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vtitle::before{content:"/ ";opacity:.5}
+  .syncdot{order:3}
+  .kpis{order:4}
+  /* four tiles plus a title truncate at phone widths; the other two are one tap away on
+     Home and inside their own views */
+  .kpi:nth-child(2),.kpi:nth-child(4){display:none}
+  .kpis{grid-template-columns:repeat(2,1fr)}
   /* grid tracks shrink instead of wrapping, so the KPI row can never overflow the header
      or push it onto a third line */
   .kpis{flex:1 1 0;min-width:0;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
@@ -822,7 +888,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
      height cap needs a smaller ratio here. The board ends up narrower than the screen and
      centred, which is fine — it's still bigger cards than the 7-column version gave. */
   .bfield{padding:6px 0;border-radius:11px;margin-left:auto;margin-right:auto;
-    max-width:min(100%,calc((100vh - 300px) * 0.72))}
+    max-width:min(100%,calc((100vh - 352px) * 0.72))}   /* 344 accounts for the bottom bar */
   .boppbar .boplab{font-size:7px}
   .boppbar{padding-bottom:4px}
   .boplab{font-size:8px}
@@ -877,6 +943,8 @@ tr:hover td{background:rgba(40,58,110,.3)}
   <div class="t" data-v="meta" onclick="go('meta')">Meta</div>
   <div class="t" data-v="analytics" onclick="go('analytics')">Analytics</div>
 </div>
+<span class=syncdot id=syncdot title="sync status" onclick="if(window.syncOpen)syncOpen()"></span>
+<div class=vtitle id=vtitle></div>
 <div class="kpis">
   <div class="kpi"><div class="v" id="kColl">$0</div><div class="l">Collection</div></div>
   <div class="kpi"><div class="v" id="kDeck">$0</div><div class="l">Deck</div></div>
@@ -895,6 +963,8 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="browse" class="hide">
 <div class="controls">
   <input type="text" id="q" placeholder="search name…" oninput="rB()">
+  <button class=fltbtn id=fltbtn onclick="toggleFilters()">&#9662; Filters</button>
+  <div class=fltwrap id=fltwrap>
   <input type="text" id="qa" placeholder="archetype…" oninput="rB()">
   <select id="rar" onchange="rB()"></select>
   <select id="cl" onchange="rB()"><option value="">class: all</option><option>Monster</option><option>Spell</option><option>Trap</option></select>
@@ -902,6 +972,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
   <label>$ min <input class="num" inputmode=decimal id="pmin" oninput="rB()"></label>
   <label>$ max <input class="num" inputmode=decimal id="pmax" oninput="rB()"></label>
   <label><input type="checkbox" id="deal" onchange="rB()"> gap deals</label>
+  </div>
 </div>
 <div class="wrap"><div class="count" id="cnt"></div>
 <div class="tscroll"><table><thead><tr>
@@ -927,6 +998,13 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="sets" class="hide"><div class="wrap" id="setsBody"></div></div>
 <div id="meta" class="hide"><div class="wrap" id="metaBody"></div><input id="metaFile" type="file" accept=".ydk,.txt" multiple class="hide" onchange="metaImport(event)"></div>
 
+<nav class=bnav id=bnav>
+  <div class="bn" data-v="menu" onclick="go('menu')"><span class=bni>&#9670;</span><span class=bnl>Home</span></div>
+  <div class="bn" data-v="browse" onclick="go('browse')"><span class=bni>&#128269;</span><span class=bnl>Browse</span></div>
+  <div class="bn" data-v="deck" onclick="go('deck')"><span class=bni>&#127183;</span><span class=bnl>Decks</span></div>
+  <div class="bn" data-v="collection" onclick="go('collection')"><span class=bni>&#128230;</span><span class=bnl>Collection</span></div>
+  <div class="bn" data-v="sim" onclick="go('sim')"><span class=bni>&#127922;</span><span class=bnl>Play</span></div>
+</nav>
 <div id="loading" class=bootload>Loading card data&hellip;</div>
 <div id="ov" onclick="if(event.target.id==='ov')closeM()"><div class="modal"><span class=close onclick="closeM()" title="close">&times;</span><div id="mBody"></div></div></div>
 
@@ -995,7 +1073,14 @@ function setOv(list,id,v,li){var e=lref(list,id,li); if(!e)return; var n=parseFl
 (function(){document.getElementById('rar').innerHTML='<option value="">rarity: any</option>'+
   RAR.map(function(r){return '<option>'+r+'</option>';}).join('');})();
 
+var VIEW_TITLE={menu:'',browse:'Browse',deck:'Decks',collection:'Collection',wishlist:'Wishlist',
+  bank:'Bank',sim:'Playtest',plog:'Match log',sets:'Sets',meta:'Meta',analytics:'Analytics'};
 function go(v){view=v;if(window.listReset)listReset();
+  /* the bottom bar carries five destinations; anything else leaves it unhighlighted and is
+     reached from Home, which keeps the bar honest about where you are */
+  document.querySelectorAll('.bnav .bn').forEach(function(t){t.classList.toggle('on',t.dataset.v===v);});
+  var vt=document.getElementById('vtitle');
+  if(vt){vt.textContent=VIEW_TITLE[v]||''; vt.classList.toggle('hide',!VIEW_TITLE[v]);}
   document.querySelectorAll('.nav .t').forEach(function(t){var on=t.dataset.v===v;t.classList.toggle('on',on);
     /* keep the active tab visible in the scrolling strip on narrow screens.
        block:'nearest' so this never yanks the page vertically. */
@@ -1377,8 +1462,11 @@ function placePanels(){
     var w=Math.min(el.offsetWidth, innerWidth-pad*2), h=el.offsetHeight;
     var x=Math.min(Math.max(pad,panelAnchor.x-w/2), Math.max(pad,innerWidth-w-pad));
     var y=panelAnchor.y+18;                              /* just below the finger */
-    if(y+h>innerHeight-pad)y=panelAnchor.y-h-18;         /* flip above if it would overflow */
-    y=Math.min(Math.max(hh+pad,y), Math.max(hh+pad,innerHeight-h-pad));
+    if(y+h>innerHeight-(parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bn'))||0)-pad)
+      y=panelAnchor.y-h-18;                              /* flip above if it would overflow */
+    var bn=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bn'))||0;
+    var floor=innerHeight-bn-h-pad;      /* never let a panel sit under the bottom bar */
+    y=Math.min(Math.max(hh+pad,y), Math.max(hh+pad,floor));
     el.style.left=x+'px'; el.style.top=y+'px';
   });
 }
@@ -2193,6 +2281,11 @@ function renderMeta(){var M=St.meta,RED='#ff9aa8';
   metaBody.innerHTML=h;}
 
 function rarPrice(c,rs){return rs===''?(c.hr?c.rp[c.hr]:null):(rs in c.rp?c.rp[rs]:null);}
+/* Five rows of filters is most of a phone screen. Only the search box stays; the rest
+   folds behind one control, open on desktop where there is room. */
+function toggleFilters(){var w=document.getElementById('fltwrap'),b=document.getElementById('fltbtn');
+  if(!w)return; var on=w.classList.toggle('on');
+  if(b)b.innerHTML=(on?'&#9652;':'&#9662;')+' Filters';}
 function rB(){
   var q=q_.value.toLowerCase(),qa=qa_.value.toLowerCase(),rs=rar_.value,cl=cl_.value,bn=bn_.value;
   var pmin=numv(pmin_.value),pmax=numv(pmax_.value),dl=deal_.checked;
@@ -2502,7 +2595,17 @@ function markSet(t){if(t)localStorage.setItem(MARK_K,t);}
 function isDirty(){return localStorage.getItem(DIRTY_K)==='1';}
 function setDirty(v){if(v)localStorage.setItem(DIRTY_K,'1');else localStorage.removeItem(DIRTY_K);}
 function set(s,m){status=s;msg=m||'';paint();}
-function paint(){if(typeof view!=='undefined'&&view==='menu'&&window.rMenu)rMenu();}
+function paint(){
+  /* the dot lives in the header, so sync state is legible from every view — it used to be
+     visible only on the Home savebar */
+  var d=document.getElementById('syncdot');
+  if(d){var cls={idle:'ok',syncing:'busy',pending:'busy',offline:'warn',error:'warn',
+                 conflict:'warn',signedout:'',off:'off',unconfigured:'off'}[status]||'';
+    d.className='syncdot'+(cls?' '+cls:'');
+    d.title={idle:'Synced',syncing:'Syncing…',pending:'Saving…',offline:'Offline — will sync',
+             error:'Sync error — tap',conflict:'Needs your choice — tap',
+             signedout:'Sign in to sync',off:'Sync off here',unconfigured:'Sync not set up'}[status]||'Sync';}
+  if(typeof view!=='undefined'&&view==='menu'&&window.rMenu)rMenu();}
 
 function stateEmpty(s){ if(!s)return true;
   var any=false,d=s.decks||{};

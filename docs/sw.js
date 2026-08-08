@@ -1,5 +1,5 @@
 /* <CYBERSE> service worker — versioned by build timestamp so every publish updates the phone. */
-const CACHE='cyberse-20260808005454';
+const CACHE='cyberse-20260808005830';
 const CORE=['./index.html','./cards.json','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(CORE).catch(function(){});}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return k===CACHE?null:caches.delete(k);}));}).then(function(){return self.clients.claim();}));});

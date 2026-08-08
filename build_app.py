@@ -261,10 +261,31 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
    Five thumb-reachable destinations instead of an eleven-tab strip that had to scroll
    sideways. Everything else lives on Home, which is always one tap away — so nothing got
    further than two taps, and the common destinations got much closer. */
-/* a short slide so a swipe reads as movement rather than a jump cut */
-@keyframes swipein{from{opacity:.35;transform:translateX(var(--swx,14px))}to{opacity:1;transform:none}}
-.swipein{animation:swipein .16s ease-out}
 .hdrhide{transform:translateY(-100%)}
+/* --- edge drawer --- */
+.dgrip{display:none}
+.drawer{display:none}
+.dscrim{display:none}
+@media(max-width:900px){
+  .dgrip{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
+    margin-right:2px;border-radius:9px;cursor:pointer;color:var(--gold);font-size:17px;flex:none}
+  .dscrim{display:block;position:fixed;inset:0;z-index:44;background:#000;opacity:0;pointer-events:none}
+  .drawer{display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;width:284px;z-index:45;
+    transform:translateX(-284px);overflow-y:auto;overscroll-behavior:contain;
+    padding:calc(var(--sat) + 16px) 12px calc(var(--sab) + 16px);
+    background:linear-gradient(180deg,rgba(14,24,56,.99),rgba(9,15,38,.99));
+    border-right:1px solid var(--line2);box-shadow:8px 0 34px rgba(2,6,20,.6)}
+}
+.dhead{padding:4px 8px 14px;border-bottom:1px solid var(--line)}
+.dname{font-family:"Cinzel",Georgia,serif;font-size:19px;font-weight:700;color:var(--gold)}
+.dsub{font-size:11.5px;color:var(--mut);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlinks{padding:8px 0;flex:1}
+.dlink{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:11px;cursor:pointer;
+  font-size:14.5px;color:#d7deee;transition:.12s}
+.dlink:hover{background:rgba(40,58,110,.4)}
+.dlink.on{background:linear-gradient(90deg,rgba(232,198,106,.16),transparent);color:var(--gold2);font-weight:600}
+.dico{font-size:17px;width:24px;text-align:center}
+.dfoot{padding:10px 10px 0;border-top:1px solid var(--line)}
 .bnav{display:none}
 .syncdot{width:9px;height:9px;border-radius:50%;background:var(--mut);cursor:pointer;flex:none;
   box-shadow:0 0 0 3px rgba(147,160,196,.12);transition:.15s}
@@ -861,18 +882,19 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .kpis{order:4}
   /* The bordered tiles cost ~24px of chrome each and were clipping their own figures.
      Plain text with a tiny caption reads at a glance and fits; the full set is on Home. */
+  /* Two figures, as plain text. The old rules here laid them out as a FOUR-column grid with
+     overflow:hidden — so the two survivors each got a quarter of the width and were clipped,
+     which is what made them unreadable. Nothing here constrains their width now. */
   .kpi:nth-child(2),.kpi:nth-child(4){display:none}
-  .kpis{display:flex;gap:12px;align-items:baseline;flex:0 0 auto;min-width:0}
-  .kpi{border:0;background:none;box-shadow:none;padding:0;min-width:0;text-align:right;
-    display:flex;align-items:baseline;gap:4px}
-  .kpi .v{font-size:14px;white-space:nowrap}
-  .kpi .l{font-size:8.5px;margin:0;opacity:.75}
+  .kpis{display:flex!important;gap:14px;align-items:baseline;flex:0 0 auto;min-width:0;
+    margin-left:auto;grid-template-columns:none!important}
+  .kpi{border:0!important;background:none!important;box-shadow:none!important;padding:0!important;
+    min-width:0;overflow:visible!important;text-align:right;display:flex;align-items:baseline;gap:5px;
+    white-space:nowrap}
+  .kpi .v{font-size:14px!important;white-space:nowrap}
+  .kpi .l{font-size:8.5px!important;margin:0;opacity:.75;letter-spacing:.04em}
   /* grid tracks shrink instead of wrapping, so the KPI row can never overflow the header
      or push it onto a third line */
-  .kpis{flex:1 1 0;min-width:0;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-  .kpi{min-width:0;overflow:hidden;padding:4px 6px;border-radius:9px;text-align:center}
-  .kpi .v{font-size:12px}
-  .kpi .l{font-size:8px;letter-spacing:.04em}
   .nav{order:3;width:100%;border-radius:10px}
   .nav .t{padding:7px 13px;font-size:13px}
   .controls{gap:6px}
@@ -930,14 +952,15 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .mic{font-size:21px;width:30px}
   .savebar{gap:14px}
 }
+/* On a narrow phone the grip, name, title, dot and two figures wrap to a second row. The
+   bottom bar already highlights where you are, so the title is the redundant one. */
+@media(max-width:440px){.vtitle{display:none}}
 @media(max-width:400px){
   :root{--bside:40px;--bhand:40px}
-  .kpi{padding:4px 6px}
-  .kpi .v{font-size:11px}
   .nav .t{padding:7px 11px}
 }
 </style></head><body><canvas id="bg"></canvas><div id="aura"></div>
-<header><h1 onclick="go('menu')" style="cursor:pointer" title="main menu">&lt;CYBERSE&gt;</h1>
+<header><span class=dgrip id=dgrip onclick="drawerOpen()" title="menu">&#9776;</span><h1 onclick="go('menu')" style="cursor:pointer" title="main menu">&lt;CYBERSE&gt;</h1>
 <div class="nav">
   <div class="t on" data-v="menu" onclick="go('menu')">Menu</div>
   <div class="t" data-v="browse" onclick="go('browse')">Browse</div>
@@ -1007,6 +1030,15 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="you" class="hide"><div class="wrap" id="youBody"></div></div>
 <div id="meta" class="hide"><div class="wrap" id="metaBody"></div><input id="metaFile" type="file" accept=".ydk,.txt" multiple class="hide" onchange="metaImport(event)"></div>
 
+<div class=dscrim id=dscrim onclick="drawerClose()"></div>
+<aside class=drawer id=drawer>
+  <div class=dhead>
+    <div class=dname>&lt;CYBERSE&gt;</div>
+    <div class=dsub id=dsub>Not signed in</div>
+  </div>
+  <div class=dlinks id=dlinks></div>
+  <div class=dfoot id=dfoot></div>
+</aside>
 <nav class=bnav id=bnav>
   <div class="bn" data-v="menu" onclick="go('menu')"><span class=bni>&#9670;</span><span class=bnl>Home</span></div>
   <div class="bn" data-v="browse" onclick="go('browse')"><span class=bni>&#128269;</span><span class=bnl>Browse</span></div>
@@ -2876,61 +2908,78 @@ addEventListener('scroll',function(){
 window.showHeader=function(){last=0;set(false);};
 })();
 
-/* ===== swipe between the bottom-bar destinations =========================
-   The whole point of the bar is thumb reach; swiping is the same idea without
-   aiming. Deliberately narrow in scope so it never fires when the gesture
-   plainly means something else: not while dragging a card, not inside a
-   horizontally scrollable table, not on the board or the hand, not over form
-   controls, and not while a modal or panel is open. It also demands a clearly
-   horizontal, clearly deliberate movement.
-   ========================================================================= */
+/* ===== edge-drag drawer =================================================
+   Pulled out from the left edge, tracking your finger 1:1 the whole way — the point is that
+   it feels like moving a physical thing, not like tripping a threshold that then animates
+   on its own. Transitions are switched OFF while a finger is down and back ON for the
+   release, so the settle is the only animated part. Where it lands is decided by velocity
+   first and position second, so a quick flick opens it even from a short pull.
+   ======================================================================== */
 (function(){
-/* Play is deliberately NOT in the swipe order: the board's whole interaction is horizontal
-   dragging, so a swipe there means "move this card", never "change screen". You reach it by
-   tapping the bar. Same reasoning keeps swipes out of tables that scroll sideways. */
-var ORDER=['menu','browse','deck','collection'];
-var NOSWIPE={sim:1};
-var st=null, MIN=64, RATIO=1.5;
-/* Blocking .tscroll outright was too blunt — on Browse the table IS the screen. Block only
-   where a sideways swipe already means something: a genuinely horizontally-scrollable
-   ancestor, the board, the hand, or a control. */
-function hScrollable(el){
-  while(el&&el!==document.body&&el.nodeType===1){
-    if(el.scrollWidth>el.clientWidth+4){
-      var ox=getComputedStyle(el).overflowX;
-      if(ox==='auto'||ox==='scroll')return true;
-    }
-    el=el.parentElement;
-  }
-  return false;
+var W=284, drag=null, open=false, el, sc;
+function nodes(){el=el||document.getElementById('drawer'); sc=sc||document.getElementById('dscrim'); return !!el;}
+function paint(x,anim){ if(!nodes())return;
+  el.style.transition=anim?'transform .22s cubic-bezier(.22,.61,.36,1)':'none';
+  sc.style.transition=anim?'opacity .22s ease':'none';
+  el.style.transform='translateX('+x+'px)';
+  var t=(x+W)/W;                                  /* 0 closed, 1 open */
+  sc.style.opacity=Math.max(0,Math.min(1,t))*0.55;
+  sc.style.pointerEvents=t>0.02?'auto':'none';
 }
-function blocked(t){
-  if(!t||!t.closest)return true;
-  if(t.closest('.bfield,.bhandwrap,.bnav,.btoolbar,.bpmenu,.bviewer,.modal,#ov,'
-    +'input,select,textarea,button,.nav,.bsidepanel,.simhand'))return true;
-  return hScrollable(t);
-}
+window.drawerOpen=function(){ if(!nodes())return; open=true; renderDrawer(); paint(0,true); };
+window.drawerClose=function(){ if(!nodes())return; open=false; paint(-W,true); };
+function edge(e){ return e.clientX<=26; }
 addEventListener('pointerdown',function(e){
-  if(e.pointerType==='mouse')return;                 /* touch/pen only */
+  if(e.pointerType==='mouse')return;
   if(!window.matchMedia||!matchMedia('(max-width:900px)').matches)return;
-  if(typeof view==='undefined'||NOSWIPE[view]||ORDER.indexOf(view)<0)return;
-  if(blocked(e.target)){st=null;return;}
-  st={x:e.clientX,y:e.clientY,t:Date.now()};
+  if(!nodes())return;
+  if(document.getElementById('ov')&&getComputedStyle(document.getElementById('ov')).display==='flex')return;
+  if(!open&&!edge(e))return;                       /* closed: only the left edge starts a pull */
+  if(open&&e.clientX>W+40)return;                  /* open: dragging back must start on it */
+  if(!open)renderDrawer();
+  drag={x0:e.clientX,y0:e.clientY,last:e.clientX,t:Date.now(),v:0,on:false,base:open?0:-W};
 },{passive:true});
-addEventListener('pointerup',function(e){
-  if(!st)return; var s0=st; st=null;
-  if(Date.now()-s0.t>600)return;                     /* a slow drag isn't a swipe */
-  var dx=e.clientX-s0.x, dy=e.clientY-s0.y;
-  if(Math.abs(dx)<MIN||Math.abs(dx)<Math.abs(dy)*RATIO)return;
-  var i=ORDER.indexOf(view); if(i<0)return;
-  var j=i+(dx<0?1:-1);
-  if(j<0||j>=ORDER.length)return;                    /* no wrap: the ends feel like ends */
-  var body=document.querySelector('#'+({menu:'menu',browse:'browse',deck:'list',collection:'list'}[ORDER[j]]||'menu'));
-  go(ORDER[j]);
-  if(body){body.classList.remove('swipein');void body.offsetWidth;body.classList.add('swipein');}
-},{passive:true});
-addEventListener('pointercancel',function(){st=null;},{passive:true});
+addEventListener('pointermove',function(e){
+  if(!drag)return;
+  var dx=e.clientX-drag.x0, dy=e.clientY-drag.y0;
+  if(!drag.on){
+    if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>12){drag=null;return;}   /* that's a scroll */
+    if(Math.abs(dx)<6)return;
+    drag.on=true;
+  }
+  var now=Date.now(), dt=Math.max(1,now-drag.t);
+  drag.v=(e.clientX-drag.last)/dt;                 /* px per ms, for the release decision */
+  drag.last=e.clientX; drag.t=now;
+  paint(Math.max(-W,Math.min(0,drag.base+dx)),false);   /* 1:1, clamped at both ends */
+});
+function release(){
+  if(!drag)return; var d=drag; drag=null;
+  if(!d.on){ return; }
+  var cur=d.base+(d.last-d.x0);
+  if(Math.abs(d.v)>0.35) open=d.v>0;               /* a flick wins over position */
+  else open=cur>-W/2;
+  paint(open?0:-W,true);
+}
+addEventListener('pointerup',release);
+addEventListener('pointercancel',release);
+window.renderDrawer=function(){
+  var box=document.getElementById('dlinks'); if(!box||typeof CARDS==='undefined')return;
+  var IT=[['browse','\u{1F50D}','Browse'],['deck','\u{1F0CF}','Decks'],['collection','\u{1F4E6}','Collection'],
+    ['wishlist','\u2B50','Wishlist'],['sim','\u{1F3B4}','Playtest'],['plog','\u{1F4CA}','Match log'],
+    ['sets','\u{1F5C2}\uFE0F','Sets'],['meta','\u{1F9E0}','Meta'],['analytics','\u{1F4C8}','Analytics'],
+    ['bank','\u{1F4B0}','Bank'],['you','\u2699\uFE0F','Profile & settings']];
+  box.innerHTML=IT.map(function(i){
+    return '<div class="dlink'+(typeof view!=='undefined'&&view===i[0]?' on':'')+'" onclick="drawerGo(\''+i[0]+'\')">'
+      +'<span class=dico>'+i[1]+'</span><span>'+i[2]+'</span></div>';}).join('');
+  var sy=(window.syncInfo?syncInfo():{email:''});
+  var sub=document.getElementById('dsub');
+  if(sub)sub.textContent=sy.email||'Not signed in';
+  var ft=document.getElementById('dfoot');
+  if(ft)ft.innerHTML='<span class=mut style="font-size:10px">build __BUILD__ &middot; snapshot __DATE__</span>';
+};
+window.drawerGo=function(v){ drawerClose(); setTimeout(function(){go(v);},60); };
 })();
+
 /* Sticky offsets (Browse table head, solo-board toolbar) key off --hh. The header's height
    changes with viewport width — one row on desktop, two on a phone — so measure it instead of
    hardcoding it per breakpoint, and nothing can drift out of sync. */

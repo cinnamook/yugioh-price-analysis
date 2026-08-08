@@ -209,7 +209,7 @@ body{font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica
   background:radial-gradient(1100px 560px at 78% -12%,#161e30 0%,var(--bg) 55%) fixed,var(--bg)}
 /* padding-top carries the status-bar/notch inset; the background still bleeds full-width
    under it. --hh is measured from offsetHeight, so the sticky offsets follow automatically. */
-header{padding:calc(var(--hpv) + var(--sat)) calc(var(--hph) + var(--sar)) var(--hpv) calc(var(--hph) + var(--sal));border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;background:rgba(11,15,23,.82);backdrop-filter:blur(12px);z-index:20}
+header{transition:transform .2s ease;padding:calc(var(--hpv) + var(--sat)) calc(var(--hph) + var(--sar)) var(--hpv) calc(var(--hph) + var(--sal));border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;background:rgba(11,15,23,.82);backdrop-filter:blur(12px);z-index:20}
 h1{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
 h1::before{content:"◆";color:var(--acc);font-size:14px}
 /* 11 tabs never fit a phone: the strip scrolls sideways instead of overflowing the page.
@@ -261,6 +261,10 @@ tbody tr{transition:background .1s}tr:hover td{background:var(--surf)}
    Five thumb-reachable destinations instead of an eleven-tab strip that had to scroll
    sideways. Everything else lives on Home, which is always one tap away — so nothing got
    further than two taps, and the common destinations got much closer. */
+/* a short slide so a swipe reads as movement rather than a jump cut */
+@keyframes swipein{from{opacity:.35;transform:translateX(var(--swx,14px))}to{opacity:1;transform:none}}
+.swipein{animation:swipein .16s ease-out}
+.hdrhide{transform:translateY(-100%)}
 .bnav{display:none}
 .syncdot{width:9px;height:9px;border-radius:50%;background:var(--mut);cursor:pointer;flex:none;
   box-shadow:0 0 0 3px rgba(147,160,196,.12);transition:.15s}
@@ -855,10 +859,14 @@ tr:hover td{background:rgba(40,58,110,.3)}
   .vtitle::before{content:"/ ";opacity:.5}
   .syncdot{order:3}
   .kpis{order:4}
-  /* four tiles plus a title truncate at phone widths; the other two are one tap away on
-     Home and inside their own views */
+  /* The bordered tiles cost ~24px of chrome each and were clipping their own figures.
+     Plain text with a tiny caption reads at a glance and fits; the full set is on Home. */
   .kpi:nth-child(2),.kpi:nth-child(4){display:none}
-  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpis{display:flex;gap:12px;align-items:baseline;flex:0 0 auto;min-width:0}
+  .kpi{border:0;background:none;box-shadow:none;padding:0;min-width:0;text-align:right;
+    display:flex;align-items:baseline;gap:4px}
+  .kpi .v{font-size:14px;white-space:nowrap}
+  .kpi .l{font-size:8.5px;margin:0;opacity:.75}
   /* grid tracks shrink instead of wrapping, so the KPI row can never overflow the header
      or push it onto a third line */
   .kpis{flex:1 1 0;min-width:0;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
@@ -943,7 +951,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
   <div class="t" data-v="meta" onclick="go('meta')">Meta</div>
   <div class="t" data-v="analytics" onclick="go('analytics')">Analytics</div>
 </div>
-<span class=syncdot id=syncdot title="sync status" onclick="if(window.syncOpen)syncOpen()"></span>
+<span class=syncdot id=syncdot title="sync status" onclick="go('you')"></span>
 <div class=vtitle id=vtitle></div>
 <div class="kpis">
   <div class="kpi"><div class="v" id="kColl">$0</div><div class="l">Collection</div></div>
@@ -996,6 +1004,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="sim" class="hide"><div class="wrap" id="simBody"></div></div>
 <div id="plog" class="hide"><div class="wrap" id="plogBody"></div></div>
 <div id="sets" class="hide"><div class="wrap" id="setsBody"></div></div>
+<div id="you" class="hide"><div class="wrap" id="youBody"></div></div>
 <div id="meta" class="hide"><div class="wrap" id="metaBody"></div><input id="metaFile" type="file" accept=".ydk,.txt" multiple class="hide" onchange="metaImport(event)"></div>
 
 <nav class=bnav id=bnav>
@@ -1042,6 +1051,7 @@ function load(){var s;try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
   s.combos.forEach(function(c){if(c.play===undefined)c.play=true;});
   if(!s.log)s.log=[];
   if(!s.meta)s.meta=[];
+  if(!s.settings)s.settings={};
   return s;}
 /* Every mutation funnels through here (33 call sites), so it's also the one place
    sync needs to hook. syncTouch is defined in the sync block below; guarded so the
@@ -1073,9 +1083,10 @@ function setOv(list,id,v,li){var e=lref(list,id,li); if(!e)return; var n=parseFl
 (function(){document.getElementById('rar').innerHTML='<option value="">rarity: any</option>'+
   RAR.map(function(r){return '<option>'+r+'</option>';}).join('');})();
 
-var VIEW_TITLE={menu:'',browse:'Browse',deck:'Decks',collection:'Collection',wishlist:'Wishlist',
+var VIEW_TITLE={menu:'',you:'Profile',browse:'Browse',deck:'Decks',collection:'Collection',wishlist:'Wishlist',
   bank:'Bank',sim:'Playtest',plog:'Match log',sets:'Sets',meta:'Meta',analytics:'Analytics'};
 function go(v){view=v;if(window.listReset)listReset();
+  if(window.showHeader)window.showHeader();
   /* the bottom bar carries five destinations; anything else leaves it unhighlighted and is
      reached from Home, which keeps the bar honest about where you are */
   document.querySelectorAll('.bnav .bn').forEach(function(t){t.classList.toggle('on',t.dataset.v===v);});
@@ -1093,6 +1104,7 @@ function go(v){view=v;if(window.listReset)listReset();
   document.getElementById('plog').classList.toggle('hide',v!=='plog');
   document.getElementById('sets').classList.toggle('hide',v!=='sets');
   document.getElementById('meta').classList.toggle('hide',v!=='meta');
+  document.getElementById('you').classList.toggle('hide',v!=='you');
   document.getElementById('list').classList.toggle('hide',!(v==='deck'||v==='collection'||v==='wishlist'));
   if(v==='menu'){rMenu();return;}
   if(v==='browse'){rB();return;}
@@ -1102,6 +1114,7 @@ function go(v){view=v;if(window.listReset)listReset();
   if(v==='plog'){renderLog();return;}
   if(v==='sets'){renderSets();return;}
   if(v==='meta'){renderMeta();return;}
+  if(v==='you'){renderYou();return;}
   var ctrl='';
   if(v==='deck'){ctrl+='<select onchange="pickDeck(this.value)">'+Object.keys(St.decks).map(function(n){return '<option'+(n===St.active?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select>'
     +'<button onclick="newDeck()">+ New deck</button><button onclick="renDeck()">Rename</button><button onclick="delDeck()">Delete</button>';}
@@ -1160,6 +1173,7 @@ function kpis(){document.getElementById('kColl').textContent='$'+lt('collection'
   document.getElementById('kComp').textContent='$'+comp().toFixed(2);}
 function dismissIntro(){localStorage.setItem('ygo_seen','1');rMenu();}
 function showIntro(){localStorage.removeItem('ygo_seen');rMenu();}
+function narrowNav(){return window.matchMedia&&window.matchMedia('(max-width:900px)').matches;}
 function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collection).length,wN=Object.keys(St.wishlist).length,bN=St.bank.tx.length;
   var IT={
     browse:['🔍','Browse','Search &amp; price the '+CARDS.length.toLocaleString()+'-card catalogue'],
@@ -1172,10 +1186,20 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
     meta:['🧠','Meta','Top decks → staples &amp; gaps — '+(St.meta?St.meta.length:0)+' decks'],
     analytics:['📈','Analytics','Market insights &amp; price analysis'],
     bank:['💰','Bank','Budget, spending &amp; sales — '+bN+' logged']};
-  var groups=[['Cards &amp; decks','the everyday hub — find, build, track',['browse','deck','collection','wishlist']],
-    ['Play &amp; track','test a deck, then log how it does',['sim','plog']],
-    ['Market &amp; meta','scout sets, the metagame &amp; the market',['sets','meta','analytics']],
-    ['Budget','money in &amp; out of the hobby',['bank']]];
+  IT.you=['\u2699\uFE0F','Profile &amp; settings','Sync, backups, board defaults'];
+  /* With a bottom bar, Browse / Decks / Collection / Play are already one tap away — leading
+     Home with them again would just be a second copy of the same navigation. On phones Home
+     becomes the place for everything that ISN'T in the bar. */
+  var groups = narrowNav()
+    ? [['Collect','the rest of your collection',['wishlist','bank']],
+       ['Play &amp; track','log how your decks actually do',['plog']],
+       ['Market &amp; meta','scout sets, the metagame &amp; the market',['sets','meta','analytics']],
+       ['You','account, data &amp; defaults',['you']]]
+    : [['Cards &amp; decks','the everyday hub — find, build, track',['browse','deck','collection','wishlist']],
+       ['Play &amp; track','test a deck, then log how it does',['sim','plog']],
+       ['Market &amp; meta','scout sets, the metagame &amp; the market',['sets','meta','analytics']],
+       ['Budget','money in &amp; out of the hobby',['bank']],
+       ['You','account, data &amp; defaults',['you']]];
   var intro=localStorage.getItem('ygo_seen')?'':'<div class=qstart><span class=qx onclick="dismissIntro()" title="dismiss">✕</span>'
     +'<div class=qh>New here? Start simple.</div><div class=qp>&lt;CYBERSE&gt; grows with you — you don’t need all of it at once. '
     +'Begin in <b>Cards &amp; decks</b>: browse cards and build a deck. Everything else — playtest odds, match log, sets, meta, budget — '
@@ -1484,7 +1508,7 @@ function boardNew(){var d=St.decks[simName()];if(!d){board=null;renderSim();retu
        and attack into their cards, not to goldfish a second deck. */
     omon:[[],[],[],[],[]],ost:[[],[],[],[],[]],ofs:[[]],
     odeck:[],oex:[],ohand:[],ogy:[],oban:[],
-    lp:{you:8000,opp:8000},lpHist:[],log:[],phase:'dp',turn:1};
+    lp:{you:startLP(),opp:startLP()},lpHist:[],log:[],phase:'dp',turn:1};
   sel=null;viewer=null;placeMode='atk';attachMode=false;tokDraft=false;
   fxDraft=false;pmenu=null;renderSim();}
 function inst(id){return {id:+id,fd:false,def:false};}
@@ -1599,7 +1623,7 @@ function lpMinus(who){var v=lpField(who);if(v)lpAdj(who,-v);var el=document.getE
 function lpPlus(who){var v=lpField(who);if(v)lpAdj(who,v);var el=document.getElementById('lpIn_'+who);if(el)el.value='';}
 function lpUndo(){if(!board||!board.lpHist.length)return;
   var e=board.lpHist.pop();board.lp[e.w]-=e.d;renderSim();}
-function lpReset(){if(!board)return;board.lp={you:8000,opp:8000};board.lpHist=[];renderSim();}
+function lpReset(){if(!board)return;board.lp={you:startLP(),opp:startLP()};board.lpHist=[];renderSim();}
 
 /* ----- declared effects -----
    The board is a manual sim, so it can't know what a card does. Declaring it in your own
@@ -2245,6 +2269,52 @@ function metaPaste(){var el=document.getElementById('mpTxt');if(!el)return;var c
 function metaRename(id){var d=St.meta.filter(function(x){return x.id===id;})[0];if(!d)return;var nm=(prompt('Rename deck:',d.name)||'').trim();if(nm){d.name=nm;sv();renderMeta();}}
 function metaSetTier(id,t){var d=St.meta.filter(function(x){return x.id===id;})[0];if(d){d.tier=t;sv();renderMeta();}}
 function metaDel(id){St.meta=St.meta.filter(function(d){return d.id!==id;});sv();renderMeta();}
+/* Profile & settings. Everything about *you* rather than about cards: who you're signed in
+   as, where your data lives and how to get a copy of it, and the defaults the board uses.
+   This is also the shell the marketplace and public profiles will hang off later. */
+function setStartLP(v){var n=parseInt(String(v).replace(/[^0-9]/g,''),10);
+  if(isNaN(n)||n<=0)n=8000; St.settings=St.settings||{}; St.settings.startLP=n; sv(); renderYou();}
+function startLP(){return (St.settings&&St.settings.startLP)||8000;}
+function youSignOut(){if(window.syncSignOut)syncSignOut();setTimeout(renderYou,400);}
+function renderYou(){
+  var sy=(window.syncInfo?syncInfo():{state:'off',email:'',last:0});
+  var stateText={idle:'Synced',syncing:'Syncing…',pending:'Saving…',offline:'Offline — will sync when back',
+    error:'Sync error',conflict:'Needs your choice',signedout:'Not signed in',
+    off:'Off in this build',unconfigured:'Not set up'}[sy.state]||'Unknown';
+  var h='<h2 class=sec>Account</h2>'
+    +'<div class=deckstats style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">'
+      +'<div><div class=mut style="font-size:11px">SYNC</div><div style="font-size:17px;font-weight:700">'+esc(stateText)+'</div></div>'
+      +(sy.email?'<div><div class=mut style="font-size:11px">SIGNED IN AS</div><div style="font-size:14px">'+esc(sy.email)+'</div></div>':'')
+      +(sy.last?'<div><div class=mut style="font-size:11px">LAST SYNCED</div><div style="font-size:14px">'+Math.max(0,Math.round((Date.now()-sy.last)/60000))+' min ago</div></div>':'')
+      +'</div>'
+    +'<div class=bar>'
+      +(sy.email?'<button onclick="if(window.syncNow)syncNow()">Sync now</button><button onclick="youSignOut()">Sign out</button>'
+                :'<button onclick="if(window.syncOpen)syncOpen()">Sign in to sync</button>')
+    +'</div>'
+    +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">Signing in keeps your collection, decks, budget and match log on every device. '
+      +'Your data lives in your browser and, when signed in, in your own row on the server &mdash; nobody else can read it.</div>'
+
+    +'<h2 class=sec>Your data</h2>'
+    +'<div class=bar><button onclick="exJson()">Backup all (.json)</button>'
+      +'<button onclick="imp.click()">Import backup</button></div>'
+    +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">A backup is the only copy that does not depend on this browser or the sync server. '
+      +'Worth taking one occasionally.</div>'
+
+    +'<h2 class=sec>Board defaults</h2>'
+    +'<div class=bar><label class=mut style="font-size:12px">Starting life points '
+      +'<input type=text class=num inputmode=numeric value="'+startLP()+'" onchange="setStartLP(this.value)" style="width:88px;margin-left:6px"></label>'
+      +'<button onclick="setStartLP(8000)">Reset to 8000</button></div>'
+
+    +'<h2 class=sec>About</h2>'
+    +'<div class=ovw>'
+      +'<div class=ost><div class=v>'+CARDS.length.toLocaleString()+'</div><div class=l>cards</div></div>'
+      +'<div class=ost><div class=v>'+(SETS?SETS.length.toLocaleString():0)+'</div><div class=l>sets</div></div>'
+      +'<div class=ost><div class=v style="font-size:15px">__DATE__</div><div class=l>price snapshot</div></div>'
+      +'<div class=ost><div class=v style="font-size:15px">__BUILD__</div><div class=l>build</div></div>'
+    +'</div>'
+    +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">Prices come from the free YGOPRODeck feed and are estimates &mdash; '
+      +'many printings are unpriced. Set your own value in the <b>Unit</b> column of your Collection where it matters.</div>';
+  document.getElementById('youBody').innerHTML=h;}
 function renderMeta(){var M=St.meta,RED='#ff9aa8';
   var freq={},cop={};M.forEach(function(d){for(var id in d.cnt){freq[id]=(freq[id]||0)+1;cop[id]=(cop[id]||0)+d.cnt[id];}});
   var staples=Object.keys(freq).map(function(id){return {id:+id,f:freq[id],avg:cop[id]/freq[id]};}).sort(function(a,b){return b.f-a.f||b.avg-a.avg||((BY[b.id]?BY[b.id].m:0)-(BY[a.id]?BY[a.id].m:0));});
@@ -2721,6 +2791,7 @@ window.syncVerify=function(){
 window.syncSignOut=function(){ if(!sb)return; sb.auth.signOut().then(function(){
   user=null; set('signedout'); closeM(); }); };
 window.syncNow=function(){ if(user)pullNow(); };
+window.syncInfo=function(){ return {state:status, email:(user&&user.email)||'', last:lastSync}; };
 
 /* --- UI ---------------------------------------------------------------- */
 window.syncOpen=function(){
@@ -2783,7 +2854,84 @@ if(ready){
 paint();
 })();
 </script>
-<script>/* Sticky offsets (Browse table head, solo-board toolbar) key off --hh. The header's height
+<script>/* ===== header gets out of the way on scroll =============================
+   A fixed header costs its height on every screen, permanently. Hiding it as you scroll
+   down and returning it the moment you scroll up gives that space back without losing
+   access — the same trade x.com makes. Phone only: on desktop the space isn't scarce.
+   The bottom bar deliberately stays put; it's the primary navigation.
+   ======================================================================== */
+(function(){
+var last=0, hidden=false, TH=6, SHOW_ZONE=64;
+function set(h){ if(h===hidden)return; hidden=h;
+  var el=document.querySelector('header'); if(el)el.classList.toggle('hdrhide',h); }
+addEventListener('scroll',function(){
+  if(!window.matchMedia||!matchMedia('(max-width:900px)').matches){set(false);return;}
+  var y=Math.max(0,window.scrollY);
+  if(Math.abs(y-last)<TH)return;
+  var down=y>last; last=y;
+  if(y<SHOW_ZONE){set(false);return;}      /* near the top it's always there */
+  set(down);
+},{passive:true});
+/* changing screen always brings it back, so you never land somewhere headerless */
+window.showHeader=function(){last=0;set(false);};
+})();
+
+/* ===== swipe between the bottom-bar destinations =========================
+   The whole point of the bar is thumb reach; swiping is the same idea without
+   aiming. Deliberately narrow in scope so it never fires when the gesture
+   plainly means something else: not while dragging a card, not inside a
+   horizontally scrollable table, not on the board or the hand, not over form
+   controls, and not while a modal or panel is open. It also demands a clearly
+   horizontal, clearly deliberate movement.
+   ========================================================================= */
+(function(){
+/* Play is deliberately NOT in the swipe order: the board's whole interaction is horizontal
+   dragging, so a swipe there means "move this card", never "change screen". You reach it by
+   tapping the bar. Same reasoning keeps swipes out of tables that scroll sideways. */
+var ORDER=['menu','browse','deck','collection'];
+var NOSWIPE={sim:1};
+var st=null, MIN=64, RATIO=1.5;
+/* Blocking .tscroll outright was too blunt — on Browse the table IS the screen. Block only
+   where a sideways swipe already means something: a genuinely horizontally-scrollable
+   ancestor, the board, the hand, or a control. */
+function hScrollable(el){
+  while(el&&el!==document.body&&el.nodeType===1){
+    if(el.scrollWidth>el.clientWidth+4){
+      var ox=getComputedStyle(el).overflowX;
+      if(ox==='auto'||ox==='scroll')return true;
+    }
+    el=el.parentElement;
+  }
+  return false;
+}
+function blocked(t){
+  if(!t||!t.closest)return true;
+  if(t.closest('.bfield,.bhandwrap,.bnav,.btoolbar,.bpmenu,.bviewer,.modal,#ov,'
+    +'input,select,textarea,button,.nav,.bsidepanel,.simhand'))return true;
+  return hScrollable(t);
+}
+addEventListener('pointerdown',function(e){
+  if(e.pointerType==='mouse')return;                 /* touch/pen only */
+  if(!window.matchMedia||!matchMedia('(max-width:900px)').matches)return;
+  if(typeof view==='undefined'||NOSWIPE[view]||ORDER.indexOf(view)<0)return;
+  if(blocked(e.target)){st=null;return;}
+  st={x:e.clientX,y:e.clientY,t:Date.now()};
+},{passive:true});
+addEventListener('pointerup',function(e){
+  if(!st)return; var s0=st; st=null;
+  if(Date.now()-s0.t>600)return;                     /* a slow drag isn't a swipe */
+  var dx=e.clientX-s0.x, dy=e.clientY-s0.y;
+  if(Math.abs(dx)<MIN||Math.abs(dx)<Math.abs(dy)*RATIO)return;
+  var i=ORDER.indexOf(view); if(i<0)return;
+  var j=i+(dx<0?1:-1);
+  if(j<0||j>=ORDER.length)return;                    /* no wrap: the ends feel like ends */
+  var body=document.querySelector('#'+({menu:'menu',browse:'browse',deck:'list',collection:'list'}[ORDER[j]]||'menu'));
+  go(ORDER[j]);
+  if(body){body.classList.remove('swipein');void body.offsetWidth;body.classList.add('swipein');}
+},{passive:true});
+addEventListener('pointercancel',function(){st=null;},{passive:true});
+})();
+/* Sticky offsets (Browse table head, solo-board toolbar) key off --hh. The header's height
    changes with viewport width — one row on desktop, two on a phone — so measure it instead of
    hardcoding it per breakpoint, and nothing can drift out of sync. */
 (function(){var hd=document.querySelector('header');if(!hd)return;

@@ -752,6 +752,26 @@ tr:hover td{background:rgba(40,58,110,.3)}
    RESPONSIVE LAYER — everything below only applies to narrow screens.
    Desktop (>=901px) renders exactly as it did before this block existed.
    ============================================================================ */
+/* Browse has 11 nowrap columns and needs ~1330px. Between the scroller breakpoint and that
+   width the page itself scrolled sideways. Dropping the two least-consulted columns closes
+   the gap without a scroll container, which is what would have cost the sticky header. */
+@media(max-width:1340px){
+  #browse th:nth-child(4),#browse td:nth-child(4),   /* Archetype */
+  #browse th:nth-child(6),#browse td:nth-child(6){display:none}   /* Age */
+}
+/* Below ~1000px even the trimmed table cannot fit, so the scroll container takes over a
+   little earlier than the phone breakpoint. Sticky heads go with it — an overflow container
+   is also a scroll container — but that band is tablet width, where the fixed header matters
+   less than not dragging the whole page sideways. */
+@media(max-width:1000px){
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tscroll table{min-width:660px}
+  #browse th{position:static}
+}
+@media(max-width:1150px){
+  #browse th:nth-child(2),#browse td:nth-child(2),    /* Class */
+  #browse th:nth-child(10),#browse td:nth-child(10){display:none}   /* Gap x */
+}
 @media(max-width:900px){
   .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .tscroll table{min-width:660px}

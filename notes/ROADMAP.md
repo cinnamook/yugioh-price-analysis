@@ -67,6 +67,13 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
 ## Backlog
 
 ### QoL / mobile polish
+- ~~**First-run experience**~~ — **done 2026-08-09.** Two real defects, both found by
+  opening the app at phone width with localStorage cleared: the quick-start card told
+  new users to "begin in **Cards & decks**", a Home group the narrow layout doesn't
+  render at all (Browse/Decks/Collection live in the bottom bar there), and the Deck
+  tab — where the quick-start sends them — showed three sections each saying just
+  "empty". The intro now names what is actually on screen at that width, and each deck
+  section says what belongs in it and points at an action on the same screen.
 - ~~**Numeric inputs open the number pad on mobile**~~ — **done** (verified by audit
   2026-08-09; see "Next up" above).
 - **Text inputs still fight you on mobile** — no input anywhere sets

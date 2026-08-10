@@ -1244,10 +1244,16 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
        ['Market &amp; meta','scout sets, the metagame &amp; the market',['sets','meta','analytics']],
        ['Budget','money in &amp; out of the hobby',['bank']],
        ['You','account, data &amp; defaults',['you']]];
+  /* The narrow layout moves Browse/Decks/Collection into the bottom bar and drops the
+     "Cards & decks" group from Home entirely — so the intro must not send a phone user
+     to a heading that isn't on their screen. Name the thing they can actually see. */
+  var startWhere = narrowNav()
+    ? 'Start at <b>Browse</b> in the bar along the bottom: search a card, add it to your deck, then open <b>Decks</b> to price it.'
+    : 'Begin in <b>Cards &amp; decks</b>: browse cards and build a deck.';
   var intro=localStorage.getItem('ygo_seen')?'':'<div class=qstart><span class=qx onclick="dismissIntro()" title="dismiss">✕</span>'
-    +'<div class=qh>New here? Start simple.</div><div class=qp>&lt;CYBERSE&gt; grows with you — you don’t need all of it at once. '
-    +'Begin in <b>Cards &amp; decks</b>: browse cards and build a deck. Everything else — playtest odds, match log, sets, meta, budget — '
-    +'is here when you want it, and it all saves automatically in your browser.</div></div>';
+    +'<div class=qh>New here? Start simple.</div><div class=qp>&lt;CYBERSE&gt; is your Yu-Gi-Oh! collection, decks and budget in one place — and it grows with you, so you don’t need all of it at once. '
+    +startWhere+' Everything else — playtest odds, match log, sets, meta, budget — '
+    +'is here when you want it, and it all saves automatically in your browser. Nothing is uploaded unless you sign in to sync.</div></div>';
   var html=intro+groups.map(function(g){return '<div class=mgh>'+g[0]+' <span class=mgs>'+g[1]+'</span></div>'
     +g[2].map(function(k){var i=IT[k];return '<div class=mitem onclick="go(\''+k+'\')"><div class=mic>'+i[0]+'</div><div><div class=mt>'+i[1]+'</div><div class=md>'+i[2]+'</div></div><div class=marrow>▸</div></div>';}).join('');}).join('');
   document.getElementById('menugrid').innerHTML=html;
@@ -2477,7 +2483,14 @@ function secTable(sec,label,lim,lq){var m=curDeck()[sec];var cnt=0;Object.keys(m
   var ids=Object.keys(m).filter(function(id){var c=BY[id];return c&&(!lq||c.n.toLowerCase().indexOf(lq)>=0);});
   var over=(lim&&cnt>lim)?' <span style="color:#e0607a">(max '+lim+')</span>':'';
   var head='<h3 class=sec>'+label+' — '+cnt+' card'+(cnt===1?'':'s')+over+'</h3>';
-  if(!Object.keys(m).length)return head+'<div class=empty style="padding:4px 2px">empty</div>';
+  /* A bare "empty" is a dead end for someone opening the app for the first time —
+     and the Deck tab is exactly where the quick-start sends them. Each section
+     says what belongs in it and points at an action that is on this screen. */
+  if(!Object.keys(m).length){var hint={
+      main:'No cards yet — type in <b>+ add a card to this deck</b> above, or find cards in <b>Browse</b>. Already have a list? <b>Import .ydk / list</b> or <b>Import from link</b> below.',
+      extra:'No Extra Deck cards. Fusion, Synchro, Xyz and Link monsters land here on their own when you add them.',
+      side:'No Side Deck cards. Cards you swap in between games go here.'}[sec]||'empty';
+    return head+'<div class=empty style="padding:4px 2px;max-width:560px;line-height:1.6">'+hint+'</div>';}
   if(listMode==='grid')return head+(ids.length?'<div class=grid>'+ids.map(function(id){return gridTile(sec,id,true);}).join('')+'</div>':'<div class=empty style="padding:4px 2px">no matches</div>');
   var rows=ids.map(function(id){return listRow(sec,id,true);}).join('');
   return head+'<div class=tscroll><table><tr><th>Card</th><th>Qty</th><th class=r>Own</th><th class=r>Buy</th><th>Rarity (which you own)</th><th class=r>Unit</th><th class=r>To-buy</th><th></th></tr>'+rows+'</table></div>';}

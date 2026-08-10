@@ -2329,7 +2329,7 @@ function renderYou(){
     +'<div class=deckstats style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">'
       +'<div><div class=mut style="font-size:11px">SYNC</div><div style="font-size:17px;font-weight:700">'+esc(stateText)+'</div></div>'
       +(sy.email?'<div><div class=mut style="font-size:11px">SIGNED IN AS</div><div style="font-size:14px">'+esc(sy.email)+'</div></div>':'')
-      +(sy.last?'<div><div class=mut style="font-size:11px">LAST SYNCED</div><div style="font-size:14px">'+Math.max(0,Math.round((Date.now()-sy.last)/60000))+' min ago</div></div>':'')
+      +(sy.last?'<div><div class=mut style="font-size:11px">LAST SYNCED</div><div style="font-size:14px">'+esc(window.syncAgo?syncAgo(sy.last):'—')+'</div></div>':'')
       +'</div>'
     +'<div class=bar>'
       +(sy.email?'<button onclick="if(window.syncNow)syncNow()">Sync now</button><button onclick="youSignOut()">Sign out</button>'
@@ -2782,12 +2782,22 @@ __BOOTSTRAP__
    ========================================================================== */
 (function(){
 var SB_URL="__SUPABASE_URL__", SB_KEY="__SUPABASE_KEY__";
-var MARK_K='ygo_sync_mark', DIRTY_K='ygo_sync_dirty', EMAIL_K='ygo_sync_email';
+var MARK_K='ygo_sync_mark', DIRTY_K='ygo_sync_dirty', EMAIL_K='ygo_sync_email', LAST_K='ygo_sync_at';
 var ready = !!(SB_URL && SB_KEY && location.protocol!=='file:' && window.supabase);
 var sb = ready ? window.supabase.createClient(SB_URL,SB_KEY,
           {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}) : null;
 var user=null, status=(SB_URL&&SB_KEY)?(ready?'signedout':'off'):'unconfigured';
-var msg='', pushT=null, lastSync=0, step='email', pendEmail='', busy=false;
+/* lastSync is persisted, not just held in memory: it is the answer to "is my
+   phone actually up to date?", which matters most right after opening the app —
+   exactly when an in-memory value is still 0 and the indicator would show no
+   time at all despite a pull having just succeeded. */
+var msg='', pushT=null, lastSync=+(localStorage.getItem(LAST_K)||0), step='email', pendEmail='', busy=false;
+function markSynced(){lastSync=Date.now(); try{localStorage.setItem(LAST_K,String(lastSync));}catch(e){}}
+function agoText(t){var s=Math.max(0,Math.round((Date.now()-t)/1000));
+  if(s<45)return 'just now';
+  var m=Math.round(s/60); if(m<60)return m+'m ago';
+  var h=Math.round(m/60); if(h<24)return h+'h ago';
+  return Math.round(h/24)+'d ago';}
 
 /* --- the two markers conflict handling rests on ------------------------- */
 /* mark  = the server updated_at we last adopted or wrote. Server-owned, so a
@@ -2808,6 +2818,7 @@ function paint(){
     d.title={idle:'Synced',syncing:'Syncing…',pending:'Saving…',offline:'Offline — will sync',
              error:'Sync error — tap',conflict:'Needs your choice — tap',
              signedout:'Sign in to sync',off:'Sync off here',unconfigured:'Sync not set up'}[status]||'Sync';}
+  if(window.syncChipRefresh)window.syncChipRefresh();
   if(typeof view!=='undefined'&&view==='menu'&&window.rMenu)rMenu();}
 
 function stateEmpty(s){ if(!s)return true;
@@ -2837,7 +2848,7 @@ function pushNow(){
     .select('updated_at').single()
     .then(function(r){ busy=false;
       if(r.error){set('error',r.error.message);return;}
-      markSet(r.data.updated_at); setDirty(false); lastSync=Date.now(); set('idle');
+      markSet(r.data.updated_at); setDirty(false); markSynced(); set('idle');
     },function(e){busy=false;set('error',String(e&&e.message||e));});
 }
 
@@ -2853,7 +2864,7 @@ function pullNow(){
       if(!remote){ return pushNow(); }              /* nothing up there yet — seed it */
       var mark=markGet();
       var remoteNewer = !mark || (new Date(remote.updated_at) > new Date(mark));
-      if(!remoteNewer){ lastSync=Date.now(); set('idle'); if(isDirty())pushNow(); return; }
+      if(!remoteNewer){ markSynced(); set('idle'); if(isDirty())pushNow(); return; }
       /* Remote is newer. Adopting silently is only safe when this device has
          nothing unsent. Otherwise those local edits would vanish — so stop and
          ask, after writing a backup to disk first. This covers both the first
@@ -2866,7 +2877,7 @@ function pullNow(){
 
 function adopt(remote){
   localStorage.setItem(KEY,JSON.stringify(remote.data));
-  markSet(remote.updated_at); setDirty(false);
+  markSet(remote.updated_at); setDirty(false); markSynced();
   location.reload();                                /* same path imJson() already uses */
 }
 
@@ -2922,7 +2933,8 @@ window.syncVerify=function(){
   },function(e){authFail(String(e&&e.message||e));});
 };
 window.syncSignOut=function(){ if(!sb)return; sb.auth.signOut().then(function(){
-  user=null; set('signedout'); closeM(); }); };
+  user=null; lastSync=0; try{localStorage.removeItem(LAST_K);}catch(e){}
+  set('signedout'); closeM(); }); };
 window.syncNow=function(){ if(user)pullNow(); };
 window.syncInfo=function(){ return {state:status, email:(user&&user.email)||'', last:lastSync}; };
 
@@ -2956,11 +2968,15 @@ window.syncChip=function(){
   var t={off:'Sync off',unconfigured:'Sync not set up',signedout:'Sign in to sync',
          idle:'Synced ✓',syncing:'Syncing…',pending:'Saving…',
          offline:'Offline — will sync',error:'Sync error',conflict:'Needs your choice'}[status]||'Sync';
-  if(status==='idle'&&lastSync){var m=Math.round((Date.now()-lastSync)/60000);
-    t='Synced ✓'+(m>0?' '+m+'m ago':' just now');}
+  if(status==='idle'&&lastSync)t='Synced ✓ '+agoText(lastSync);
   var col=status==='error'||status==='conflict'?'var(--dang)':status==='idle'?'var(--pos)':'var(--mut)';
-  return '<span class=qlink style="color:'+col+'" onclick="syncOpen()">▸ '+t+'</span>';
+  return '<span id=syncchip class=qlink style="color:'+col+'" onclick="syncOpen()">▸ '+t+'</span>';
 };
+/* Swap just the chip rather than re-rendering the whole menu, so "2m ago" can
+   tick over without disturbing anything the user is part-way through. */
+window.syncChipRefresh=function(){var e=document.getElementById('syncchip');
+  if(e)e.outerHTML=window.syncChip();};
+window.syncAgo=agoText;
 
 /* --- lifecycle --------------------------------------------------------- */
 window.syncTouch=function(){ if(!user)return; setDirty(true); set('pending');
@@ -2981,6 +2997,9 @@ if(ready){
   addEventListener('pagehide',function(){if(isDirty())pushNow();});
   addEventListener('online',function(){if(isDirty())pushNow();else if(user)pullNow();});
   addEventListener('offline',function(){if(user)set('offline');});
+  /* Without this the relative time freezes at whatever it read when the menu was
+     last rendered, so a phone left open all evening still claims "just now". */
+  setInterval(function(){if(status==='idle'&&lastSync)window.syncChipRefresh();},30000);
 }
 /* This block loads after the app has already rendered the menu, so syncChip()
    didn't exist when the savebar was first built — repaint once now. */

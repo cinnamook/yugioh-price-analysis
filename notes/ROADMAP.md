@@ -45,9 +45,15 @@ auth + sync + hosting are the base the whole platform stands on.
 
 Nothing large is committed yet. The nearest candidates, roughly by effort:
 
-- **Sync Phase 2** — "last synced" indicator and a manual *Sync now* (both
-  partly there), offline write-queue hardening, and conflict safety beyond
-  last-write-wins if it ever actually bites.
+- **Sync Phase 2** — the "last synced" indicator and manual *Sync now* are
+  **done (2026-08-09)**: both already existed, but `lastSync` was held only in
+  memory, so after a reload the chip said "Synced ✓" with no time and Profile's
+  LAST SYNCED figure disappeared entirely — exactly when you most want to know
+  whether the phone is current. It is now persisted (`ygo_sync_at`), stamped on
+  push, on a no-op pull and on adopting a remote copy, cleared on sign-out, and
+  the chip refreshes itself in place every 30s instead of freezing at whatever
+  it read when the menu was last drawn. Still open: offline write-queue
+  hardening, and conflict safety beyond last-write-wins if it ever actually bites.
 - ~~**Mobile numeric keypads**~~ — **audited 2026-08-09 and already complete.** All 19
   numeric fields carry `inputmode`, `decimal` vs `numeric` is assigned correctly
   (money vs integers), quantities are +/− steppers rather than typed, and the only

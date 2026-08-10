@@ -818,6 +818,26 @@ tr:hover td{background:rgba(40,58,110,.3)}
 .gab:hover{border-color:var(--gold);color:var(--gold2)}
 .grar{font-size:10px;padding:2px 4px;flex:1;min-width:0}
 .ovin{width:72px;text-align:right;font-size:11px;padding:4px 6px}
+
+/* ---- tap targets on phones -------------------------------------------------
+   Audited at 390px with real data in every view. Three things were genuinely
+   hard to hit: the row-delete ✕ was an 18x20 target for a DESTRUCTIVE action,
+   the per-row rarity/condition selects were 20px tall, and the sync dot — which
+   navigates to Profile — was 9x9. Everything here sits behind the same 900px
+   breakpoint the layout already switches on, so desktop keeps its denser sizing.
+   The solo board is deliberately untouched: its geometry is driven by --bside
+   and a blanket min-height would fight it. */
+@media(max-width:900px){
+  .x{display:inline-block;padding:12px 14px;line-height:1}
+  .qx{padding:10px;top:2px;right:4px}
+  /* a transparent 44px disc centred on the 9px dot — grows the target, not the dot */
+  .syncdot{position:relative}
+  .syncdot::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;
+    transform:translate(-50%,-50%);border-radius:50%}
+  .grar{font-size:11px;padding:9px 6px}
+  .ovin{padding:9px 6px;font-size:12px}
+  .bar button,.bar select,.bar input,.controls button,.controls select,.controls input{min-height:40px}
+}
 .ovin.ovset{border-color:var(--gold);color:var(--gold2);font-weight:700}
 /* Tables keep white-space:nowrap for readability, so on narrow screens they scroll inside
    their own box rather than dragging the whole page sideways. NOTE: an overflow container

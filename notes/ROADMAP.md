@@ -76,6 +76,16 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   section says what belongs in it and points at an action on the same screen.
 - ~~**Numeric inputs open the number pad on mobile**~~ — **done** (verified by audit
   2026-08-09; see "Next up" above).
+- ~~**Phone-width polish pass**~~ — **done 2026-08-09.** Audited all 12 views at 390px
+  with real data. Horizontal overflow was **zero everywhere** — the earlier responsive
+  pass holds. Three controls were genuinely too small to hit and are now fixed behind
+  the existing 900px breakpoint, so desktop is untouched (re-measured to confirm):
+  the row-delete ✕ 18×20 → 38×37, the per-row rarity/condition selects 20 → 35 tall,
+  and the sync dot — which navigates to Profile — 9×9 → a 44×44 hit area via a
+  transparent pseudo-element. ✕ and the selects land at ~37 rather than the 44 ideal
+  on purpose: getting to 44 costs ~10px on every row and makes long lists worse.
+  The solo board was deliberately left alone — its geometry is driven by `--bside`
+  and a blanket min-height would fight it.
 - **Text inputs still fight you on mobile** — no input anywhere sets
   `autocapitalize` / `autocorrect` / `spellcheck`, so iOS capitalizes and
   autocorrects inside the six search-style fields (card name, archetype, list

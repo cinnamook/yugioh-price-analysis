@@ -15,13 +15,16 @@ data/ygo.db
 data/collector.log
 data/launchd.log
 
-# Generated tool outputs (rebuilt from the DB; snapshot-specific):
+# Generated tool outputs (rebuilt from the DB; snapshot-specific).
+# All of these are written to the repo ROOT even though their generators live in app/ —
+# on file:// the app resolves card art relative to itself, so it must sit beside data/.
 screener.html
 value_report.html
 deck_report.html
 roadmap.html
 builder.html
 app.html
+analysis/decision_numbers.json
 *_preview.png
 *_rarity.png
 *_secret.png

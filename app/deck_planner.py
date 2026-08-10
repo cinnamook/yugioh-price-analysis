@@ -3,10 +3,10 @@
 Phase 3 — deck planner (rarity-aware). Prices a .ydk decklist and computes cost-to-complete.
 Each card is priced at the rarity you choose:
 
-  python3 deck_planner.py deck.ydk                          # cheapest printing per card (budget build)
-  python3 deck_planner.py deck.ydk --rarity "Secret Rare"   # everything at that rarity where it exists
-  python3 deck_planner.py deck.ydk --overrides mine.csv      # per-card rarity (CSV: card_id_or_name,rarity)
-  python3 deck_planner.py deck.ydk --own owned.ydk           # subtract cards you already own
+  python3 app/deck_planner.py deck.ydk                          # cheapest printing per card (budget build)
+  python3 app/deck_planner.py deck.ydk --rarity "Secret Rare"   # everything at that rarity where it exists
+  python3 app/deck_planner.py deck.ydk --overrides mine.csv      # per-card rarity (CSV: card_id_or_name,rarity)
+  python3 app/deck_planner.py deck.ydk --own owned.ydk           # subtract cards you already own
 
 A card that isn't printed/priced in the requested rarity falls back to cheapest (flagged ‡).
 Writes deck_report.html. Stdlib only.
@@ -14,8 +14,9 @@ Writes deck_report.html. Stdlib only.
 import sqlite3, os, argparse, csv
 from collections import Counter
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DB   = os.path.join(HERE, "data", "ygo.db")
+HERE = os.path.dirname(os.path.abspath(__file__))   # app/
+ROOT = os.path.dirname(HERE)                        # repo root — data/ and the generated pages live there
+DB   = os.path.join(ROOT, "data", "ygo.db")
 
 def parse_ydk(path):
     c = Counter()
@@ -100,7 +101,7 @@ def main():
     html = (HTML.replace("__DECK__", esc(os.path.basename(a.deck))).replace("__DATE__", date).replace("__MODE__", esc(mode))
             .replace("__NC__", str(sum(need.values()))).replace("__NU__", str(len(need)))
             .replace("__TOT__", f"{total:,.2f}").replace("__COMP__", f"{complete:,.2f}").replace("__ROWS__", trs))
-    out = os.path.join(HERE, "deck_report.html"); open(out, "w").write(html)
+    out = os.path.join(ROOT, "deck_report.html"); open(out, "w").write(html)
     print(f"\nwrote {out}")
 
 def esc(s): return (s or "").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")

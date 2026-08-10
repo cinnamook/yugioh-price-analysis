@@ -4,13 +4,14 @@ call in the brief. This is NOT the analysis — it exists so Ryan can make each 
 decision against real data. Reads data/cardinfo_raw.json, prints a report, and writes
 decision_numbers.json.
 
-Run:  python3 profile_data.py
+Run:  python3 analysis/profile_data.py
 """
 import json, os, statistics, sys
 from collections import Counter
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-RAW = os.path.join(HERE, "data", "cardinfo_raw.json")
+HERE = os.path.dirname(os.path.abspath(__file__))   # analysis/
+ROOT = os.path.dirname(HERE)                        # repo root — data/ lives there
+RAW = os.path.join(ROOT, "data", "cardinfo_raw.json")
 
 PRICE_KEYS = ["tcgplayer_price", "cardmarket_price", "ebay_price",
               "amazon_price", "coolstuffinc_price"]

@@ -4,17 +4,34 @@ Personal Yu-Gi-Oh! hub for Ryan Nguyen (UCSD Data Science). One app that holds h
 collection, decks, budget, playtesting, match records, sets, and meta. Final
 Fantasy / Xenoblade-inspired UI. Long-term goal: a mobile "pocket app."
 
+## Repo layout
+
+```
+analysis/   the original question: notebook.ipynb, DECISIONS.md, profile_data.py, figures/
+pipeline/   collect_snapshot.py (daily pull), banlist/rarity overrides, sync_schema.sql, the launchd plist
+app/        build_app.py + the older generators, vendor/ (pinned supabase-js)
+notes/      ROADMAP.md, JOURNEY.md, SYNC_DESIGN.md, SIM_BOARD_PLAN.md, TOOL.md
+scripts/    refresh / publish / setup_automation .command wrappers
+data/       the SQLite DB, cached pulls, image cache (mostly gitignored)
+docs/       GENERATED GitHub Pages bundle — output, not documentation. Never hand-edit.
+```
+
+All scripts resolve paths from their own location, so they can be run from
+anywhere; the generated pages (`app.html` and friends) are still written to the
+repo **root**, because on `file://` the page resolves card art relative to
+itself (`IMGBASE = 'data/images/'`) and so must sit beside `data/`.
+
 ## How it's built (important — read before editing)
 
 Static-site generation, no framework, no server:
 
-- **`collect_snapshot.py`** pulls a daily price/printing snapshot from the
+- **`pipeline/collect_snapshot.py`** pulls a daily price/printing snapshot from the
   YGOPRODeck API into a SQLite DB **`data/ygo.db`** (gitignored; back it up —
   price history can't be re-pulled).
-- **`build_app.py`** reads `data/ygo.db` and writes **`app.html`** — a single
+- **`app/build_app.py`** reads `data/ygo.db` and writes **`app.html`** — a single
   self-contained page (vanilla JS + localStorage, all card data embedded as JSON).
-- **All the app's JavaScript lives INSIDE `build_app.py`** as a big Python raw
-  string (`HTML = r"""..."""`). Edit `build_app.py`, never `app.html` directly —
+- **All the app's JavaScript lives INSIDE `app/build_app.py`** as a big Python raw
+  string (`HTML = r"""..."""`). Edit `app/build_app.py`, never `app.html` directly —
   `app.html` is generated and gitignored.
 - User data (collection, decks, logs) lives in the **browser's localStorage**
   (key `ygo_builder_v1`), never in the HTML. A rebuild never touches it.
@@ -22,46 +39,46 @@ Static-site generation, no framework, no server:
 ## Commands
 
 ```bash
-# rebuild the app after editing build_app.py (run from the project folder)
-python3 build_app.py
+# rebuild the app after editing app/build_app.py
+python3 app/build_app.py
 
 # open the desktop version
 open app.html
 
 # refresh data + rebuild (what the daily 1pm launchd job runs)
-bash refresh.command
+bash scripts/refresh.command
 
 # rebuild + push the hosted phone version (GitHub Pages)
-bash publish.command
+bash scripts/publish.command
 ```
 
 ## Mobile / hosting
 
-- `build_app.py` also emits a **`docs/`** bundle for **GitHub Pages**:
+- `app/build_app.py` also emits a **`docs/`** bundle for **GitHub Pages**:
   `docs/index.html` (same page), `manifest.json`, `sw.js` (service worker,
   versioned by build date), and `icons/`. Repo: `cinnamook/yugioh-price-analysis`,
   Pages served from `main` `/docs`. Live URL:
   `https://cinnamook.github.io/yugioh-price-analysis/`.
-- **Card art is protocol-aware** (see `imgSrc()` / `IMGBASE` in `build_app.py`):
+- **Card art is protocol-aware** (see `imgSrc()` / `IMGBASE` in `app/build_app.py`):
   on `file://` (desktop) it uses the local `data/images/` cache (~2.3 GB,
   gitignored); when hosted it uses the YGOPRODeck CDN, so the hosted app stays
   ~13 MB. Never commit `data/images/`.
 - The app is **installable and works offline** (data/prices/decks/playtest);
   only card images need a connection when hosted.
 
-## Current plan — see ROADMAP.md
+## Current plan — see notes/ROADMAP.md
 
 The responsive mobile pass is **done**: nav scroll strip, shrink-to-fit KPI grid,
 `.tscroll` table containers, a solo board that scales via `--bside`/`--bgap`, and
 iOS safe-area insets (`--sat`/`--sar`/`--sab`/`--sal`) on the header, `.wrap` and
 overlays. Sticky offsets key off `--hh`, measured from the real header at runtime.
 
-**ROADMAP.md is the single in-repo source of the plan** — north star, status,
+**notes/ROADMAP.md is the single in-repo source of the plan** — north star, status,
 backlog, far horizon. Read it first.
 
 **Cross-device sync (Phase 1) shipped 2026-08-07.** Supabase, configured in
-`build_app.py` (`SUPABASE_URL` / `SUPABASE_ANON_KEY` — the publishable key is
-public by design; never put a secret key there). Schema in `sync_schema.sql`.
+`app/build_app.py` (`SUPABASE_URL` / `SUPABASE_ANON_KEY` — the publishable key is
+public by design; never put a secret key there). Schema in `pipeline/sync_schema.sql`.
 The client lives in one block near the end of the template:
 
 - Auth is an **emailed one-time code**, not a clickable link — on iOS a link
@@ -77,11 +94,11 @@ The client lives in one block near the end of the template:
 - Sync is off on `file://` and when the build has no Supabase config; in both
   cases the app behaves exactly as before.
 
-**SYNC_DESIGN.md has a "Setting it up" section** listing the four traps that cost
+**notes/SYNC_DESIGN.md has a "Setting it up" section** listing the four traps that cost
 real time (signup vs magic-link template, OTP length, Site URL, GRANT with
 auto-expose off). Read it before touching auth config.
 
-Backlog items most likely to come next (full list in ROADMAP.md):
+Backlog items most likely to come next (full list in notes/ROADMAP.md):
 
 - **Mobile numeric keypads** — every field expecting a number (life points,
   quantities, prices, budget amounts, game scores) should carry the right
@@ -107,16 +124,17 @@ Backlog items most likely to come next (full list in ROADMAP.md):
 
 ## Gotchas
 
-- Run `python3 build_app.py` **from the project folder** (it reads `data/ygo.db`
-  via a path relative to the script).
+- The generators find `data/ygo.db` relative to their own file, so `python3
+  app/build_app.py` works from any directory — but it always writes `app.html`
+  and `docs/` at the repo root.
 - Test the hosted/PWA path over **http** (e.g. `python3 -m http.server`), not
   `file://` — service workers don't run from `file://`, and `IMGBASE` switches on
   protocol.
 - When testing over http, **unregister the service worker first**. Its fetch
   handler answers navigations from cache and ignores the query string, so a
   `?cachebust=` on the URL will *not* get you the fresh page — you'll silently
-  test the previous build. `publish.command` stages `build_app.py` alongside
-  `docs/`, so the generator and its output can't drift apart.
+  test the previous build. `scripts/publish.command` stages `app/build_app.py`
+  alongside `docs/`, so the generator and its output can't drift apart.
 - Data sources: YGOPRODeck free API prices only ~30% of printings. No free API
   for competitive META — meta is a manual watchlist. JustTCG (free, per-printing)
   is a possible future price upgrade.
@@ -125,5 +143,5 @@ Backlog items most likely to come next (full list in ROADMAP.md):
 
 Pair-programming; **Ryan makes the calls**. He values understanding *how* things
 are built and honesty about limitations. Explain trade-offs, propose, let him
-decide. The backlog and the long-term trajectory live in **ROADMAP.md** — keep
+decide. The backlog and the long-term trajectory live in **notes/ROADMAP.md** — keep
 them there rather than duplicating them here, so the two can't drift.

@@ -7,13 +7,14 @@ building the price history that the value-finder, tracker, and deck-planner all 
 Card metadata is upserted each run. Stdlib only — no venv needed for the cron job.
 
 Usage:
-  python3 collect_snapshot.py                              # fetch today's snapshot from the API
-  python3 collect_snapshot.py --from-file data/cardinfo_misc.json --date 2026-08-05   # seed/backfill
+  python3 pipeline/collect_snapshot.py                              # fetch today's snapshot from the API
+  python3 pipeline/collect_snapshot.py --from-file data/cardinfo_misc.json --date 2026-08-05   # seed/backfill
 """
 import sqlite3, json, os, sys, argparse, datetime, urllib.request, csv, html
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DB   = os.path.join(HERE, "data", "ygo.db")
+HERE = os.path.dirname(os.path.abspath(__file__))         # pipeline/
+ROOT = os.path.dirname(HERE)                              # repo root — data/ lives there
+DB   = os.path.join(ROOT, "data", "ygo.db")
 OVERRIDES = os.path.join(HERE, "banlist_overrides.csv")   # your manual TCG ban corrections
 API  = "https://db.ygoprodeck.com/api/v7/cardinfo.php?misc=yes"
 PREMIUM = ("secret","ultimate","ghost","starlight","collector","prismatic","quarter century","platinum")

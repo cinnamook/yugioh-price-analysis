@@ -6,18 +6,22 @@ merges the screener and the builder: Browse cards with filters, click a card for
 anywhere. Lists save in the browser; export/import JSON, export deck .ydk. Supersedes screener.html
 and builder.html.
 
-  python3 build_app.py     (run collect_snapshot.py once first so card_text + rarities exist)
+  python3 app/build_app.py   (run pipeline/collect_snapshot.py once first so card_text + rarities exist)
 Stdlib only.
 """
-import sqlite3, os, json, datetime, statistics
+import sqlite3, os, sys, json, datetime, statistics
 from collections import defaultdict
+
+HERE = os.path.dirname(os.path.abspath(__file__))   # app/
+ROOT = os.path.dirname(HERE)                        # repo root — data/, docs/ and app.html live there
+# RARITY_ORDER is owned by the collector, which lives in pipeline/. No package, so put it on the path.
+sys.path.insert(0, os.path.join(ROOT, "pipeline"))
 from collect_snapshot import RARITY_ORDER
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DB   = os.path.join(HERE, "data", "ygo.db")
+DB    = os.path.join(ROOT, "data", "ygo.db")
 TODAY = datetime.date.today()   # card "age" is relative to the build, not a frozen date
 
-# --- Cross-device sync (SYNC_DESIGN.md, sync_schema.sql) ---------------------
+# --- Cross-device sync (notes/SYNC_DESIGN.md, pipeline/sync_schema.sql) ---------------------
 # Paste these from your Supabase project: Dashboard -> Project Settings -> API.
 # The ANON key is public by design and safe to commit — row-level security is what
 # protects the data. NEVER put the service_role key here; it bypasses RLS.
@@ -28,10 +32,10 @@ SUPABASE_ANON_KEY = "sb_publishable_kiBcVCdAjWI8_CvalphVGg_Iv6BfSFH"
 
 def supabase_lib():
     """The pinned supabase-js UMD bundle, inlined so the app has no external runtime
-    dependency and sign-in still works offline. See vendor/README.md."""
+    dependency and sign-in still works offline. See app/vendor/README.md."""
     p = os.path.join(HERE, "vendor", "supabase.umd.js")
     if not os.path.exists(p):
-        return "/* vendor/supabase.umd.js missing — sync disabled */"
+        return "/* app/vendor/supabase.umd.js missing — sync disabled */"
     js = open(p, encoding="utf-8").read()
     return js.replace("</script", "<\\/script")   # defensive; the pinned build has none
 
@@ -42,7 +46,7 @@ def age_years(s):
 def main():
     con = sqlite3.connect(DB); con.row_factory = sqlite3.Row
     if not con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='card_rarities'").fetchone():
-        print("Run  python3 collect_snapshot.py  once first (adds card_text + the rarity table)."); return
+        print("Run  python3 pipeline/collect_snapshot.py  once first (adds card_text + the rarity table)."); return
     date = con.execute("SELECT MAX(snapshot_date) FROM price_history").fetchone()[0]
     rows = con.execute("""SELECT c.card_id,c.name,c.card_class,c.race,c.attribute,c.level,c.atk,c.def_,
                                  c.linkval,c.scale,c.type,c.ban_tcg,c.archetype,c.card_text,c.tcg_date,c.num_printings,
@@ -109,21 +113,23 @@ def main():
     docs_html = shell.replace("__BOOTSTRAP__",
         "fetch('cards.json?v=%s').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);"
         "return r.json();}).then(bootWith).catch(bootFailed);" % build)
-    out = os.path.join(HERE, "app.html"); open(out, "w").write(app_html)
+    # app.html is written to the repo ROOT on purpose: on file:// the page resolves card art
+    # relative to itself (IMGBASE = 'data/images/'), so it has to sit beside data/.
+    out = os.path.join(ROOT, "app.html"); open(out, "w").write(app_html)
     mb = os.path.getsize(out)/1e6
     build = write_pwa(docs_html, build, data_json)
     print(f"snapshot {date} | {len(cards):,} cards | {flagged} gap flags | app.html {mb:.1f} MB")
-    print(f"docs/index.html {os.path.getsize(os.path.join(HERE,'docs','index.html'))/1e6:.2f} MB shell"
-          f" + cards.json {os.path.getsize(os.path.join(HERE,'docs','cards.json'))/1e6:.1f} MB data")
+    print(f"docs/index.html {os.path.getsize(os.path.join(ROOT,'docs','index.html'))/1e6:.2f} MB shell"
+          f" + cards.json {os.path.getsize(os.path.join(ROOT,'docs','cards.json'))/1e6:.1f} MB data")
     print(f"wrote {out} — open it (double-click, or: open app.html). Lists save in the browser.")
-    print(f"wrote docs/ (GitHub Pages bundle, sw cache cyberse-{build}) — run publish.command to push it to your phone.")
+    print(f"wrote docs/ (GitHub Pages bundle, sw cache cyberse-{build}) — run scripts/publish.command to push it to your phone.")
 
 
 def write_pwa(html, build, data_json):
     """Emit the hosted bundle for GitHub Pages / the phone PWA into docs/.
     Same page as app.html; card art auto-switches to the CDN when hosted.
     Returns the build id stamped into the service-worker cache name."""
-    docs = os.path.join(HERE, "docs")
+    docs = os.path.join(ROOT, "docs")
     os.makedirs(os.path.join(docs, "icons"), exist_ok=True)
     open(os.path.join(docs, "index.html"), "w").write(html)
     open(os.path.join(docs, "cards.json"), "w").write(data_json)
@@ -1660,7 +1666,7 @@ function lpReset(){if(!board)return;board.lp={you:startLP(),opp:startLP()};board
 /* ----- declared effects -----
    The board is a manual sim, so it can't know what a card does. Declaring it in your own
    words is what makes a line reviewable afterwards — the note sticks to the card AND lands
-   in a running list, which is the seed of the action log in SIM_BOARD_PLAN.md. */
+   in a running list, which is the seed of the action log in notes/SIM_BOARD_PLAN.md. */
 /* Declaring is one tap and records immediately — typing is optional, for when you want to
    clarify what the card is doing. `dec` marks it declared; `fx` holds the optional note. */
 function bDeclare(){var it=selInst();if(!it)return;
@@ -2668,7 +2674,7 @@ __BOOTSTRAP__
 <script>__SUPABASE_LIB__</script>
 <script>
 /* ============================ cross-device sync ============================
-   Supabase, Phase 1 per SYNC_DESIGN.md: one app_state row per user, pull on
+   Supabase, Phase 1 per notes/SYNC_DESIGN.md: one app_state row per user, pull on
    load, debounced push on save, last-write-wins by a SERVER-owned updated_at.
 
    Sign-in is an emailed one-time CODE, not a clickable magic link: on iOS a link
@@ -2830,7 +2836,7 @@ window.syncOpen=function(){
   var b=document.getElementById('mBody'); if(!b)return;
   var h='<h2>Sync</h2>';
   if(status==='unconfigured')
-    h+='<div class=sub>This build has no Supabase project configured yet. Add the URL and anon key to <b>build_app.py</b> and rebuild.</div>';
+    h+='<div class=sub>This build has no Supabase project configured yet. Add the URL and anon key to <b>app/build_app.py</b> and rebuild.</div>';
   else if(!ready&&location.protocol==='file:')
     h+='<div class=sub>Sync is off in the local <b>file://</b> app by design — sign-in needs a real origin. Open the hosted app to sync; this copy stays offline with local card art.</div>';
   else if(user)

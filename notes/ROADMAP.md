@@ -15,7 +15,7 @@ auth + sync + hosting are the base the whole platform stands on.
 
 ## Status — done
 
-- **Core app** (`build_app.py` → `app.html` / `docs/`): browse, decks
+- **Core app** (`app/build_app.py` → `app.html` / `docs/`): browse, decks
   (main/extra/side), collection, wishlist, bank/budget, playtest odds, match log,
   sets browser, meta, analytics. Vanilla JS + localStorage.
 - **Multi-rarity / conditions** per collection & wishlist line.
@@ -33,7 +33,7 @@ auth + sync + hosting are the base the whole platform stands on.
   DB-owned `updated_at`, pull-on-load, debounced push wired into `sv()`,
   last-write-wins with a keep-mine / use-synced prompt (plus auto-backup) whenever
   a pull would otherwise discard unsynced local edits. Schema in
-  `sync_schema.sql`; setup steps and traps in SYNC_DESIGN.md. This is also the
+  `pipeline/sync_schema.sql`; setup steps and traps in SYNC_DESIGN.md. This is also the
   **auth foundation** the marketplace / profiles / online duels will reuse.
 
   **Decided 2026-08-07:** the **hosted** app is the everyday app on *every*

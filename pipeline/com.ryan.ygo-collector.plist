@@ -7,7 +7,7 @@
      "Operation not permitted" (exit 126) and the daily snapshot was silently never taken.
      Price history cannot be back-filled, so this location matters.
 
-     Install:  cp com.ryan.ygo-collector.plist ~/Library/LaunchAgents/
+     Install:  cp pipeline/com.ryan.ygo-collector.plist ~/Library/LaunchAgents/
                launchctl unload ~/Library/LaunchAgents/com.ryan.ygo-collector.plist 2>/dev/null
                launchctl load   ~/Library/LaunchAgents/com.ryan.ygo-collector.plist
      Test:     launchctl kickstart -k gui/$(id -u)/com.ryan.ygo-collector
@@ -18,7 +18,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/ryannguyen/CYBERSE/refresh.command</string>
+    <string>/Users/ryannguyen/CYBERSE/scripts/refresh.command</string>
   </array>
   <key>WorkingDirectory</key><string>/Users/ryannguyen/CYBERSE</string>
   <key>StartCalendarInterval</key>

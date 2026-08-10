@@ -1,7 +1,7 @@
 # Decision worksheet — the judgment calls
 
 Snapshot: 14,477 cards, pulled 2026-08-05. Numbers below are from `profile_data.py`
-(regenerate anytime with `python3 profile_data.py`). Each call is **yours** — I've laid
+(regenerate anytime with `python3 analysis/profile_data.py`, from the repo root). Each call is **yours** — I've laid
 out the evidence and the trade-offs, not the answer. Fill in "Your call" + "Because"; that
 text is what goes inline in the notebook next to the decision.
 

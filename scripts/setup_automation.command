@@ -2,15 +2,15 @@
 # ============================================================================
 #  ONE-TIME setup: make your daily 1pm job pull fresh data AND rebuild the app.
 #  You only run this once. It writes the launchd job for you — no XML editing.
-#  Run it with:   bash "$HOME/CYBERSE/setup_automation.command"
+#  Run it with:   bash "$HOME/CYBERSE/scripts/setup_automation.command"
 # ============================================================================
 DIR="$HOME/CYBERSE"
 PLIST="$HOME/Library/LaunchAgents/com.ryan.ygo-collector.plist"
 
 mkdir -p "$HOME/Library/LaunchAgents" "$DIR/data"
-chmod +x "$DIR/refresh.command" 2>/dev/null
+chmod +x "$DIR/scripts/refresh.command" 2>/dev/null
 
-# Keep this in sync with the checked-in com.ryan.ygo-collector.plist — the two are meant to
+# Keep this in sync with the checked-in pipeline/com.ryan.ygo-collector.plist — the two are meant to
 # be byte-identical, so `diff` between the installed job and the repo copy stays empty.
 # Note: this heredoc is unquoted so $DIR expands; \$(id -u) below is escaped to stay literal.
 cat > "$PLIST" <<PLISTEOF
@@ -23,7 +23,7 @@ cat > "$PLIST" <<PLISTEOF
      "Operation not permitted" (exit 126) and the daily snapshot was silently never taken.
      Price history cannot be back-filled, so this location matters.
 
-     Install:  cp com.ryan.ygo-collector.plist ~/Library/LaunchAgents/
+     Install:  cp pipeline/com.ryan.ygo-collector.plist ~/Library/LaunchAgents/
                launchctl unload ~/Library/LaunchAgents/com.ryan.ygo-collector.plist 2>/dev/null
                launchctl load   ~/Library/LaunchAgents/com.ryan.ygo-collector.plist
      Test:     launchctl kickstart -k gui/\$(id -u)/com.ryan.ygo-collector
@@ -34,7 +34,7 @@ cat > "$PLIST" <<PLISTEOF
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>$DIR/refresh.command</string>
+    <string>$DIR/scripts/refresh.command</string>
   </array>
   <key>WorkingDirectory</key><string>$DIR</string>
   <key>StartCalendarInterval</key>

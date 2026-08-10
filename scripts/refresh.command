@@ -9,8 +9,8 @@
 #  Your browser data (collection, decks, logs) is NOT touched by a rebuild.
 # ============================================================================
 
-# Always run from the folder this script lives in, no matter how it's launched.
-cd "$(dirname "$0")" || exit 1
+# Always run from the repo root (this script lives in scripts/), no matter how it's launched.
+cd "$(dirname "$0")/.." || exit 1
 
 # launchd starts with a bare PATH, so make sure the usual python homes are on it.
 export PATH="/usr/local/bin:/opt/homebrew/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/bin:/bin:$PATH"
@@ -20,10 +20,10 @@ mkdir -p data
 {
   echo ""
   echo "=========== refresh $(date) ==========="
-  echo "[1/2] pulling fresh snapshot (collect_snapshot.py) ..."
-  "$PY" collect_snapshot.py
-  echo "[2/2] rebuilding app (build_app.py) ..."
-  "$PY" build_app.py
+  echo "[1/2] pulling fresh snapshot (pipeline/collect_snapshot.py) ..."
+  "$PY" pipeline/collect_snapshot.py
+  echo "[2/2] rebuilding app (app/build_app.py) ..."
+  "$PY" app/build_app.py
   echo "=========== done $(date) ==========="
 } >> data/collector.log 2>&1
 
@@ -31,7 +31,7 @@ mkdir -p data
 #  ONE-TIME SETUP for full automation
 #  ----------------------------------
 #  1) Make this file runnable (only needed if you'll double-click it):
-#       chmod +x "$HOME/CYBERSE/refresh.command"
+#       chmod +x "$HOME/CYBERSE/scripts/refresh.command"
 #
 #  2) Point your existing collector job at this wrapper. Open
 #       ~/Library/LaunchAgents/com.ryan.ygo-collector.plist
@@ -40,7 +40,7 @@ mkdir -p data
 #       <key>ProgramArguments</key>
 #       <array>
 #         <string>/bin/bash</string>
-#         <string>/Users/ryannguyen/CYBERSE/refresh.command</string>
+#         <string>/Users/ryannguyen/CYBERSE/scripts/refresh.command</string>
 #       </array>
 #
 #  3) Reload the job so the change takes effect:

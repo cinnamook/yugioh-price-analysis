@@ -1,6 +1,6 @@
 -- <CYBERSE> cross-device sync — Phase 1 schema
 -- Run this once in the Supabase SQL editor (Dashboard → SQL Editor → New query → Run).
--- Spec: SYNC_DESIGN.md.
+-- Spec: notes/SYNC_DESIGN.md.
 
 -- ---------------------------------------------------------------------------
 -- One row per user holding the whole app-state blob (the ygo_builder_v1 object).

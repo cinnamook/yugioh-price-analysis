@@ -7,15 +7,19 @@ self-contained screener.html. Two price columns, always visible:
                   for premium rarities, shown as "—" when the source has none).
 Plus a card-level cross-market "gap" flag (TCGplayer >=2x under the eBay/Amazon/CoolStuffInc median).
 
-  python3 screener.py       (run collect_snapshot.py once first if the card_rarities table is missing)
+  python3 app/screener.py   (run pipeline/collect_snapshot.py once first if the card_rarities table is missing)
 Stdlib only.
 """
-import sqlite3, os, json, datetime, statistics
+import sqlite3, os, sys, json, datetime, statistics
 from collections import defaultdict
+
+HERE = os.path.dirname(os.path.abspath(__file__))   # app/
+ROOT = os.path.dirname(HERE)                        # repo root — data/ and the generated pages live there
+# RARITY_ORDER is owned by the collector, which lives in pipeline/. No package, so put it on the path.
+sys.path.insert(0, os.path.join(ROOT, "pipeline"))
 from collect_snapshot import RARITY_ORDER
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DB   = os.path.join(HERE, "data", "ygo.db")
+DB   = os.path.join(ROOT, "data", "ygo.db")
 TODAY = datetime.date.today()   # card "age" is relative to the build, not a frozen date
 IDX = {name: i for i, name in enumerate(RARITY_ORDER)}
 
@@ -28,7 +32,7 @@ def main():
     has = con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='card_rarities'").fetchone()
     if not has or con.execute("SELECT COUNT(*) FROM card_rarities").fetchone()[0] == 0:
         print("No per-rarity data in the DB yet. Run this once first (it adds the rarity table):\n"
-              "    python3 collect_snapshot.py"); return
+              "    python3 pipeline/collect_snapshot.py"); return
     date = con.execute("SELECT MAX(snapshot_date) FROM price_history").fetchone()[0]
     cards = con.execute("""
         SELECT c.card_id, c.name, c.card_class, c.race, c.num_printings, c.ban_tcg, c.archetype, c.tcg_date,
@@ -60,7 +64,7 @@ def main():
     payload = json.dumps(data).replace("</", "<\\/")
     html = (HTML.replace("__DATE__", date).replace("__N__", str(len(data))).replace("__FLAG__", str(flagged))
             .replace("__RARJSON__", json.dumps(RARITY_ORDER)).replace("__DATA__", payload))
-    out = os.path.join(HERE, "screener.html"); open(out, "w").write(html)
+    out = os.path.join(ROOT, "screener.html"); open(out, "w").write(html)
     print(f"snapshot {date} | {len(data):,} cards | {len(RARITY_ORDER)} rarities | {flagged} gap flags")
     print(f"wrote {out} — open it in a browser (double-click, or: open screener.html)")
 

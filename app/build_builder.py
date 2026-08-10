@@ -5,20 +5,24 @@ writes builder.html — a self-contained app: search cards, add them to your Col
 Wishlist, pick a rarity per line, and see live totals including cost-to-complete-the-deck. Your lists
 save in the browser (localStorage) and can be exported/imported as JSON, or the deck as .ydk.
 
-  python3 build_builder.py     (run collect_snapshot.py once first if card_rarities is missing)
+  python3 app/build_builder.py (run pipeline/collect_snapshot.py once first if card_rarities is missing)
 Stdlib only.
 """
-import sqlite3, os, json
+import sqlite3, os, sys, json
 from collections import defaultdict
+
+HERE = os.path.dirname(os.path.abspath(__file__))   # app/
+ROOT = os.path.dirname(HERE)                        # repo root — data/ and the generated pages live there
+# RARITY_ORDER is owned by the collector, which lives in pipeline/. No package, so put it on the path.
+sys.path.insert(0, os.path.join(ROOT, "pipeline"))
 from collect_snapshot import RARITY_ORDER
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DB   = os.path.join(HERE, "data", "ygo.db")
+DB   = os.path.join(ROOT, "data", "ygo.db")
 
 def main():
     con = sqlite3.connect(DB); con.row_factory = sqlite3.Row
     if not con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='card_rarities'").fetchone():
-        print("Run  python3 collect_snapshot.py  once first (adds the rarity table)."); return
+        print("Run  python3 pipeline/collect_snapshot.py  once first (adds the rarity table)."); return
     date = con.execute("SELECT MAX(snapshot_date) FROM price_history").fetchone()[0]
     rows = con.execute("""SELECT c.card_id, c.name, c.card_class, c.race, p.tcgplayer
                           FROM price_history p JOIN cards c USING(card_id) WHERE p.snapshot_date=?""", [date]).fetchall()
@@ -31,7 +35,7 @@ def main():
               "m": r["tcgplayer"], "r": rp.get(r["card_id"], {})} for r in rows]
     payload = json.dumps(cards).replace("</", "<\\/")
     html = HTML.replace("__DATE__", date).replace("__DATA__", payload)
-    out = os.path.join(HERE, "builder.html"); open(out, "w").write(html)
+    out = os.path.join(ROOT, "builder.html"); open(out, "w").write(html)
     print(f"snapshot {date} | {len(cards):,} cards embedded")
     print(f"wrote {out} — open it (double-click, or: open builder.html). Your lists save in the browser.")
 

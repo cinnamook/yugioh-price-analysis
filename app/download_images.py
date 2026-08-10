@@ -4,14 +4,15 @@ Optional: download card images to data/images/<card_id>.jpg so the app shows car
 Per the YGOPRODeck API guide, images are DOWNLOADED and re-hosted locally (never hotlinked).
 Resumable — skips images already on disk — and gentle on the server. Run whenever; Ctrl-C anytime.
 
-  python3 download_images.py              # download art for all cards (skips existing)
-  python3 download_images.py --limit 500  # just the next 500 missing (do it in chunks)
+  python3 app/download_images.py              # download art for all cards (skips existing)
+  python3 app/download_images.py --limit 500  # just the next 500 missing (do it in chunks)
 """
 import sqlite3, os, time, argparse, urllib.request
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DB   = os.path.join(HERE, "data", "ygo.db")
-IMG  = os.path.join(HERE, "data", "images")
+HERE = os.path.dirname(os.path.abspath(__file__))   # app/
+ROOT = os.path.dirname(HERE)                        # repo root — data/ lives there
+DB   = os.path.join(ROOT, "data", "ygo.db")
+IMG  = os.path.join(ROOT, "data", "images")
 URL  = "https://images.ygoprodeck.com/images/cards/{}.jpg"
 
 def main():
@@ -32,7 +33,7 @@ def main():
             print(f"  skip {cid}: {e}")
         if n % 100 == 0: print(f"  {n}/{len(todo)} …")
         time.sleep(a.delay)          # be gentle
-    print(f"done — {ok} images saved to data/images/. Re-run build_app.py to see them in the card popups.")
+    print(f"done — {ok} images saved to data/images/. Re-run app/build_app.py to see them in the card popups.")
 
 if __name__ == "__main__":
     main()

@@ -120,6 +120,16 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   **new** deck, consumes the fragment so a reload can't re-prompt, and a corrupt
   fragment is ignored. Links made from the `file://` build point at the hosted app,
   since a local path is useless to anyone else.
+- ~~**Shareable collection**~~ — **shipped 2026-08-09.** Too big for a URL, so it
+  stores a snapshot in a new `shares` table — the project's first public read path.
+  Kept off `app_state` deliberately, snapshot rather than live view, and an
+  allow-list of card/rarity/condition/quantity that excludes the per-line price
+  override and everything from bank/match log. Public reads go through a
+  `security definer` `get_share(slug)` function rather than a table grant, so the
+  table cannot be listed. "Stop sharing" deletes the row. Design notes in
+  SYNC_DESIGN.md.
+  **Not yet run against the live database** — `pipeline/sync_schema.sql` has to be
+  executed in the Supabase SQL editor before the buttons will work.
 - Still open: a trade log, deck-journal notes, a locals calendar. **No camera scan.**
 
 ### Data / price accuracy

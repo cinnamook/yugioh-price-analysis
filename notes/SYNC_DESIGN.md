@@ -188,3 +188,38 @@ Supabase free tier — far beyond a personal app's needs. $0.
 > the hosted (docs/) build, keep the anon key + RLS pattern, and don't break the
 > `file://` desktop path (sync simply stays off there). Show me the schema, RLS
 > policy, and your plan before writing the app code.
+
+---
+
+## Shareable collection (added 2026-08-09)
+
+A deck fits in a URL; a collection does not (thousands of lines), so this is the
+first feature that needs a **stored** snapshot — and therefore the project's
+first **public read path**. Schema in `pipeline/sync_schema.sql`.
+
+**Separate table, not a flag on `app_state`.** `app_state` holds everything —
+decks, budget, match log — behind an owner-only policy. A "public" column on it
+would mean one policy mistake leaks all of it. `shares` can only ever expose what
+was deliberately copied into `data`.
+
+**A snapshot, not a live view.** `data` is written at share time, so what the link
+shows can never silently widen as the app grows new fields.
+
+**What is excluded, on purpose.** The client writes card id, rarity, condition and
+quantity only. Not `ov` — the per-line "your price" override — and nothing from
+bank/budget or the match log. What you paid sits one field away from what you are
+sharing, so the snapshot builder is an allow-list, never a delete-list.
+
+**Reads do not go through a table grant.** The obvious `for select using (true)`
+plus `grant select to anon` is wrong: it lets anyone run `select * from shares`
+with no filter and walk every shared collection in the project, which makes an
+unguessable slug worthless. Public reads go through `get_share(p_slug)`, a
+`security definer` function that can only be called *with* a slug. `anon` holds
+no privilege on the table itself.
+
+**Revocation is real.** "Stop sharing" deletes the row, so the link dies
+immediately; it does not merely hide it. The slug lives in `St.settings`, so it
+rides the existing sync and can be revoked from any signed-in device.
+
+**Slug.** 96 bits from `crypto.getRandomValues`. Unguessable but not secret —
+anyone holding the link can read it. Nothing lists shares anywhere, by design.

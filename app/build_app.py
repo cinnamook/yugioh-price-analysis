@@ -1065,6 +1065,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="plog" class="hide"><div class="wrap" id="plogBody"></div></div>
 <div id="sets" class="hide"><div class="wrap" id="setsBody"></div></div>
 <div id="you" class="hide"><div class="wrap" id="youBody"></div></div>
+<div id="shared" class="hide"><div class="wrap" id="sharedBody"></div></div>
 <div id="meta" class="hide"><div class="wrap" id="metaBody"></div><input id="metaFile" type="file" accept=".ydk,.txt" multiple class="hide" onchange="metaImport(event)"></div>
 
 <div class=dscrim id=dscrim onclick="drawerClose()"></div>
@@ -1174,6 +1175,7 @@ function go(v){view=v;if(window.listReset)listReset();
   document.getElementById('sets').classList.toggle('hide',v!=='sets');
   document.getElementById('meta').classList.toggle('hide',v!=='meta');
   document.getElementById('you').classList.toggle('hide',v!=='you');
+  document.getElementById('shared').classList.toggle('hide',v!=='shared');
   document.getElementById('list').classList.toggle('hide',!(v==='deck'||v==='collection'||v==='wishlist'));
   if(v==='menu'){rMenu();return;}
   if(v==='browse'){rB();return;}
@@ -2369,6 +2371,19 @@ function renderYou(){
     +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">Signing in keeps your collection, decks, budget and match log on every device. '
       +'Your data lives in your browser and, when signed in, in your own row on the server &mdash; nobody else can read it.</div>'
 
+    +'<h2 class=sec>Sharing</h2>'
+    +(function(){var sl=shareSlugGet();
+       if(!sy.email)return '<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">Sign in to share a read-only copy of your collection with someone.</div>';
+       if(!sl)return '<div class=bar><button onclick="shareCollection()">Share my collection</button></div>'
+         +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">Creates a read-only snapshot at an unguessable link you can send to anyone &mdash; they don&rsquo;t need an account. '
+         +'It shares card, rarity, condition and quantity only: <b>not</b> what you paid, and nothing from your bank or match log. '
+         +'It&rsquo;s a snapshot, so it updates only when you press this again. Nothing is listed anywhere &mdash; the link is the only way in.</div>';
+       return '<div class=bar><input type=text readonly value="'+eatt(shareLink(sl))+'" onclick="this.select()" style="flex:1;min-width:200px" title="tap to select, then copy">'
+         +'<button onclick="shareCollection()">Update snapshot</button>'
+         +'<button onclick="stopSharingCollection()">Stop sharing</button></div>'
+         +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px">This link is live now. <b>Update snapshot</b> refreshes what it shows; '
+         +'<b>Stop sharing</b> deletes it from the server and the link stops working immediately.</div>';})()
+
     +'<h2 class=sec>Your data</h2>'
     +'<div class=bar><button onclick="exJson()">Backup all (.json)</button>'
       +'<button onclick="imp.click()">Import backup</button></div>'
@@ -2770,6 +2785,88 @@ function offerSharedDeck(){
       +(r.unknown?' ('+r.unknown+' not in this build)':'')+'. It will be added as a new deck; nothing you already have is changed.'))return;
   var name=deckFromSecs(r.secs,sh.name);
   alert('Added “'+name+'”.');}
+/* ---- shareable collection -----------------------------------------------
+   A collection is far too big for a URL (thousands of lines), so unlike a deck
+   link this needs a stored snapshot. What leaves the device is deliberately
+   narrow: card id, rarity, condition, quantity. NOT `ov` — the per-line "your
+   price" override — and nothing from bank/budget. What you paid is nobody's
+   business, and it lives one field away from what you're sharing. */
+function collectionSnapshot(){
+  var out=[],m=St.collection||{};
+  for(var id in m){var arr=m[id]; if(!Array.isArray(arr))continue;
+    arr.forEach(function(e){ if(!e||!e.q)return;
+      out.push({i:+id, r:e.rar||'__m', c:e.cond||'', q:e.q}); });}
+  return {v:1, kind:'collection', at:new Date().toISOString().slice(0,10), cards:out};}
+function shareSlugGet(){return (St.settings&&St.settings.shareCollection)||'';}
+function shareSlugSet(v){St.settings=St.settings||{};
+  if(v)St.settings.shareCollection=v; else delete St.settings.shareCollection; sv();}
+function newSlug(){
+  var a=new Uint8Array(12),s='';
+  (window.crypto||window.msCrypto).getRandomValues(a);
+  for(var i=0;i<a.length;i++)s+=('0'+a[i].toString(16)).slice(-2);
+  return s;}                                   /* 96 bits — unguessable, and never listed */
+function shareLink(slug){
+  var base=(location.protocol==='file:')?PUBLIC_URL:(location.origin+location.pathname);
+  return base+'#s='+slug;}
+function shareCollection(){
+  if(!window.shareReady||!window.shareReady())
+    return alert('Sign in first — a shared collection lives in your row on the server, so it needs an account.');
+  var snap=collectionSnapshot();
+  if(!snap.cards.length)return alert('Your collection is empty — nothing to share yet.');
+  var slug=shareSlugGet()||newSlug();
+  window.shareCreate('collection',snap,slug).then(function(sl){
+    shareSlugSet(sl); renderYou();
+    var url=shareLink(sl);
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(url).then(function(){alert('Link copied — '+snap.cards.length+' lines shared.');},
+        function(){prompt('Copy this link:',url);});
+    else prompt('Copy this link:',url);
+  },function(e){alert('Could not share: '+(e&&e.message||e));});}
+function stopSharingCollection(){
+  var slug=shareSlugGet(); if(!slug)return;
+  if(!confirm('Stop sharing your collection?\n\nThe existing link stops working immediately and the snapshot is deleted from the server.'))return;
+  window.shareDelete(slug).then(function(){ shareSlugSet(''); renderYou();
+    alert('Sharing stopped — that link no longer works.'); },
+    function(e){alert('Could not stop sharing: '+(e&&e.message||e));});}
+
+/* ---- viewing someone else's shared collection ---------------------------- */
+function openSharedView(slug){
+  go('shared');
+  var b=document.getElementById('sharedBody');
+  b.innerHTML='<div class=empty>Loading shared collection&hellip;</div>';
+  if(!window.shareFetch)return void(b.innerHTML='<div class=empty>Shared links only work in the hosted app.</div>');
+  window.shareFetch(slug).then(function(row){
+    if(!row||!row.data)return void(b.innerHTML='<div class=empty>That link is no longer available &mdash; the owner may have stopped sharing it.</div>');
+    renderShared(row.data,row.created_at);
+  },function(e){ b.innerHTML='<div class=empty>Couldn&rsquo;t load that shared collection &mdash; '+esc(String(e&&e.message||e))+'</div>'; });}
+function renderShared(d,when){
+  var b=document.getElementById('sharedBody');
+  var cards=(d&&d.cards)||[], rows=[], total=0, qty=0, unknown=0;
+  cards.forEach(function(e){
+    var c=BY[e.i]; if(!c){unknown++;return;}
+    var p=priceOf(c,e.r==='__m'?null:e.r); if(p!=null)total+=p*e.q; qty+=e.q;
+    rows.push({n:c.n,r:e.r,c:e.c,q:e.q,p:p});});
+  rows.sort(function(a,b2){return a.n<b2.n?-1:a.n>b2.n?1:0;});
+  var h='<h2 class=sec>A shared collection</h2>'
+    +'<div class=deckstats style="display:flex;gap:16px;flex-wrap:wrap">'
+      +'<div><div class=mut style="font-size:11px">LINES</div><div style="font-size:17px;font-weight:700">'+rows.length+'</div></div>'
+      +'<div><div class=mut style="font-size:11px">CARDS</div><div style="font-size:17px;font-weight:700">'+qty+'</div></div>'
+      +'<div><div class=mut style="font-size:11px">VALUE AT TODAY&rsquo;S PRICES</div><div style="font-size:17px;font-weight:700">$'+total.toFixed(2)+'</div></div>'
+    +'</div>'
+    +'<div class=mut style="font-size:11.5px;line-height:1.6;max-width:620px;margin-top:8px">'
+      +'Read-only. This is a snapshot the owner shared'+(d&&d.at?' on '+esc(d.at):'')+', not a live view &mdash; it changes only when they share again. '
+      +'Prices are from <b>your</b> copy of the price data, so they are today&rsquo;s, not theirs. What they paid is not included.'
+      +(unknown?' '+unknown+' card(s) in the snapshot are not in your build&rsquo;s card list and are not shown.':'')
+    +'</div>'
+    +'<div class=bar><button onclick="go(\'menu\')">&larr; Back to your app</button></div>';
+  h+=rows.length?'<div class=tscroll><table><tr><th>Card</th><th>Rarity</th><th>Condition</th><th class=r>Qty</th><th class=r>Price</th></tr>'
+      +rows.map(function(r){return '<tr><td class=nm>'+esc(r.n)+'</td><td>'+esc(r.r==='__m'?'—':r.r)+'</td><td>'+esc(r.c||'—')+'</td>'
+        +'<td class=r>'+r.q+'</td><td class=r>'+(r.p==null?'—':'$'+r.p.toFixed(2))+'</td></tr>';}).join('')
+      +'</table></div>'
+    :'<div class=empty>This shared collection is empty.</div>';
+  b.innerHTML=h;}
+function sharedSlugFromHash(){var m=/[#&]s=([A-Za-z0-9_-]{8,64})/.exec(location.hash||'');return m?m[1]:null;}
+
 function lnkToggle(){var b=document.getElementById('lnkBox');if(!b)return;
   b.classList.toggle('hide');
   if(!b.classList.contains('hide')){var i=document.getElementById('lnkIn');if(i){i.value='';i.focus();}}}
@@ -2841,6 +2938,9 @@ function bootWith(d){
   kpis(); go('menu');
   /* after BY/NAME2ID exist, so passcodes can be resolved */
   try{offerSharedDeck();}catch(e){}
+  /* A shared collection is read-only, so unlike a deck link the fragment is left
+     in place — reloading a share link should still show the share. */
+  try{var ss=sharedSlugFromHash(); if(ss)openSharedView(ss);}catch(e){}
 }
 function bootFailed(e){var l=document.getElementById('loading');
   if(l)l.innerHTML='<b>Could not load card data.</b><div class=mut style="margin-top:6px;font-size:12px">'
@@ -3016,6 +3116,24 @@ window.syncVerify=function(){
 window.syncSignOut=function(){ if(!sb)return; sb.auth.signOut().then(function(){
   user=null; lastSync=0; try{localStorage.removeItem(LAST_K);}catch(e){}
   set('signedout'); closeM(); }); };
+/* --- shares: the one public read path (pipeline/sync_schema.sql) --------
+   Create/revoke need a signed-in owner and go through RLS. Reads go through the
+   get_share() function instead of a table grant, so a slug can be looked up but
+   the table can never be listed. */
+window.shareReady=function(){ return !!(ready && user); };
+window.shareCreate=function(kind,data,slug){
+  if(!user)return Promise.reject(new Error('sign in first'));
+  return sb.from('shares').upsert({slug:slug,user_id:user.id,kind:kind,data:data},{onConflict:'slug'})
+    .select('slug').single().then(function(r){ if(r.error)throw new Error(r.error.message); return r.data.slug; });};
+window.shareDelete=function(slug){
+  if(!user)return Promise.reject(new Error('sign in first'));
+  return sb.from('shares').delete().eq('slug',slug).then(function(r){
+    if(r.error)throw new Error(r.error.message); return true;});};
+window.shareFetch=function(slug){
+  if(!sb)return Promise.reject(new Error('sharing needs the hosted app'));
+  return sb.rpc('get_share',{p_slug:slug}).then(function(r){
+    if(r.error)throw new Error(r.error.message);
+    return (r.data&&r.data.length)?r.data[0]:null;});};
 window.syncNow=function(){ if(user)pullNow(); };
 window.syncInfo=function(){ return {state:status, email:(user&&user.email)||'', last:lastSync}; };
 

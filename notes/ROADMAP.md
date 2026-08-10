@@ -68,7 +68,15 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   autocorrects inside the six search-style fields (card name, archetype, list
   filter, add-a-card, sets search, and the match log's `+Ash, -Maxx` impact field).
   Same class of problem as the keypads, and the natural successor to it.
-- Be able to import ydk deck links
+- ~~**Import a deck from a link**~~ — **shipped 2026-08-09.** "Import from link" in the
+  deck bar accepts a **ydke://** URI (the EDOPro / DuelingBook / YGOPRODeck
+  interchange format, which carries the whole deck inside the URI, so it needs no
+  network), a ydke:// embedded in a longer share link, or an http(s) link to a
+  `.ydk` file, which it fetches and parses.
+  **Known limit, not a bug:** a YGOPRODeck *deck page* URL cannot be imported —
+  that page sends no `Access-Control-Allow-Origin`, so the browser blocks any
+  cross-origin read of it. Verified 2026-08-09. The failure message says so and
+  points at the deck page's own **YDKE** button instead.
 
 ### Duel-field improvements (extend the solo board)
 - **Life-point calculator / tracker** — per-player LP with +/− adjustments and a

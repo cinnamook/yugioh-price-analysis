@@ -1022,10 +1022,16 @@ tr:hover td{background:rgba(40,58,110,.3)}
 
 <div id="list" class="hide"><div class="wrap"><div id="lctrl" class="controls" style="padding:0 0 8px;border:0"></div><div id="addres" class="addres"></div><div id="ltbl"></div>
 <div class="bar" style="margin-top:14px"><button onclick="impList.click()" title="deck view: loads a new deck; collection/wishlist: merges in">Import .ydk / list</button>
+<button onclick="lnkToggle()" title="paste a ydke:// URI or a link to a .ydk file">Import from link</button>
 <button onclick="exYdk()">Export active deck .ydk</button><button onclick="exJson()">Backup all (.json)</button>
 <button onclick="imp.click()">Import backup .json</button>
 <input id="impList" type="file" accept=".ydk,.txt" class="hide" onchange="importList(event)">
-<input id="imp" type="file" accept=".json" class="hide" onchange="imJson(event)"></div></div></div>
+<input id="imp" type="file" accept=".json" class="hide" onchange="imJson(event)"></div>
+<div id="lnkBox" class="hide" style="margin-top:10px">
+<div class="bar"><input type="text" id="lnkIn" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"
+ placeholder="paste ydke:// or a link to a .ydk file" style="flex:1;min-width:190px" onkeydown="if(event.key==='Enter')lnkGo()">
+<button onclick="lnkGo()">Import</button><button onclick="lnkToggle()">Cancel</button></div>
+<div class="ins" id="lnkMsg" style="margin-top:6px">A <b>ydke://</b> URI carries the whole deck inside the link, so it imports with no connection. On YGOPRODeck, use the deck page&rsquo;s <b>YDKE</b> / &ldquo;Copy YDKE URL&rdquo; button.</div></div></div></div>
 
 <div id="analytics" class="hide"><div class="wrap" id="anaBody"></div></div>
 
@@ -2618,6 +2624,15 @@ function parseYdk(txt){var sec='main',out={main:{},extra:{},side:{}};
     if(lc.indexOf('#extra')===0)sec='extra'; else if(lc.indexOf('!side')===0)sec='side'; else if(lc.indexOf('#main')===0)sec='main';
     else if(/^\d+$/.test(ln)){var id=+ln; if(BY[id]){var s=sec==='side'?'side':(BY[id].ex?'extra':'main'); out[s][id]=(out[s][id]||0)+1;}}});
   return out;}
+/* Create a new named deck from {main,extra,side} count maps and make it active.
+   Shared by the file importer and the link importer so the two can't drift.
+   Returns the name actually used — deduplicated if that name was taken. */
+function deckFromSecs(secs,nm){
+  if(St.decks[nm])nm=nm+' ('+Object.keys(St.decks).length+')';
+  var nd={main:{},extra:{},side:{}};
+  ['main','extra','side'].forEach(function(s){for(var id in secs[s])nd[s][id]={q:secs[s][id],rar:'__m'};});
+  St.decks[nm]=nd;St.active=nm;sv();go('deck');return nm;}
+function secsCount(s){return Object.keys(s.main).length+Object.keys(s.extra).length+Object.keys(s.side).length;}
 function parseTextList(txt){var out={};txt.split(/\r?\n/).forEach(function(ln){ln=ln.trim();if(!ln||ln.charAt(0)==='#')return;
   var q=1,name=ln,m=ln.match(/^(\d+)\s*[xX]?\s+(.+)$/)||ln.match(/^(.+?)\s*[xX]\s*(\d+)$/);
   if(m){if(/^\d+$/.test(m[1])){q=+m[1];name=m[2];}else{name=m[1];q=+m[2];}}
@@ -2626,10 +2641,8 @@ function importList(ev){var fl=ev.target.files[0]; if(!fl)return; var rd=new Fil
   rd.onload=function(){var txt=rd.result,isYdk=/#main|#extra|!side/i.test(txt)||/^\s*\d+\s*$/m.test(txt);
     if(view==='deck'){
       var secs=isYdk?parseYdk(txt):(function(){var t=parseTextList(txt),o={main:{},extra:{},side:{}};for(var id in t)o[BY[id].ex?'extra':'main'][id]=t[id];return o;})();
-      var nm=(fl.name.replace(/\.(ydk|txt)$/i,'')||'Imported deck'); if(St.decks[nm])nm=nm+' ('+Object.keys(St.decks).length+')';
-      var nd={main:{},extra:{},side:{}};['main','extra','side'].forEach(function(s){for(var id in secs[s])nd[s][id]={q:secs[s][id],rar:'__m'};});
-      St.decks[nm]=nd;St.active=nm;sv();go('deck');
-      alert('Imported deck “'+nm+'” — '+(Object.keys(secs.main).length+Object.keys(secs.extra).length+Object.keys(secs.side).length)+' unique cards.');
+      var nm=deckFromSecs(secs,(fl.name.replace(/\.(ydk|txt)$/i,'')||'Imported deck'));
+      alert('Imported deck “'+nm+'” — '+secsCount(secs)+' unique cards.');
     }else{
       var counts={};
       if(isYdk){var s=parseYdk(txt);['main','extra','side'].forEach(function(sec){for(var id in s[sec])counts[id]=(counts[id]||0)+s[sec][id];});}
@@ -2638,6 +2651,88 @@ function importList(ev){var fl=ev.target.files[0]; if(!fl)return; var rd=new Fil
       sv();kpis();rTable();alert('Imported '+n+' cards into your '+view+'.');
     }
     ev.target.value='';}; rd.readAsText(fl);}
+
+/* ---- deck links (YDKE) ---------------------------------------------------
+   ydke://<main>!<extra>!<side>!  — each component is base64 of the deck's card
+   passcodes as little-endian uint32. It is the interchange format EDOPro,
+   DuelingBook and YGOPRODeck all read, and it carries the entire deck inside
+   the URI, so importing one needs no network and works offline.
+
+   A YGOPRODeck *deck page* URL is a different thing and cannot be read from
+   here: that page sends no Access-Control-Allow-Origin, so the browser blocks
+   a cross-origin fetch of it. Hence the YDKE-specific advice on failure. */
+function b64Ids(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/');            /* tolerate url-safe base64 */
+  while(s.length%4)s+='=';
+  var bin=atob(s),n=bin.length; if(n%4)throw new Error('length');
+  var out=[];
+  /* The top byte is multiplied and ADDED, never shifted or OR'd in: | and << both
+     coerce to signed int32, so a passcode above 2^31 would come back negative.
+     Real passcodes are 8 digits and never reach that, but the codec shouldn't
+     depend on that being true. */
+  for(var i=0;i<n;i+=4)out.push((bin.charCodeAt(i)|(bin.charCodeAt(i+1)<<8)|(bin.charCodeAt(i+2)<<16))+bin.charCodeAt(i+3)*16777216);
+  return out;}
+function idsB64(a){var s='';for(var i=0;i<a.length;i++){var v=a[i];
+  s+=String.fromCharCode(v&255,(v>>>8)&255,(v>>>16)&255,Math.floor(v/16777216)&255);}return btoa(s);}
+function ydkeParse(u){
+  var m=/ydke:\/\/([A-Za-z0-9+/=_-]*)!([A-Za-z0-9+/=_-]*)!([A-Za-z0-9+/=_-]*)!?/.exec(u);
+  if(!m)return null;
+  try{return {main:b64Ids(m[1]),extra:b64Ids(m[2]),side:b64Ids(m[3])};}catch(e){return null;}}
+function ydkeBuild(d){var a={main:[],extra:[],side:[]};
+  ['main','extra','side'].forEach(function(s){var m=d[s]||{};for(var id in m)for(var k=0;k<m[id].q;k++)a[s].push(+id);});
+  return 'ydke://'+idsB64(a.main)+'!'+idsB64(a.extra)+'!'+idsB64(a.side)+'!';}
+/* Turn per-section id lists into {main,extra,side} count maps, dropping cards
+   this build has never heard of and re-routing anything the source filed in the
+   wrong pile (same rule parseYdk uses). */
+function secsFromIds(o){var secs={main:{},extra:{},side:{}},unknown=0,total=0;
+  ['main','extra','side'].forEach(function(s){(o[s]||[]).forEach(function(id){total++;
+    if(!BY[id]){unknown++;return;}
+    var t=(s==='side')?'side':(BY[id].ex?'extra':'main');
+    secs[t][id]=(secs[t][id]||0)+1;});});
+  return {secs:secs,unknown:unknown,total:total};}
+
+function lnkToggle(){var b=document.getElementById('lnkBox');if(!b)return;
+  b.classList.toggle('hide');
+  if(!b.classList.contains('hide')){var i=document.getElementById('lnkIn');if(i){i.value='';i.focus();}}}
+function lnkSay(h){var m=document.getElementById('lnkMsg');if(m)m.innerHTML=h;}
+function lnkImportIds(o,nm){
+  var r=secsFromIds(o),n=secsCount(r.secs);
+  if(!n)return lnkSay('That link decoded, but none of its '+r.total+' cards are in this build&rsquo;s card list.');
+  var name=deckFromSecs(r.secs,nm);
+  lnkToggle();
+  alert('Imported deck “'+name+'” — '+n+' unique cards'+(r.unknown?', '+r.unknown+' unrecognised card(s) skipped':'')+'.');}
+function lnkGo(){
+  var raw=(document.getElementById('lnkIn').value||'').trim();
+  if(!raw)return lnkSay('Paste a link first.');
+  var y=ydkeParse(raw);                       /* bare ydke://, or one inside a share link */
+  if(y)return lnkImportIds(y,'Imported deck');
+  if(!/^https?:\/\//i.test(raw))
+    return lnkSay('That doesn&rsquo;t look like a deck link. Paste a <b>ydke://</b> URI, or a link to a <b>.ydk</b> file.');
+  lnkSay('Fetching&hellip;');
+  var ypd=/ygoprodeck\.com\/deck/i.test(raw);
+  fetch(raw,{redirect:'follow'}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(function(txt){
+    var y2=ydkeParse(txt);                    /* some pages just contain the URI */
+    if(y2)return lnkImportIds(y2,'Imported deck');
+    if(!/^\s*\d+\s*$/m.test(txt))throw new Error('not-ydk');
+    var secs=parseYdk(txt),n=secsCount(secs);
+    if(!n)throw new Error('not-ydk');
+    var name=deckFromSecs(secs,'Imported deck');
+    lnkToggle();
+    alert('Imported deck “'+name+'” — '+n+' unique cards.');
+  }).catch(function(e){
+    var msg=String(e&&e.message||e);
+    if(msg==='not-ydk')
+      lnkSay('That link loaded, but it isn&rsquo;t a .ydk deck file.');
+    else if(msg.indexOf('HTTP')===0)
+      lnkSay('That link returned '+msg+'. Check the address, or that the deck is public.');
+    else if(ypd)
+      lnkSay('A YGOPRODeck <b>deck page</b> can&rsquo;t be read from another app &mdash; it doesn&rsquo;t permit cross-origin reads. On that page press <b>YDKE</b> (&ldquo;Copy YDKE URL&rdquo;) and paste the <b>ydke://</b> URI here, or download the .ydk and use <b>Import .ydk / list</b>.');
+    else
+      lnkSay('Couldn&rsquo;t read that link &mdash; the site hosting it doesn&rsquo;t allow other apps to fetch it. Download the .ydk and use <b>Import .ydk / list</b>, or paste a <b>ydke://</b> URI instead.');
+  });}
 
 var q_=document.getElementById('q'),qa_=document.getElementById('qa'),rar_=document.getElementById('rar'),cl_=document.getElementById('cl'),
 bn_=document.getElementById('bn'),pmin_=document.getElementById('pmin'),pmax_=document.getElementById('pmax'),deal_=document.getElementById('deal'),

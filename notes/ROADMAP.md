@@ -48,7 +48,10 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
 - **Sync Phase 2** — "last synced" indicator and a manual *Sync now* (both
   partly there), offline write-queue hardening, and conflict safety beyond
   last-write-wins if it ever actually bites.
-- **Mobile numeric keypads** — small, high daily value.
+- ~~**Mobile numeric keypads**~~ — **audited 2026-08-09 and already complete.** All 19
+  numeric fields carry `inputmode`, `decimal` vs `numeric` is assigned correctly
+  (money vs integers), quantities are +/− steppers rather than typed, and the only
+  `prompt()` calls ask for deck names. Nothing left to do here.
 - ~~**Duel-field work**~~ — a large pass shipped 2026-08-07 (drag, life points,
   Xyz materials, tokens, declared effects, an opponent's side, pile menus, turn
   phases, card info, mobile ergonomics). **Now parked** until the multiplayer
@@ -58,10 +61,13 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
 ## Backlog
 
 ### QoL / mobile polish
-- **Numeric inputs open the number pad on mobile** — every field that expects a
-  number (life points, quantities, prices, budget amounts, game scores) should use
-  the right `inputmode`/`type` so phones show a numeric keypad, not the full
-  keyboard. Make it consistent everywhere (some fields already do this).
+- ~~**Numeric inputs open the number pad on mobile**~~ — **done** (verified by audit
+  2026-08-09; see "Next up" above).
+- **Text inputs still fight you on mobile** — no input anywhere sets
+  `autocapitalize` / `autocorrect` / `spellcheck`, so iOS capitalizes and
+  autocorrects inside the six search-style fields (card name, archetype, list
+  filter, add-a-card, sets search, and the match log's `+Ash, -Maxx` impact field).
+  Same class of problem as the keypads, and the natural successor to it.
 - Be able to import ydk deck links
 
 ### Duel-field improvements (extend the solo board)

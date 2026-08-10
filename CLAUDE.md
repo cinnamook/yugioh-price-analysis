@@ -100,10 +100,10 @@ auto-expose off). Read it before touching auth config.
 
 Backlog items most likely to come next (full list in notes/ROADMAP.md):
 
-- **Mobile numeric keypads** — every field expecting a number (life points,
-  quantities, prices, budget amounts, game scores) should carry the right
-  `inputmode`/`type` so phones show the number pad instead of the full keyboard.
-  Some fields already do; the work is making it consistent.
+- **Mobile text-input attributes** — no input in the template sets
+  `autocapitalize`/`autocorrect`/`spellcheck`, so iOS capitalizes and autocorrects
+  inside the search fields. (The *numeric* keypad pass is done — audited
+  2026-08-09, all 19 numeric fields carry the right `inputmode`.)
 - **Duel-field improvements** (extend the solo board) — a **life-point tracker**
   with +/− adjustments and a short history; an **Xyz materials overlay** (attach
   monsters under an Xyz monster, with detach; slots already hold stacks, so this

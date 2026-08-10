@@ -101,8 +101,16 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
 - Likely adjacent later: counters/tokens, coin/die, a phase indicator.
 
 ### Pocket niceties
-- Shareable deck / collection links, a trade log, deck-journal notes, a locals
-  calendar. **No camera scan.**
+- ~~**Shareable deck links**~~ — **shipped 2026-08-09.** "Copy deck link" puts the
+  whole deck in the URL fragment as a `ydke://` URI, so sharing needs no server, no
+  account and no row anywhere; the recipient's app decodes it locally. A full
+  60/15/15 deck is ~500 characters of payload, far inside any URL limit. A fragment
+  is never sent to a server, which is where someone else's deck list belongs.
+  Opening a link never mutates anything silently: it asks first, adds the deck as a
+  **new** deck, consumes the fragment so a reload can't re-prompt, and a corrupt
+  fragment is ignored. Links made from the `file://` build point at the hosted app,
+  since a local path is useless to anyone else.
+- Still open: a trade log, deck-journal notes, a locals calendar. **No camera scan.**
 
 ### Data / price accuracy
 - Manual price overrides (done). Next: prototype the free **JustTCG** API for real

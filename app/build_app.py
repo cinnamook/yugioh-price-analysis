@@ -26,6 +26,10 @@ TODAY = datetime.date.today()   # card "age" is relative to the build, not a fro
 # The ANON key is public by design and safe to commit — row-level security is what
 # protects the data. NEVER put the service_role key here; it bypasses RLS.
 # Leaving either empty builds the app with sync switched off.
+# Where the hosted app lives. Only used to build shareable links from the file://
+# desktop build, where location.href is a local path nobody else can open.
+PUBLIC_URL = "https://cinnamook.github.io/yugioh-price-analysis/"
+
 SUPABASE_URL      = "https://hkonoxawtdsfzjovfdku.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_kiBcVCdAjWI8_CvalphVGg_Iv6BfSFH"
 
@@ -105,6 +109,7 @@ def main():
     build = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     shell = (HTML.replace("__BUILD__", build).replace("__DATE__", date).replace("__N__", str(len(cards))).replace("__FLAG__", str(flagged))
              .replace("__SUPABASE_URL__", SUPABASE_URL).replace("__SUPABASE_KEY__", SUPABASE_ANON_KEY)
+             .replace("__PUBLIC_URL__", PUBLIC_URL)
              .replace("__RAR__", json.dumps(RARITY_ORDER))
              .replace("__SUPABASE_LIB__", supabase_lib()))
     # file:// cannot fetch, so the desktop build keeps the data inline; the hosted build
@@ -1023,7 +1028,7 @@ tr:hover td{background:rgba(40,58,110,.3)}
 <div id="list" class="hide"><div class="wrap"><div id="lctrl" class="controls" style="padding:0 0 8px;border:0"></div><div id="addres" class="addres"></div><div id="ltbl"></div>
 <div class="bar" style="margin-top:14px"><button onclick="impList.click()" title="deck view: loads a new deck; collection/wishlist: merges in">Import .ydk / list</button>
 <button onclick="lnkToggle()" title="paste a ydke:// URI or a link to a .ydk file">Import from link</button>
-<button onclick="exYdk()">Export active deck .ydk</button><button onclick="exJson()">Backup all (.json)</button>
+<button onclick="exYdk()">Export active deck .ydk</button><button onclick="copyDeckLink()" title="a link that carries this deck inside it">Copy deck link</button><button onclick="exJson()">Backup all (.json)</button>
 <button onclick="imp.click()">Import backup .json</button>
 <input id="impList" type="file" accept=".ydk,.txt" class="hide" onchange="importList(event)">
 <input id="imp" type="file" accept=".json" class="hide" onchange="imJson(event)"></div>
@@ -2704,6 +2709,47 @@ function secsFromIds(o){var secs={main:{},extra:{},side:{}},unknown=0,total=0;
     secs[t][id]=(secs[t][id]||0)+1;});});
   return {secs:secs,unknown:unknown,total:total};}
 
+/* ---- shareable deck links ------------------------------------------------
+   The deck rides inside the URL as a ydke:// URI, so a share link needs no
+   server, no account, and no row anywhere — the recipient's app decodes it
+   locally. A 60-card deck is ~330 chars of base64, comfortably inside every
+   real URL limit. */
+var PUBLIC_URL="__PUBLIC_URL__";
+function deckLink(){
+  /* location.href on the desktop build is a file:/// path that means nothing on
+     anyone else's machine, so links made there point at the hosted app. */
+  var base=(location.protocol==='file:')?PUBLIC_URL:(location.origin+location.pathname);
+  return base+'#d='+encodeURIComponent(ydkeBuild(curDeck()))+'&n='+encodeURIComponent(St.active||'Deck');}
+function copyDeckLink(){
+  var d=curDeck(),n=0;['main','extra','side'].forEach(function(s){for(var id in d[s])n+=d[s][id].q;});
+  if(!n)return alert('This deck is empty — add some cards before sharing it.');
+  var url=deckLink();
+  var fallback=function(){ prompt('Copy this link:',url); };
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).then(function(){alert('Deck link copied — '+n+' cards.');},fallback);
+  else fallback();}
+/* Read a shared deck out of the URL fragment. A fragment is never sent to the
+   server, which is the right place for someone else's deck list to live. */
+function sharedFromHash(){
+  var h=location.hash||''; var m=/[#&]d=([^&]+)/.exec(h); if(!m)return null;
+  var uri,y; try{uri=decodeURIComponent(m[1]);}catch(e){return null;}
+  y=ydkeParse(uri); if(!y)return null;
+  var nm=/[#&]n=([^&]+)/.exec(h), name='Shared deck';
+  if(nm){try{name=decodeURIComponent(nm[1]).slice(0,60)||name;}catch(e){}}
+  return {ids:y,name:name};}
+function offerSharedDeck(){
+  var sh=sharedFromHash(); if(!sh)return;
+  /* consume it either way, so a reload doesn't ask again */
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){location.hash='';}
+  var r=secsFromIds(sh.ids),n=0;
+  ['main','extra','side'].forEach(function(s){for(var id in r.secs[s])n+=r.secs[s][id];});
+  if(!n)return;
+  /* never adopt someone else's deck silently — it is added as a NEW deck, and
+     only after the person holding the phone says so */
+  if(!confirm('Open shared deck “'+sh.name+'”?\n\n'+n+' cards'
+      +(r.unknown?' ('+r.unknown+' not in this build)':'')+'. It will be added as a new deck; nothing you already have is changed.'))return;
+  var name=deckFromSecs(r.secs,sh.name);
+  alert('Added “'+name+'”.');}
 function lnkToggle(){var b=document.getElementById('lnkBox');if(!b)return;
   b.classList.toggle('hide');
   if(!b.classList.contains('hide')){var i=document.getElementById('lnkIn');if(i){i.value='';i.focus();}}}
@@ -2773,6 +2819,8 @@ function bootWith(d){
   St=load();
   var l=document.getElementById('loading'); if(l)l.remove();
   kpis(); go('menu');
+  /* after BY/NAME2ID exist, so passcodes can be resolved */
+  try{offerSharedDeck();}catch(e){}
 }
 function bootFailed(e){var l=document.getElementById('loading');
   if(l)l.innerHTML='<b>Could not load card data.</b><div class=mut style="margin-top:6px;font-size:12px">'

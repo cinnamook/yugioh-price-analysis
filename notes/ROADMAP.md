@@ -142,8 +142,12 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   `security definer` `get_share(slug)` function rather than a table grant, so the
   table cannot be listed. "Stop sharing" deletes the row. Design notes in
   SYNC_DESIGN.md.
-  **Not yet run against the live database** — `pipeline/sync_schema.sql` has to be
-  executed in the Supabase SQL editor before the buttons will work.
+  **Live as of 2026-08-13** — `pipeline/sync_schema.sql` has been run against the
+  Supabase project. Verified from outside with the public anon key: `get_share()` on
+  an unknown slug returns `[]` rather than an error, and `anon` gets `42501
+  insufficient_privilege` on both `shares` and `app_state` — so a slug can be
+  redeemed but the table cannot be listed, which is the property the
+  security-definer design exists to guarantee.
 - Still open: a trade log, deck-journal notes, a locals calendar. **No camera scan.**
 
 ### Data / price accuracy

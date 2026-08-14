@@ -41,6 +41,20 @@ auth + sync + hosting are the base the whole platform stands on.
   don't work from `file://`. The local `file://` build stays as the offline /
   local-art extra, deliberately **out of sync**.
 
+- **The daily job publishes, and fails loudly — shipped 2026-08-13.** Price history
+  can't be back-filled, so the collector is the one irreplaceable thing here — and it
+  used to fail silently into a log nobody reads. `pipeline/check_freshness.py` now
+  reports the newest snapshot, counts permanent holes in the history, and exits
+  non-zero when stale; `scripts/refresh.command` runs it, raises a **macOS
+  notification** on any failure, and then **publishes automatically**, so the phone
+  gets fresh prices daily instead of whenever a publish was remembered. Two
+  deliberate guards: a day that failed its freshness check is never published, and
+  an unattended publish is skipped when `app/build_app.py` has uncommitted changes,
+  since publish commits the generator with `docs/` and would otherwise push work in
+  progress to a public repo. The app also computes its own staleness at runtime
+  (`snapAge()`) and ambers the Home snapshot chip past 3 days — the macOS
+  notification never reaches the phone, and the phone is where it gets noticed.
+
 ## Next up
 
 Nothing large is committed yet. The nearest candidates, roughly by effort:

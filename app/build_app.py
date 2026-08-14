@@ -1141,6 +1141,21 @@ function pickDeck(n){St.active=n;sv();go('deck');}
 function esc(s){return (s||'').replace(/[&<>]/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[x];});}
 function f(v){return v==null?'<span class=mut>—</span>':'$'+v.toFixed(2);}
 function fdate(d){if(!d)return '';var p=(''+d).split('-');if(p.length<3)return ''+d;var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[+p[1]-1]+' '+p[2].replace(/^0/,'')+', '+p[0];}
+/* The build stamps its snapshot date at generation time, but the viewer's clock keeps
+   moving — so a build that stopped being refreshed can still work out that it has gone
+   stale. That matters more here than in most apps: the API only serves *today's* prices,
+   so a collector that quietly died is losing history nobody can ever recover. The daily
+   job raises a macOS notification, but that never reaches the phone; this does. */
+function snapAge(){var t=Date.parse('__DATE__'+'T00:00:00');
+  return isNaN(t)?null:Math.floor((Date.now()-t)/864e5);}
+function snapChip(){var a=snapAge();
+  /* The job runs at 1pm daily, so 0-1 days behind is the normal resting state and 2 can
+     just be a late look. 3+ means it has actually missed runs. */
+  if(a==null||a<3)return '<span>Snapshot <b>__DATE__</b></span>';
+  return '<span title="The daily job pulls prices and republishes this app. If this keeps '
+    +'climbing, it has stopped — check data/collector.log.">Snapshot '
+    +'<b style="color:var(--warn)">__DATE__</b> <span style="color:var(--warn)">&middot; '
+    +a+' days old</span></span>';}
 function rarClass(r){r=(r||'').toLowerCase();if(!r)return 'mut';
   if(/starlight|prismatic|ghost|ultimate|collector|quarter century/.test(r))return 'r-holo';
   if(/secret/.test(r))return 'r-secret'; if(/ultra|gold/.test(r))return 'r-ultra';
@@ -1284,7 +1299,7 @@ function rMenu(){var dN=Object.keys(St.decks).length,cN=Object.keys(St.collectio
   var html=intro+groups.map(function(g){return '<div class=mgh>'+g[0]+' <span class=mgs>'+g[1]+'</span></div>'
     +g[2].map(function(k){var i=IT[k];return '<div class=mitem onclick="go(\''+k+'\')"><div class=mic>'+i[0]+'</div><div><div class=mt>'+i[1]+'</div><div class=md>'+i[2]+'</div></div><div class=marrow>▸</div></div>';}).join('');}).join('');
   document.getElementById('menugrid').innerHTML=html;
-  document.getElementById('savebar').innerHTML='<span>Snapshot <b>__DATE__</b></span><span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span>'
+  document.getElementById('savebar').innerHTML=snapChip()+'<span>Collection <b>$'+lt('collection').toFixed(2)+'</b></span><span>Decks <b>'+dN+'</b></span><span>Wishlist <b>'+wN+'</b></span>'
     +(window.syncChip?window.syncChip():'')+'<span class=qlink onclick="showIntro()">▸ quick start</span>'
     +'<span class=mut style="font-size:10px" title="build __BUILD__ — check this matches after publishing">build __BUILD__</span>';}
 

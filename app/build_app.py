@@ -1720,7 +1720,7 @@ function lpReset(){if(!board)return;board.lp={you:startLP(),opp:startLP()};board
 /* ----- declared effects -----
    The board is a manual sim, so it can't know what a card does. Declaring it in your own
    words is what makes a line reviewable afterwards — the note sticks to the card AND lands
-   in a running list, which is the seed of the action log in notes/SIM_BOARD_PLAN.md. */
+   in a running list, which is the seed of the board's action log. */
 /* Declaring is one tap and records immediately — typing is optional, for when you want to
    clarify what the card is doing. `dec` marks it declared; `fx` holds the optional note. */
 function bDeclare(){var it=selInst();if(!it)return;

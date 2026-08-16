@@ -87,7 +87,7 @@ with RLS for sync · GitHub Pages + service worker for the PWA · launchd for au
 | [`pipeline/`](pipeline/) | `collect_snapshot.py` (the daily YGOPRODeck → SQLite pull), ban-list / rarity override CSVs, `sync_schema.sql`, the launchd plist |
 | [`app/`](app/) | `build_app.py` — the generator that emits the whole app. All the app's JavaScript lives inside it as a Python raw string |
 | [`docs/`](docs/) | **Generated** GitHub Pages bundle (the hosted PWA). Build output, not documentation — never hand-edited |
-| [`notes/`](notes/) | `ROADMAP.md` (the plan), `JOURNEY.md` (how it got here), `SYNC_DESIGN.md`, `TOOL.md` |
+| [`notes/`](notes/) | `ROADMAP.md` (the plan), `JOURNEY.md` (how it got here), `SYNC_DESIGN.md` (the sync + sharing design, and the traps hit building it) |
 
 `docs/` is the one confusing name, and it's forced — GitHub Pages serves only from the
 repo root or a directory literally named `docs/`. Project documentation is in `notes/`.
@@ -127,3 +127,41 @@ touches it.
 [`notes/ROADMAP.md`](notes/ROADMAP.md) is the single in-repo source of the plan — north
 star, status, backlog, far horizon. [`notes/JOURNEY.md`](notes/JOURNEY.md) is how the
 project got from a notebook to here.
+
+## What grew out of this
+
+The notebook answered its question in one pass. Each piece below exists because a single
+snapshot couldn't answer the question that came after it.
+
+**The daily snapshot collector** — [`pipeline/collect_snapshot.py`](pipeline/collect_snapshot.py)
+pulls YGOPRODeck once a day into SQLite, appending one dated price row per card across five
+marketplaces. It exists because the analysis's central limitation is that a cross-section
+can't see movement, and price history can't be back-filled — the API only serves today, so
+a day the job doesn't run is a permanent hole. A launchd job runs it at 1pm and
+[`pipeline/check_freshness.py`](pipeline/check_freshness.py) exits non-zero when the data is
+stale, so a bad day raises a notification instead of failing quietly into a log.
+
+**The deck planner** — [`app/deck_planner.py`](app/deck_planner.py) prices a `.ydk` decklist
+at current prices and computes the cost to finish it after subtracting what you already own.
+It's rarity-aware because the analysis made rarity the dominant term: if each step up the
+ladder is worth roughly +32%, the useful question isn't what a card costs but what a deck
+costs at the rarity you'd actually buy. Cards can be priced at the cheapest printing, at one
+chosen rarity, or per-card from an overrides CSV.
+
+**The Supabase sync layer** — localStorage is scoped per-origin and per-device, so the
+desktop build, the hosted site and the phone were three separate silos with a manual JSON
+export as the only bridge between them. Sync moves the one state object between devices: a
+single `app_state` row on Postgres with row-level security, an emailed one-time code for
+auth, and a DB-owned `updated_at` as the conflict key. Steady state is last-write-wins, but
+a pull that would discard unsynced local edits writes a backup and asks rather than
+overwriting — the design and the traps hit along the way are in
+[`notes/SYNC_DESIGN.md`](notes/SYNC_DESIGN.md).
+
+**The app build scripts** — [`app/build_app.py`](app/build_app.py) reads the SQLite database
+and writes the entire app as one self-contained page; all of the app's JavaScript lives
+inside that generator as a Python string, so the generated page is never edited by hand and
+can't drift from its source. [`scripts/refresh.command`](scripts/refresh.command) chains the
+daily pull, the freshness check and a publish, and
+[`scripts/publish.command`](scripts/publish.command) pushes the `docs/` bundle to GitHub
+Pages, staging the generator alongside its output for the same reason. One Python file in,
+one HTML file out — no framework and no build step.

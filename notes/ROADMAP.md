@@ -1,14 +1,12 @@
 # CYBERSE — roadmap & game plan
 
-*The single in-repo source of the plan, so Claude Code (and any future session)
-sees the whole trajectory. Companion to CLAUDE.md (how it's built) and
-SYNC_DESIGN.md (the detailed spec for the next milestone). Last updated
-2026-08-07.*
+*The single in-repo source of the plan — north star, status, backlog, far horizon.
+`SYNC_DESIGN.md` holds the detailed design for the sync and sharing layer.*
 
 ## North star
 
-A personal Yu-Gi-Oh! **pocket app** that grows into a small **platform**: your
-collection/decks/budget/playtesting on your phone, and eventually **online duels**,
+A personal Yu-Gi-Oh! **pocket app** that grows into a small **platform**: my
+collection/decks/budget/playtesting on my phone, and eventually **online duels**,
 a **mini marketplace**, and **shareable profiles & collections**. Everything below
 ladders up to that. The order is chosen so each step lays foundation for the next —
 auth + sync + hosting are the base the whole platform stands on.
@@ -21,13 +19,13 @@ auth + sync + hosting are the base the whole platform stands on.
 - **Multi-rarity / conditions** per collection & wishlist line.
 - **Solo playtest board** — DuelingBook-style manual field (5 monster / 5 S-T / 2
   EMZ / field spell, interactable deck/extra/GY/banished piles, tap-to-move,
-  ATK/DEF/Set). No rules automation yet.
+  ATK/DEF/Set). No rules automation, by design — see the duel-field section below.
 - **Mobile**: installable PWA (manifest + service worker, versioned cache),
   hosted on **GitHub Pages** from `docs/`, card art via CDN when hosted. Full
   responsive layout pass. Live at
   `https://cinnamook.github.io/yugioh-price-analysis/`.
 
-- **Cross-device sync — Phase 1 shipped 2026-08-07.** Supabase: emailed one-time
+- **Cross-device sync — Phase 1.** Supabase: emailed one-time
   code (not a clickable link — see SYNC_DESIGN.md), one
   `app_state(user_id, data jsonb, updated_at)` row with row-level security and a
   DB-owned `updated_at`, pull-on-load, debounced push wired into `sv()`,
@@ -36,12 +34,12 @@ auth + sync + hosting are the base the whole platform stands on.
   `pipeline/sync_schema.sql`; setup steps and traps in SYNC_DESIGN.md. This is also the
   **auth foundation** the marketplace / profiles / online duels will reuse.
 
-  **Decided 2026-08-07:** the **hosted** app is the everyday app on *every*
-  device, desktop included — the only viable sync target, since auth redirects
-  don't work from `file://`. The local `file://` build stays as the offline /
-  local-art extra, deliberately **out of sync**.
+  The **hosted** app is the everyday app on *every* device, desktop included — the
+  only viable sync target, since auth redirects don't work from `file://`. The
+  local `file://` build stays as the offline / local-art extra, deliberately
+  **out of sync**.
 
-- **The daily job publishes, and fails loudly — shipped 2026-08-13.** Price history
+- **The daily job publishes, and fails loudly.** Price history
   can't be back-filled, so the collector is the one irreplaceable thing here — and it
   used to fail silently into a log nobody reads. `pipeline/check_freshness.py` now
   reports the newest snapshot, counts permanent holes in the history, and exits
@@ -60,37 +58,36 @@ auth + sync + hosting are the base the whole platform stands on.
 Nothing large is committed yet. The nearest candidates, roughly by effort:
 
 - **Sync Phase 2** — the "last synced" indicator and manual *Sync now* are
-  **done (2026-08-09)**: both already existed, but `lastSync` was held only in
+  **done**: both already existed, but `lastSync` was held only in
   memory, so after a reload the chip said "Synced ✓" with no time and Profile's
-  LAST SYNCED figure disappeared entirely — exactly when you most want to know
+  LAST SYNCED figure disappeared entirely — exactly when it matters most to know
   whether the phone is current. It is now persisted (`ygo_sync_at`), stamped on
   push, on a no-op pull and on adopting a remote copy, cleared on sign-out, and
   the chip refreshes itself in place every 30s instead of freezing at whatever
   it read when the menu was last drawn. Still open: offline write-queue
   hardening, and conflict safety beyond last-write-wins if it ever actually bites.
-- ~~**Mobile numeric keypads**~~ — **audited 2026-08-09 and already complete.** All 19
+- **Mobile numeric keypads** — **already complete.** All 19
   numeric fields carry `inputmode`, `decimal` vs `numeric` is assigned correctly
   (money vs integers), quantities are +/− steppers rather than typed, and the only
   `prompt()` calls ask for deck names. Nothing left to do here.
-- ~~**Duel-field work**~~ — a large pass shipped 2026-08-07 (drag, life points,
+- **Duel-field work** — a large pass shipped (drag, life points,
   Xyz materials, tokens, declared effects, an opponent's side, pile menus, turn
   phases, card info, mobile ergonomics). **Now parked** until the multiplayer
-  work, per SIM_BOARD_PLAN.md; remaining Tier 1/2 items wait unless something
-  specific gets in the way while playing.
+  work; remaining items wait unless something specific gets in the way while
+  playing.
 
 ## Backlog
 
 ### QoL / mobile polish
-- ~~**First-run experience**~~ — **done 2026-08-09.** Two real defects, both found by
+- **First-run experience** — **done.** Two real defects, both found by
   opening the app at phone width with localStorage cleared: the quick-start card told
   new users to "begin in **Cards & decks**", a Home group the narrow layout doesn't
   render at all (Browse/Decks/Collection live in the bottom bar there), and the Deck
   tab — where the quick-start sends them — showed three sections each saying just
   "empty". The intro now names what is actually on screen at that width, and each deck
   section says what belongs in it and points at an action on the same screen.
-- ~~**Numeric inputs open the number pad on mobile**~~ — **done** (verified by audit
-  2026-08-09; see "Next up" above).
-- ~~**Phone-width polish pass**~~ — **done 2026-08-09.** Audited all 12 views at 390px
+- **Numeric inputs open the number pad on mobile** — **done** (see "Next up" above).
+- **Phone-width polish pass** — **done.** All 12 views checked at 390px
   with real data. Horizontal overflow was **zero everywhere** — the earlier responsive
   pass holds. Three controls were genuinely too small to hit and are now fixed behind
   the existing 900px breakpoint, so desktop is untouched (re-measured to confirm):
@@ -105,27 +102,59 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   autocorrects inside the six search-style fields (card name, archetype, list
   filter, add-a-card, sets search, and the match log's `+Ash, -Maxx` impact field).
   Same class of problem as the keypads, and the natural successor to it.
-- ~~**Import a deck from a link**~~ — **shipped 2026-08-09.** "Import from link" in the
+- **Import a deck from a link** — **shipped.** "Import from link" in the
   deck bar accepts a **ydke://** URI (the EDOPro / DuelingBook / YGOPRODeck
   interchange format, which carries the whole deck inside the URI, so it needs no
   network), a ydke:// embedded in a longer share link, or an http(s) link to a
   `.ydk` file, which it fetches and parses.
   **Known limit, not a bug:** a YGOPRODeck *deck page* URL cannot be imported —
   that page sends no `Access-Control-Allow-Origin`, so the browser blocks any
-  cross-origin read of it. Verified 2026-08-09. The failure message says so and
+  cross-origin read of it. The failure message says so and
   points at the deck page's own **YDKE** button instead.
 
 ### Duel-field improvements (extend the solo board)
-- **Life-point calculator / tracker** — per-player LP with +/− adjustments and a
-  small history; the natural companion to the manual board.
-- **Xyz overlay / materials** — attach monsters *under* an Xyz monster as
-  materials, with a visual overlay and a detach action. (The board slots already
-  hold stacks, so the data side is close; this is mostly the attach/detach UX.)
-- **Tap-and-drag** movement as an alternative/addition to tap-to-move.
-- Likely adjacent later: counters/tokens, coin/die, a phase indicator.
+
+The board is deliberately **manual**: it automates no rulings. Instead it lets any
+card move to any location in any state, and adds tools for the parts of the game
+that aren't cards — life points, counters, tokens, dice. Because the player enacts
+each effect by hand, the board covers all ~14k cards, and every card printed after
+it, without encoding a single ruling. The versatility comes from a rich, universal
+per-card action vocabulary plus those state tools, not from card logic — which is
+why widening the vocabulary is worth more here than any amount of automation.
+
+Already in: proper field, tap-to-move and tap-and-drag, ATK/DEF/Set placement,
+pile viewers with draw / mill / banish / shuffle, a life-point tracker with exact
+undo, Xyz materials that travel with their host, tokens, declared effects, a
+mirrored opponent's side, turn phases, dice and coin, per-card counters, temporary
+ATK/DEF, an action log, and whole-board-snapshot undo.
+
+Remaining, roughly by value:
+
+- **Equip / attach card-to-card** — attach a spell (or a monster) to a monster as
+  an equip; they move together; unattach to the right pile. (The `mat` array added
+  for Xyz materials is the obvious mechanism to reuse.)
+- **Place to any specific zone, any orientation** — confirm a card can be sent to
+  *any* zone or pile in face-up/face-down and ATK/DEF from anywhere (the manual
+  "escape hatch" that makes odd effects representable).
+- **Reveal / peek** — reveal a card (or the whole hand) to the log for effects, and
+  privately peek at a face-down card.
+- **Excavate top N** — look at the top N of the deck, then reorder / keep / send.
+- **Return-from-pile destinations** — from GY or banished back to hand / field /
+  deck top / deck bottom (the pile viewer already opens; ensure every destination
+  is offered).
+- **Multi-select / group move** — select several cards at once (e.g. shuffle 3 back
+  from hand).
+- **Save / restore a board state** — snapshot a set-up board and reload it, so a
+  specific scenario or combo start can be tested repeatedly.
+- **Board replay** — step through the action log. (A stepping-stone toward the
+  online-duel layer.)
+
+Targeting graphics, in-duel chat, spectating, replays-as-shared-links, matchmaking
+and a *networked* second player all belong to the online-duel milestone below, not
+to the solo board.
 
 ### Pocket niceties
-- ~~**Shareable deck links**~~ — **shipped 2026-08-09.** "Copy deck link" puts the
+- **Shareable deck links** — **shipped.** "Copy deck link" puts the
   whole deck in the URL fragment as a `ydke://` URI, so sharing needs no server, no
   account and no row anywhere; the recipient's app decodes it locally. A full
   60/15/15 deck is ~500 characters of payload, far inside any URL limit. A fragment
@@ -134,15 +163,14 @@ Nothing large is committed yet. The nearest candidates, roughly by effort:
   **new** deck, consumes the fragment so a reload can't re-prompt, and a corrupt
   fragment is ignored. Links made from the `file://` build point at the hosted app,
   since a local path is useless to anyone else.
-- ~~**Shareable collection**~~ — **shipped 2026-08-09.** Too big for a URL, so it
+- **Shareable collection** — **shipped and live.** Too big for a URL, so it
   stores a snapshot in a new `shares` table — the project's first public read path.
   Kept off `app_state` deliberately, snapshot rather than live view, and an
   allow-list of card/rarity/condition/quantity that excludes the per-line price
   override and everything from bank/match log. Public reads go through a
   `security definer` `get_share(slug)` function rather than a table grant, so the
   table cannot be listed. "Stop sharing" deletes the row. Design notes in
-  SYNC_DESIGN.md.
-  **Live as of 2026-08-13** — `pipeline/sync_schema.sql` has been run against the
+  SYNC_DESIGN.md. `pipeline/sync_schema.sql` has been run against the
   Supabase project. Verified from outside with the public anon key: `get_share()` on
   an unknown slug returns `[]` rather than an error, and `anon` gets `42501
   insufficient_privilege` on both `shares` and `app_state` — so a slug can be
@@ -165,10 +193,3 @@ base, which is why sync comes first.
 - **Shareable profiles & collections** — public read-only views of a user's
   collection/decks/record.
 - A broader **community / forum** around all of the above.
-
-## How we work
-
-Pair-programming; **Ryan makes the calls** and values understanding how things are
-built. Day-to-day coding is in **Claude Code** (runs in this repo). Planning,
-roadmap, and design docs are maintained on the Cowork side and land here as files
-like this one. Don't let two tools edit the working tree at once.

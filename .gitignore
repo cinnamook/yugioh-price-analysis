@@ -44,3 +44,17 @@ env/
 
 # Downloaded card art (large, local cache)
 data/images/
+
+# --- AI tooling (local dev config, not part of the project) ---
+CLAUDE.md
+.claude/
+.cursor/
+.cursorrules
+.cursorignore
+.aider*
+.continue/
+.windsurfrules
+.codeium/
+.github/copilot-instructions.md
+AGENTS.md
+GEMINI.md
